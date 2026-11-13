@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "format": "native-4dgs-conditioned-f32-v1",
+  "title": "D-NeRF \u00b7 Mutant",
+  "description": "A trained synthetic humanoid research example.",
+  "method": "Native 4D Gaussian Splatting (Yang et al.)",
+  "methodUrl": "https://github.com/LogosIntelligenceLab/4d-gaussian-splatting",
+  "sourceUrl": "https://huggingface.co/youngbongbong/4dgs/tree/5e71153953624e09e7d2ff4ea1e839fc3ca75716",
+  "checkpoint": "4dgs_mutant_iter30000.pth",
+  "checkpointSha256": "b001bba170b9e0c3ef545eabab68227668edfabbedcab58336b6370c7d9a562c",
+  "checkpointIteration": 30000,
+  "declaredCheckpointLicense": "Apache-2.0",
+  "provenanceNote": "Community checkpoint. Original training inputs and training run were not independently verified.",
+  "displayNote": "Continuous conditional means, anisotropic covariances and temporal opacity. DC color only; higher-order view-dependent color is omitted.",
+  "count": 120007,
+  "floatsPerGaussian": 20,
+  "data": "model.bin",
+  "dataBytes": 8695563,
+  "dataSha256": "f5b159645bb7fac6cf869409ef31aee31c02f09139768ce98ac2ccd87292a911",
+  "timeRange": [
+    0,
+    1
+  ],
+  "cycleSeconds": 8,
+  "center": [
+    -0.017566574295136195,
+    0.05162361679723304,
+    0.3111428361907992
+  ],
+  "radius": 1.1401729557358693
+}

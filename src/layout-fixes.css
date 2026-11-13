@@ -1,0 +1,5 @@
+@media(max-width:700px){
+  .ground-report{display:grid;grid-template-columns:32px 1fr;gap:12px}
+  .ground-report .button{grid-column:2;margin-left:0;justify-self:start}
+  .ground-report p{max-width:260px}
+}
