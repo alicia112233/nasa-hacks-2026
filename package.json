@@ -12,8 +12,8 @@
     "test:a11y": "playwright test tests/browser/accessibility.spec.ts"
   },
   "dependencies": {
-    "@fontsource/dm-mono": "^5.2.7",
-    "@fontsource/dm-sans": "^5.2.8",
+    "@fontsource/barlow": "^5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
     "@mediapipe/tasks-vision": "^0.10.32",
     "@sparkjsdev/spark": "2.4.0",
     "lucide-react": "^0.468.0",

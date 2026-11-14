@@ -1,0 +1,72 @@
+{
+  "holdout_female_heavier": {
+    "body": "female, weight macro 0.8",
+    "profile": {
+      "sex": "female",
+      "heightCm": 160,
+      "massKg": 72.2
+    },
+    "expected": {
+      "shoulders": 0,
+      "waist": 0,
+      "hips": 0
+    },
+    "scan": {
+      "shoulders": 0.973,
+      "waist": 0.5408,
+      "hips": 0.8166,
+      "armAngle": 27,
+      "frames": 9
+    },
+    "recovered": {
+      "shoulders": -0.096,
+      "waist": 0.29,
+      "hips": -0.112
+    }
+  },
+  "holdout_shoulders_wide_hips_narrow": {
+    "body": "reference, shoulders +0.5, hips -0.5",
+    "profile": {},
+    "expected": {
+      "shoulders": 0.5,
+      "waist": 0,
+      "hips": -0.5
+    },
+    "scan": {
+      "shoulders": 1.0566,
+      "waist": 0.5511,
+      "hips": 0.6952,
+      "armAngle": 32,
+      "frames": 9
+    },
+    "recovered": {
+      "shoulders": 0.472,
+      "waist": 0.172,
+      "hips": -0.544
+    }
+  },
+  "holdout_muscular_woman_waist_narrow": {
+    "body": "female, muscle macro 0.88, waist -0.6",
+    "profile": {
+      "sex": "female",
+      "build": "muscular"
+    },
+    "expected": {
+      "shoulders": 0,
+      "waist": -0.6,
+      "hips": 0
+    },
+    "scan": {
+      "shoulders": 0.9504,
+      "waist": 0.4866,
+      "hips": 0.7675,
+      "armAngle": 27,
+      "frames": 9
+    },
+    "recovered": {
+      "shoulders": -0.328,
+      "waist": -0.599,
+      "hips": 0.02
+    }
+  }
+}

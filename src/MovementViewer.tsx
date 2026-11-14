@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Play, Pause, RotateCcw, Move3d, Maximize2, Layers3, ChevronDown, Camera, Minus, Plus } from 'lucide-react';
 import type { PoseFrame } from './types';
-import './gaussian-viewer.css';
 
 const GaussianSequenceViewer = lazy(() => import('./GaussianSequenceViewer'));
 
@@ -97,7 +96,7 @@ export default function MovementViewer(props: Props) {
   if (!props.simulated) return <PoseMovementViewer {...props}/>;
   return <div className="movement-viewer">
     <div className="reconstruction-switch" role="group" aria-label="Movement display">
-      <button aria-pressed={display === 'reconstruction'} onClick={() => setDisplay('reconstruction')}>Trained 4DGS</button>
+      <button aria-pressed={display === 'reconstruction'} onClick={() => setDisplay('reconstruction')}>4DGS reference</button>
       <button aria-pressed={display === 'pose'} onClick={() => setDisplay('pose')}>Pose comparison</button>
     </div>
     {display === 'reconstruction'
@@ -126,7 +125,7 @@ function PoseMovementViewer({ onRecord, onEvidence, sol = 42, simulated, frames,
     try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
     catch { setFailed(true); return; }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
-    renderer.setClearColor('#edf1e8', 0);
+    renderer.setClearColor('#f4f1e8', 0);
     container.appendChild(renderer.domElement);
     renderer.domElement.setAttribute('aria-label', 'Interactive 3D astronaut movement comparison. Drag to orbit, scroll to zoom.');
     renderer.domElement.setAttribute('role', 'img');
@@ -244,7 +243,7 @@ function PoseMovementViewer({ onRecord, onEvidence, sol = 42, simulated, frames,
   }
 
   return <section className="panel movement-panel">
-    <div className="panel-heading"><div><div className="eyebrow">MOVEMENT DIARY <span className="tiny-badge">3D + TIME</span></div><h2>Your movement, in perspective.</h2></div><button className="icon-button" title="Record a movement" onClick={onRecord}><Camera size={18}/></button></div>
+    <div className="panel-heading"><h3>Pose · today against your ghost</h3><button className="icon-btn" aria-label="Record a movement" onClick={onRecord}><Camera size={18}/></button></div>
     <div className="movement-stage">
       <div ref={mount} className="three-mount" />
       {(failed || (!simulated && !frames?.length)) && <div className="webgl-fallback"><Move3d size={48}/><p>{failed ? '3D preview needs WebGL.' : 'No confident pose was detected.'}</p><span>{failed ? 'Your diary and check-ins are still available.' : 'Your original video is retained for review.'}</span></div>}

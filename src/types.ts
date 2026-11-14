@@ -6,20 +6,34 @@ export interface CheckIn {
   reactionMs: number | null;
   missed: number;
   signals: number;
-  sleep: number;
-  mood: number;
-  energy: number;
+  sleep?: number;
+  mood?: number;
+  energy?: number;
   symptoms: string[];
   heartRate?: number;
   notes: string;
   leftRange?: number;
   rightRange?: number;
+  /** Self-reported symptoms: 0 none, 1 mild, 2 strong. */
+  dizziness?: number;
+  vision?: number;
+  breath?: number;
+  joint?: number;
+  gut?: number;
+  skin?: number;
+  grip?: number;
+  back?: number;
+  /** Self-reported 1–5 scales. */
+  workload?: number;
+  team?: number;
+  appetite?: number;
+  exerciseMin?: number;
 }
 
 export interface FollowUp {
   id: string;
   title: string;
-  kind: 'movement' | 'attention' | 'wellbeing';
+  kind: 'movement' | 'attention' | 'wellbeing' | RegionId;
   notes: string;
   checklist: string[];
   createdAt: string;
@@ -43,10 +57,16 @@ export interface Recording {
   rightRange: number | null;
 }
 
+/** Body measurements shape the 3D body; they never leave the device. */
+export interface Profile {
+  name: string; initials: string; mission: string; duration: number; startDate?: string;
+  sex?: 'female' | 'male'; heightCm?: number; massKg?: number; build?: 'slight' | 'average' | 'muscular';
+}
+
 export interface MissionState {
   checkIns: CheckIn[];
   actions: FollowUp[];
-  profile: { name: string; initials: string; mission: string; duration: number; startDate?: string };
+  profile: Profile;
   demo: boolean;
   packets?: MissionPacket[];
 }
@@ -73,6 +93,7 @@ export interface MissionPacket {
   limitations: string[];
 }
 
-export type Page = 'overview' | 'lens' | 'movement' | 'flight' | 'insights' | 'actions';
+export type Page = 'body' | 'trends' | 'handoff' | 'mission';
+export type RegionId = 'head' | 'eyes' | 'chest' | 'abdomen' | 'arms' | 'hands' | 'pelvis' | 'legs' | 'cabin';
 export type FlagKind = 'movement' | 'attention' | 'wellbeing';
 export type HazardId = 'isolation' | 'gravity' | 'environment' | 'distance' | 'radiation';

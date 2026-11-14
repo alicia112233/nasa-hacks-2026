@@ -7,3 +7,4 @@ playwright-report/
 .npm-cache/
 .4dgs-cache/
 __pycache__/
+.cache/

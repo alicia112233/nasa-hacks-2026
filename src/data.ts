@@ -9,18 +9,20 @@ export function createDemo(): MissionState {
   missionStart.setHours(0, 0, 0, 0);
   return {
     demo: true,
-    profile: { name: 'Alex Morgan', initials: 'AM', mission: 'Ares I', duration: 180, startDate: missionStart.toISOString() },
+    profile: { name: 'Alex Morgan', initials: 'AM', mission: 'Ares I', duration: 180, startDate: missionStart.toISOString(), sex: 'female', heightCm: 168, massKg: 62, build: 'muscular' },
     checkIns: Array.from({ length: 14 }, (_, i) => {
       const date = new Date();
-      date.setDate(date.getDate() - 13 + i);
+      date.setDate(date.getDate() - 14 + i);
       date.setHours(9, 0, 0, 0);
       return {
-        id: `demo-${i}`, date: date.toISOString(), sol: 29 + i, simulated: true,
+        id: `demo-${i}`, date: date.toISOString(), sol: 28 + i, simulated: true,
         reactionMs: reactions[i], missed: i > 10 ? 1 : 0, signals: 12,
         sleep: sleeps[i], mood: i > 10 ? 3 : 4, energy: i > 10 ? 2 : 4,
         symptoms: i > 11 ? ['Fatigue', 'Shoulder discomfort'] : [],
         heartRate: i > 10 ? 68 : 64, notes: i > 11 ? 'Slight stiffness during shoulder mobility.' : '',
         leftRange: ranges[i], rightRange: 153 - (i > 10 ? 2 : 0),
+        workload: i > 10 ? 2 : 4, team: 4, appetite: i > 10 ? 3 : 4, exerciseMin: i > 10 ? 35 : 75,
+        dizziness: 0, vision: i > 11 ? 1 : 0, breath: 0, joint: 0, gut: 0, skin: 0, grip: 0, back: i > 12 ? 1 : 0,
       };
     }),
     actions: [],
