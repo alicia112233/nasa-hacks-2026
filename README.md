@@ -14,7 +14,7 @@ Built for the NASA Space Apps Challenge 2026 [health monitoring software challen
 | Page | What it shows |
 | --- | --- |
 | Every page | The crew switch at the right of the top bar: who is shown, switch member, Edit profile, Add crew member |
-| Body | 3D body index shaped to the crew member, Scan me above it, a Preflight / Sol toggle for the zero-g body, and the selected region's procedure card or the crew card (name, mission and body facts, edited in place) |
+| Body | 3D body index shaped to the crew member, Profile and Scan me above it (Profile toggles the crew card, one click from any region), a Preflight / Sol toggle for the zero-g body, and the selected region's procedure card or the crew card (name, mission and body facts, edited in place) |
 | Trends | Last 3 vs ghost for eleven measures (including thigh breadth from the scan), a chart with the ghost line, and check-in history |
 | Handoff | One-way delay (0–30 min), blackout drill, saved handoffs, ground reports, follow-ups |
 | Mission | All 17 NASA risks mapped to regions and checks, NASA ISS radiation and habitat data, data source (demo or personal) and clearing records, sources |

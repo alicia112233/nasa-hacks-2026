@@ -50,6 +50,7 @@ test('the top bar names who is shown on every page, and switching crew switches 
   await expect(page.getByRole('img', { name: 'Done: 61 bpm' })).toBeVisible();
   await page.reload();
   await expect(who).toContainText('Priya Nair');
+  await page.getByRole('list', { name: 'Body regions' }).getByRole('button', { name: /^C Chest/ }).click();
   await expect(page.getByRole('img', { name: 'Done: 61 bpm' })).toBeVisible();
   await who.click();
   await page.getByRole('list', { name: 'Crew' }).getByRole('button', { name: /Alex Morgan/ }).click();

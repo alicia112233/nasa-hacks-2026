@@ -166,5 +166,12 @@ test('the crew card edits in place: name, shape and height reshape the body besi
   // Picking a region returns to its procedure card.
   await page.getByRole('button', { name: /^H Legs/ }).click();
   await expect(page.getByRole('heading', { name: 'Legs', level: 2 })).toBeVisible();
+  // One click back to the profile from any region, and again back to the region.
+  const profile = page.getByRole('button', { name: 'Profile', exact: true });
+  await profile.click();
+  await expect(profile).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel('Height')).toHaveValue('188');
+  await profile.click();
+  await expect(page.getByRole('heading', { name: 'Legs', level: 2 })).toBeVisible();
   await expect(page.locator('.tag[data-region="head"]')).toHaveCSS('opacity', '1', { timeout: 20000 });
 });

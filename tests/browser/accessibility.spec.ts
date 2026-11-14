@@ -75,7 +75,9 @@ for (const width of [1440, 390]) {
     await page.keyboard.press('Escape');
     await page.goto('/#body');
     await page.locator('.crew-switch-btn').click();
-    await audit();
+    // The open crew list floats over the page; check the list itself (what it covers is checked with it closed).
+    const menu = await new AxeBuilder({ page }).include('.crew-switch').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
+    expect(menu.violations.map(v => v.id)).toEqual([]);
     await page.getByRole('button', { name: 'Edit profile' }).click();
     await expect(page.getByLabel('Height')).toBeVisible();
     await audit();

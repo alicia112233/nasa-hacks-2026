@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { CircleCheck, ScanLine, WifiOff, X } from 'lucide-react';
+import { CircleCheck, ScanLine, User, WifiOff, X } from 'lucide-react';
 import BodyView, { type RegionState } from './BodyView';
 import { physique, zeroGForSol } from './physique.mjs';
 import { thighCm } from './scan.mjs';
@@ -217,6 +217,8 @@ export default function App() {
           {/* Its own row above the stage, so it never covers a region tag. */}
           <div className="crew-bar">
             {/* The one scan button: one tap from the body to the camera. */}
+            {/* Back to height, weight and the rest after picking a region: one click, amber while open, like a region. */}
+            <button className="stage-scan" aria-pressed={crewOpen} onClick={() => { setCrewOpen(!crewOpen); if (!crewOpen) revealCard(); }}><User size={16} aria-hidden="true"/> Profile</button>
             <button className="stage-scan" onClick={() => { setCrewOpen(true); setModal('scan-setup'); }}><ScanLine size={16}/> {mission.profile.scan ? 'Rescan' : 'Scan me'}</button>
           </div>
           <BodyView selected={crewOpen ? null : selected} states={statuses as Record<string, { state: RegionState }>} onSelect={pickRegion} shape={shape}>
