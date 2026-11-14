@@ -72,6 +72,16 @@ for (const width of [1440, 390]) {
     await page.getByRole('button', { name: /Shoulder range/ }).click();
     await page.getByRole('button', { name: 'Record 12 s' }).click();
     await audit();
+    await page.keyboard.press('Escape');
+    await page.goto('/#body');
+    await page.locator('.crew-switch-btn').click();
+    await audit();
+    await page.getByRole('button', { name: 'Edit profile' }).click();
+    await expect(page.getByLabel('Height')).toBeVisible();
+    await audit();
+    await page.getByRole('button', { name: /Scan me/ }).click();
+    await expect(page.getByRole('dialog', { name: 'Body scan · 5 s' })).toBeVisible();
+    await audit();
   });
 }
 

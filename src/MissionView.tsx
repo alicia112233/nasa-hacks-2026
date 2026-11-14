@@ -4,25 +4,22 @@ import { checks, coverage, hazards, regions, risksUrl } from './body.mjs';
 import { researchSources } from './research.mjs';
 import { downloadFile } from './data';
 import NasaData, { useEda } from './NasaData';
-import { LIMITS, physique } from './physique.mjs';
-import type { MissionState, Profile, RegionId } from './types';
+import type { MissionState, RegionId } from './types';
 
 interface Props {
   mission: MissionState;
   onOpenRegion: (id: RegionId) => void;
-  onProfile: (patch: Partial<Profile>) => void;
   onSource: (demo: boolean) => void;
   onReloadDemo: () => void;
   onClear: () => Promise<void>;
 }
 
-export default function MissionView({ mission, onOpenRegion, onProfile, onSource, onReloadDemo, onClear }: Props) {
+export default function MissionView({ mission, onOpenRegion, onSource, onReloadDemo, onClear }: Props) {
   const rows = coverage();
   const { data } = useEda();
   const [confirm, setConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [clearError, setClearError] = useState('');
-  const { bmi } = physique(mission.profile);
 
   async function clear() {
     setClearing(true);
@@ -70,26 +67,7 @@ export default function MissionView({ mission, onOpenRegion, onProfile, onSource
     </section>
 
     <section className="sheet">
-      <h2>Crew</h2>
-      <form key={JSON.stringify(mission.profile)} className="stack" onSubmit={e => {
-        e.preventDefault();
-        const f = new FormData(e.currentTarget);
-        const num = (k: string) => { const raw = String(f.get(k) ?? '').trim(); const n = Number(raw); return raw && Number.isFinite(n) ? n : undefined; };
-        onProfile({ name: String(f.get('name')).trim(), mission: String(f.get('mission')).trim(), sex: (f.get('sex') || undefined) as Profile['sex'],
-          heightCm: num('height'), massKg: num('mass'), build: (f.get('build') || 'average') as Profile['build'] });
-      }}>
-        <label className="field">Name<input name="name" required maxLength={40} defaultValue={mission.profile.name}/></label>
-        <label className="field">Mission<input name="mission" required maxLength={40} defaultValue={mission.profile.mission}/></label>
-        <div className="field-pair">
-          <label className="field">Sex<select name="sex" defaultValue={mission.profile.sex ?? ''}><option value="">Not set</option><option value="female">Female</option><option value="male">Male</option></select></label>
-          <label className="field">Build<select name="build" defaultValue={mission.profile.build ?? 'average'}><option value="slight">Slight</option><option value="average">Average</option><option value="muscular">Muscular</option></select></label>
-          <label className="field">Height cm<input name="height" type="number" inputMode="numeric" min={LIMITS.heightCm[0]} max={LIMITS.heightCm[1]} step={1} defaultValue={mission.profile.heightCm ?? ''}/></label>
-          <label className="field">Mass kg<input name="mass" type="number" inputMode="decimal" min={LIMITS.massKg[0]} max={LIMITS.massKg[1]} step={0.5} defaultValue={mission.profile.massKg ?? ''}/></label>
-        </div>
-        <p className="muted">Shapes your body model{bmi != null && <> · BMI {bmi}</>}. Stays on this device.</p>
-        <button className="btn">Save</button>
-      </form>
-      <h3>Data</h3>
+      <h2>Data</h2>
       <div className="seg" role="group" aria-label="Data source">
         <button aria-pressed={mission.demo} onClick={() => onSource(true)}>Demo</button>
         <button aria-pressed={!mission.demo} onClick={() => onSource(false)}>My records</button>

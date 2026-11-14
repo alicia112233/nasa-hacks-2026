@@ -1,72 +1,350 @@
 {
-  "holdout_female_heavier": {
-    "body": "female, weight macro 0.8",
-    "profile": {
+  "holdout": {
+    "holdout_f_heavier": {
+      "profile": {
+        "heightCm": 170,
+        "massKg": 81.5
+      },
       "sex": "female",
-      "heightCm": 160,
-      "massKg": 72.2
+      "build": "average",
+      "fine": {
+        "shoulders": 0,
+        "waist": 0,
+        "hips": 0
+      },
+      "scan": {
+        "shoulders": 0.9538,
+        "waist": 0.6102,
+        "hips": 0.7645,
+        "thighs": 0.3807,
+        "arms": 0.1731,
+        "thighOfHeight": 0.09935,
+        "armAngle": 26,
+        "frames": 9
+      },
+      "detected": {
+        "sex": "female",
+        "build": "average",
+        "sure": {
+          "sex": true,
+          "build": false
+        },
+        "margin": {
+          "sex": 13.22,
+          "build": 1.42
+        }
+      },
+      "recovered": {
+        "shoulders": -0.045,
+        "waist": -0.006,
+        "hips": 0.006
+      }
     },
-    "expected": {
-      "shoulders": 0,
-      "waist": 0,
-      "hips": 0
+    "holdout_m_shoulders_wide_hips_narrow": {
+      "profile": {
+        "heightCm": 170,
+        "massKg": 62.7
+      },
+      "sex": "male",
+      "build": "average",
+      "fine": {
+        "shoulders": 0.5,
+        "waist": 0,
+        "hips": -0.5
+      },
+      "scan": {
+        "shoulders": 1.0356,
+        "waist": 0.562,
+        "hips": 0.644,
+        "thighs": 0.3225,
+        "arms": 0.1718,
+        "thighOfHeight": 0.08779,
+        "armAngle": 33,
+        "frames": 9
+      },
+      "detected": {
+        "sex": "male",
+        "build": "average",
+        "sure": {
+          "sex": true,
+          "build": false
+        },
+        "margin": {
+          "sex": 12.22,
+          "build": 0.29
+        }
+      },
+      "recovered": {
+        "shoulders": 0.244,
+        "waist": -0.087,
+        "hips": -0.424
+      }
     },
-    "scan": {
-      "shoulders": 0.973,
-      "waist": 0.5408,
-      "hips": 0.8166,
-      "armAngle": 27,
-      "frames": 9
+    "holdout_f_muscular_waist_narrow": {
+      "profile": {
+        "heightCm": 170,
+        "massKg": 62.7
+      },
+      "sex": "female",
+      "build": "muscular",
+      "fine": {
+        "shoulders": 0,
+        "waist": -0.6,
+        "hips": 0
+      },
+      "scan": {
+        "shoulders": 0.9489,
+        "waist": 0.5514,
+        "hips": 0.7213,
+        "thighs": 0.3594,
+        "arms": 0.1587,
+        "thighOfHeight": 0.09404,
+        "armAngle": 27,
+        "frames": 9
+      },
+      "detected": {
+        "sex": "female",
+        "build": "muscular",
+        "sure": {
+          "sex": true,
+          "build": false
+        },
+        "margin": {
+          "sex": 11.89,
+          "build": 1.69
+        }
+      },
+      "recovered": {
+        "shoulders": -0.012,
+        "waist": -0.252,
+        "hips": -0.006
+      }
     },
-    "recovered": {
-      "shoulders": -0.096,
-      "waist": 0.29,
-      "hips": -0.112
+    "holdout_m_slight_light": {
+      "profile": {
+        "heightCm": 170,
+        "massKg": 53.3
+      },
+      "sex": "male",
+      "build": "slight",
+      "fine": {
+        "shoulders": 0,
+        "waist": 0,
+        "hips": 0
+      },
+      "scan": {
+        "shoulders": 1.013,
+        "waist": 0.5849,
+        "hips": 0.6943,
+        "thighs": 0.3048,
+        "arms": 0.1373,
+        "thighOfHeight": 0.07964,
+        "armAngle": 32,
+        "frames": 9
+      },
+      "detected": {
+        "sex": "male",
+        "build": "slight",
+        "sure": {
+          "sex": true,
+          "build": false
+        },
+        "margin": {
+          "sex": 11.09,
+          "build": 0.98
+        }
+      },
+      "recovered": {
+        "shoulders": 0.005,
+        "waist": -0.306,
+        "hips": -0.295
+      }
+    },
+    "holdout_f_slight_hips_wide": {
+      "profile": {
+        "heightCm": 170,
+        "massKg": 62.7
+      },
+      "sex": "female",
+      "build": "slight",
+      "fine": {
+        "shoulders": 0,
+        "waist": 0,
+        "hips": 0.4
+      },
+      "scan": {
+        "shoulders": 0.9496,
+        "waist": 0.6429,
+        "hips": 0.8595,
+        "thighs": 0.3976,
+        "arms": 0.1672,
+        "thighOfHeight": 0.10276,
+        "armAngle": 27,
+        "frames": 9
+      },
+      "detected": {
+        "sex": "female",
+        "build": "slight",
+        "sure": {
+          "sex": true,
+          "build": true
+        },
+        "margin": {
+          "sex": 32.24,
+          "build": 11.79
+        }
+      },
+      "recovered": {
+        "shoulders": -0.088,
+        "waist": 0,
+        "hips": 0.382
+      }
+    },
+    "holdout_m_muscular_heavier": {
+      "profile": {
+        "heightCm": 170,
+        "massKg": 72.1
+      },
+      "sex": "male",
+      "build": "muscular",
+      "fine": {
+        "shoulders": 0,
+        "waist": 0,
+        "hips": 0
+      },
+      "scan": {
+        "shoulders": 1.0378,
+        "waist": 0.5951,
+        "hips": 0.6854,
+        "thighs": 0.351,
+        "arms": 0.173,
+        "thighOfHeight": 0.09433,
+        "armAngle": 30,
+        "frames": 9
+      },
+      "detected": {
+        "sex": "male",
+        "build": "average",
+        "sure": {
+          "sex": true,
+          "build": false
+        },
+        "margin": {
+          "sex": 7.22,
+          "build": 0.87
+        }
+      },
+      "recovered": {
+        "shoulders": -0.002,
+        "waist": -0.036,
+        "hips": -0.097
+      }
+    },
+    "holdout_f_light_shoulders_wide": {
+      "profile": {
+        "heightCm": 170,
+        "massKg": 50.2
+      },
+      "sex": "female",
+      "build": "average",
+      "fine": {
+        "shoulders": 0.4,
+        "waist": 0,
+        "hips": 0
+      },
+      "scan": {
+        "shoulders": 0.9705,
+        "waist": 0.5586,
+        "hips": 0.7184,
+        "thighs": 0.3387,
+        "arms": 0.1616,
+        "thighOfHeight": 0.08856,
+        "armAngle": 29,
+        "frames": 9
+      },
+      "detected": {
+        "sex": "female",
+        "build": "average",
+        "sure": {
+          "sex": true,
+          "build": false
+        },
+        "margin": {
+          "sex": 6.26,
+          "build": 0.66
+        }
+      },
+      "recovered": {
+        "shoulders": 0.235,
+        "waist": -0.087,
+        "hips": -0.043
+      }
+    },
+    "holdout_m_heavy_waist_wide": {
+      "profile": {
+        "heightCm": 170,
+        "massKg": 87.8
+      },
+      "sex": "male",
+      "build": "average",
+      "fine": {
+        "shoulders": 0,
+        "waist": 0.5,
+        "hips": 0
+      },
+      "scan": {
+        "shoulders": 1.0333,
+        "waist": 0.6277,
+        "hips": 0.713,
+        "thighs": 0.3499,
+        "arms": 0.1766,
+        "thighOfHeight": 0.094,
+        "armAngle": 30,
+        "frames": 9
+      },
+      "detected": {
+        "sex": "male",
+        "build": "average",
+        "sure": {
+          "sex": true,
+          "build": false
+        },
+        "margin": {
+          "sex": 9.1,
+          "build": 0.17
+        }
+      },
+      "recovered": {
+        "shoulders": -0.047,
+        "waist": 0.194,
+        "hips": 0.01
+      }
     }
   },
-  "holdout_shoulders_wide_hips_narrow": {
-    "body": "reference, shoulders +0.5, hips -0.5",
-    "profile": {},
-    "expected": {
-      "shoulders": 0.5,
-      "waist": 0,
-      "hips": -0.5
+  "fluid": {
+    "reference": {
+      "shoulders": 1.0121,
+      "waist": 0.5712,
+      "hips": 0.6761,
+      "thighs": 0.3322,
+      "arms": 0.1538,
+      "thighOfHeight": 0.08876,
+      "armAngle": 31,
+      "frames": 9
     },
-    "scan": {
-      "shoulders": 1.0566,
-      "waist": 0.5511,
-      "hips": 0.6952,
+    "fluid": {
+      "shoulders": 1.0193,
+      "waist": 0.5765,
+      "hips": 0.6689,
+      "thighs": 0.3174,
+      "arms": 0.1651,
+      "thighOfHeight": 0.08389,
       "armAngle": 32,
       "frames": 9
     },
-    "recovered": {
-      "shoulders": 0.472,
-      "waist": 0.172,
-      "hips": -0.544
-    }
-  },
-  "holdout_muscular_woman_waist_narrow": {
-    "body": "female, muscle macro 0.88, waist -0.6",
-    "profile": {
-      "sex": "female",
-      "build": "muscular"
-    },
-    "expected": {
-      "shoulders": 0,
-      "waist": -0.6,
-      "hips": 0
-    },
-    "scan": {
-      "shoulders": 0.9504,
-      "waist": 0.4866,
-      "hips": 0.7675,
-      "armAngle": 27,
-      "frames": 9
-    },
-    "recovered": {
-      "shoulders": -0.328,
-      "waist": -0.599,
-      "hips": 0.02
-    }
+    "referenceThighCm": 15.3,
+    "thighCmSd": 0.16,
+    "fluidThighChange": -0.0549,
+    "expectedFluidThighChange": -0.06
   }
 }

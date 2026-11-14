@@ -3,6 +3,7 @@ import { Camera, Circle, Square, CircleCheck, AlertCircle } from 'lucide-react';
 import Dialog from './Dialog';
 import type { PoseLandmarker } from '@mediapipe/tasks-vision';
 import { shoulderAngle } from './rules.mjs';
+import { cameraMessage, loadPose, openCamera } from './pose';
 import type { PoseFrame, Recording } from './types';
 
 interface Props { onClose: () => void; onSave: (recording: Recording) => Promise<void>; sol: number }
@@ -38,24 +39,17 @@ export default function Capture({ onClose, onSave, sol }: Props) {
     setStatus('loading');
     setError('');
     try {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera access needs localhost or a secure HTTPS connection.');
-      const media = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
+      const media = await openCamera();
       if (!mounted.current) { media.getTracks().forEach(t => t.stop()); return; }
       stream.current = media;
       if (video.current) { video.current.srcObject = media; await video.current.play(); }
-      const { FilesetResolver, PoseLandmarker } = await import('@mediapipe/tasks-vision');
-      const vision = await FilesetResolver.forVisionTasks('/wasm');
-      const landmarker = await PoseLandmarker.createFromOptions(vision, {
-        baseOptions: { modelAssetPath: '/models/pose_landmarker_lite.task', delegate: 'CPU' },
-        runningMode: 'VIDEO', numPoses: 1, minPoseDetectionConfidence: .6, minTrackingConfidence: .6,
-      });
+      const landmarker = await loadPose();
       if (!mounted.current) { landmarker.close(); return; }
       tracker.current = landmarker;
       setStatus('ready');
     } catch (err) {
       stream.current?.getTracks().forEach(t => t.stop());
-      const message = err instanceof Error ? err.message : String(err);
-      setError(/denied|Permission|NotAllowed/i.test(message) ? 'Camera permission was declined. Allow camera access in your browser and try again.' : `Could not start movement tracking. ${message}`);
+      setError(cameraMessage(err, 'movement tracking'));
       setStatus('intro');
     }
   }

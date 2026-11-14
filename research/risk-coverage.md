@@ -12,13 +12,13 @@ GhostPilot's body index has to reach every health risk NASA's Human Research Pro
 | --- | --- | --- | --- | --- |
 | Altered immune system responses | Closed habitat | F Hands | Rash or cold sore; blood and saliva markers | Self-check + instrument |
 | Altered sensorimotor and vestibular function | Gravity | A Head | Dizziness or poor balance | Self-check |
-| Cardiovascular adaptations | Gravity, radiation | C Chest | Resting heart rate; short of breath; blood pressure | Self-check + instrument |
+| Cardiovascular adaptations | Gravity, radiation | C Chest, H Legs | Resting heart rate; short of breath; blood pressure; leg outline (fluid shift) | Camera + self-check + instrument |
 | Decompression sickness | Closed habitat | C Chest | Joint pain after a spacewalk | Self-check |
 | Host–microorganism interactions | Closed habitat | D Abdomen, F Hands, I Cabin | Stomach upset; rash; cabin CO₂ and climate | Self-check + NASA data |
 | Hypoxia | Closed habitat | C Chest, I Cabin | Short of breath; cabin CO₂ and climate | Self-check + NASA data |
 | Inadequate food and nutrition | Distance | D Abdomen | Appetite and meals; body mass | Self-check + instrument |
 | Injury and compromised performance from spacewalks | Closed habitat, gravity | C Chest, E Arms, F Hands | Joint pain; shoulder range; fingertip or grip pain | Self-check + camera |
-| Reduced cardiorespiratory and musculoskeletal fitness | Gravity | E Arms, G Back & pelvis, H Legs | Shoulder range; back pain; exercise minutes | Camera + self-check |
+| Reduced cardiorespiratory and musculoskeletal fitness | Gravity | E Arms, G Back & pelvis, H Legs | Shoulder range; back pain; exercise minutes; leg outline (thigh breadth vs ghost) | Camera + self-check |
 | Spaceflight-associated neuro-ocular syndrome (SANS) | Gravity | B Eyes | Blurred or changed vision; eye imaging (OCT) | Self-check + instrument |
 | Spaceflight-induced bone changes | Gravity | H Legs | Exercise minutes; bone density (DXA) | Self-check + instrument |
 | Behavioral conditions and psychiatric disorders | Isolation, distance | A Head | Attention task; mood; energy | Task + self-check |

@@ -7,7 +7,7 @@ import type { RegionId } from './types';
 
 export type RegionState = 'flag' | 'reported' | 'done' | 'due' | 'none' | 'instrument';
 export interface BodyShape { weights: Record<string, number>; scale: number }
-interface Props { selected: RegionId; states: Record<string, { state: RegionState }>; onSelect: (id: RegionId) => void; shape: BodyShape; children?: ReactNode }
+interface Props { selected: RegionId | null; states: Record<string, { state: RegionState }>; onSelect: (id: RegionId) => void; shape: BodyShape; children?: ReactNode }
 
 const INK = new THREE.Color('#111111');
 const fill = (state: RegionState, selected: boolean) => new THREE.Color(

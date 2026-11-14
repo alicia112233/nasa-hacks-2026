@@ -18,6 +18,10 @@ from the reference body is exported as a glTF morph target. The app blends them 
 profile (sex, height, mass, build) and from days in flight, with Table 4.3-4 "Anthropometric
 Changes in 0g": +3% stature from spinal elongation, and the fluid shift that thins the legs,
 fills the upper torso and puffs the face.
+
+Body scan: every basis shape is also rendered as camera frames in the scan pose (.cache/scan-frames,
+skip with SCAN_RENDER=0). scripts/calibrate-scan.mjs measures them with the app's MediaPipe model and
+writes src/body-calibration.mjs.
 """
 import gzip
 import hashlib
@@ -599,7 +603,8 @@ def make_cabin(floor_z):
 # scripts/calibrate-scan.mjs then runs the app's pose model on these frames and writes src/body-calibration.mjs.
 SCAN_FRAMES = os.environ.get('SCAN_FRAMES') or os.path.join(REPO, '.cache', 'scan-frames')
 SCAN_ARMS = (22, 30, 38)                                 # arm angle from the torso line, degrees
-SCAN_VIEWS = ((1.7, 0.25), (2.3, 0.0), (2.9, -0.1))      # camera distance and height above the body centre, metres
+# Camera distance and height above the body centre, metres. The 1.7 m view crops the feet: the scan must refuse it.
+SCAN_VIEWS = ((2.3, 0.0), (2.6, 0.1), (2.9, -0.15), (1.7, 0.25))
 SCAN_SHAPES = ('reference', 'female', 'm_heavy', 'm_light', 'm_muscular', 'm_slight', 'f_heavy', 'f_light',
                'f_muscular', 'f_slight', 'shoulders_wide', 'shoulders_narrow', 'waist_wide', 'waist_narrow',
                'hips_wide', 'hips_narrow')
@@ -610,15 +615,25 @@ def scan_pose(arms):
     return {'upperarm01.L': a, 'lowerarm01.L': a, 'upperarm01.R': mirror(a), 'lowerarm01.R': mirror(a)}
 
 
-def holdout_shapes(mh):
-    """Bodies kept out of the calibration, to test that a scan recovers their known shape."""
-    return {
-        'holdout_female_heavier': mh.shape(dict(REFERENCE, gender=0.0, weight=0.8)),
-        'holdout_shoulders_wide_hips_narrow': mh.shape(REFERENCE, [('torso/measure-shoulder-dist-incr', 0.5),
-                                                                   ('torso/measure-hips-circ-decr', 0.5)]),
-        'holdout_muscular_woman_waist_narrow': mh.shape(dict(REFERENCE, gender=0.0, muscle=0.88),
-                                                        [('torso/measure-waist-circ-decr', 0.6)]),
-    }
+# Bodies kept out of the calibration, to test what a scan recovers. Profile builds map to MakeHuman's muscle
+# macro as the app blends them: slight 0.18, average 0.6, muscular 0.88. The fluid body is the reference with
+# HIDH's 0g fluid shift, so the Legs check can be tested against the 6% leg thinning the handbook describes.
+HOLDOUTS = {
+    'holdout_f_heavier': ({'gender': 0.0, 'weight': 0.8}, []),
+    'holdout_m_shoulders_wide_hips_narrow': ({}, [('torso/measure-shoulder-dist-incr', 0.5), ('torso/measure-hips-circ-decr', 0.5)]),
+    'holdout_f_muscular_waist_narrow': ({'gender': 0.0, 'muscle': 0.88}, [('torso/measure-waist-circ-decr', 0.6)]),
+    'holdout_m_slight_light': ({'muscle': 0.18, 'weight': 0.35}, []),
+    'holdout_f_slight_hips_wide': ({'gender': 0.0, 'muscle': 0.18}, [('torso/measure-hips-circ-incr', 0.4)]),
+    'holdout_m_muscular_heavier': ({'muscle': 0.88, 'weight': 0.65}, []),
+    'holdout_f_light_shoulders_wide': ({'gender': 0.0, 'weight': 0.3}, [('torso/measure-shoulder-dist-incr', 0.4)]),
+    'holdout_m_heavy_waist_wide': ({'weight': 0.9}, [('torso/measure-waist-circ-incr', 0.5)]),
+}
+
+
+def holdout_shapes(mh, fluid):
+    shapes = {name: mh.shape(dict(REFERENCE, **macro), extra) for name, (macro, extra) in HOLDOUTS.items()}
+    shapes['holdout_fluid_0g'] = fluid
+    return shapes
 
 
 def render_scan_frames(mh, shapes, vreg):
@@ -724,10 +739,10 @@ def main():
     }
     ref_skeleton = Skeleton(mh, rest['reference'])
     vreg, totals = vertex_regions(mh)
+    rest['fluid_0g'] = fluid_shift(mh, rest['reference'], vreg, ref_skeleton)
     scan_frames = 0
     if os.environ.get('SCAN_RENDER', '1') != '0':
-        scan_frames = render_scan_frames(mh, {**{k: rest[k] for k in SCAN_SHAPES}, **holdout_shapes(mh)}, vreg)
-    rest['fluid_0g'] = fluid_shift(mh, rest['reference'], vreg, ref_skeleton)
+        scan_frames = render_scan_frames(mh, {**{k: rest[k] for k in SCAN_SHAPES}, **holdout_shapes(mh, rest['fluid_0g'])}, vreg)
 
     soles = rest['reference'][:mh.body_count, 2].min()
     stature = {'male': float(rest['reference'][:mh.body_count, 2].max() - soles),

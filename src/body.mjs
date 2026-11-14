@@ -63,6 +63,7 @@ export const checks = [
   { id: 'back', region: 'pelvis', title: 'Back pain', seconds: 5, kind: 'symptom', field: 'back', options: SYMPTOM, risks: ['fitness', 'loads'] },
   { id: 'landing', region: 'pelvis', title: 'Landing load check', kind: 'instrument', needs: 'At landing', risks: ['loads'] },
   { id: 'exercise', region: 'legs', title: 'Exercise today', seconds: 10, kind: 'number', field: 'exerciseMin', unit: 'min', min: 0, max: 300, risks: ['fitness', 'bone'] },
+  { id: 'legs', region: 'legs', title: 'Leg outline', seconds: 5, kind: 'camera', field: 'thighCm', unit: 'cm', risks: ['fitness', 'cardiovascular'] },
   { id: 'dxa', region: 'legs', title: 'Bone density (DXA)', kind: 'instrument', needs: 'Needs scanner', risks: ['bone'] },
   { id: 'dose', region: 'cabin', title: 'Radiation dose', kind: 'data', series: 'dose', needs: 'Needs personal dosimeter', risks: ['cancer'] },
   { id: 'air', region: 'cabin', title: 'Cabin CO₂ and climate', kind: 'data', series: 'air', risks: ['hypoxia', 'microbes'] },
@@ -108,7 +109,7 @@ export function regionStatuses(checkIns, simulated, now = new Date().toISOString
   const today = records.filter(c => dayKey(c.date) === dayKey(now));
   const valueToday = field => { for (const c of [...today].reverse()) if (isNum(c[field])) return c[field]; return null; };
   const lastValue = field => { for (const c of [...records].reverse()) if (isNum(c[field])) return c[field]; return null; };
-  const trend = { reactionMs: analysis.attentionFlag, sleep: analysis.wellbeingFlag, leftRange: analysis.movementFlag };
+  const trend = { reactionMs: analysis.attentionFlag, sleep: analysis.wellbeingFlag, leftRange: analysis.movementFlag, thighCm: analysis.legFlag };
   return Object.fromEntries(regions.map(region => {
     const items = region.checks.map(check => {
       const value = check.field ? valueToday(check.field) : null;

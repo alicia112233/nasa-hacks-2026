@@ -3,9 +3,15 @@ import { readFile } from 'node:fs/promises';
 
 const recordingDate = '2026-01-02T03:04:05.000Z';
 
+async function expectCrew(page: Page, name: string) {
+  await page.goto('/#body');
+  await expect(page.locator('.crew-switch-btn')).toContainText(name);
+  await page.goto('/#mission');
+}
+
 async function seedPersonalData(page: Page) {
   await page.goto('/#mission');
-  await expect(page.getByLabel('Name', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Data' })).toBeVisible();
   await page.evaluate(date => new Promise<void>((resolve, reject) => {
     const open = indexedDB.open('ghostpilot-mission');
     open.onerror = () => reject(open.error);
@@ -36,7 +42,7 @@ async function seedPersonalData(page: Page) {
     };
   }), recordingDate);
   await page.reload();
-  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Private Crew');
+  await expectCrew(page, 'Private Crew');
 }
 
 async function storedPersonalData(page: Page) {
@@ -66,11 +72,11 @@ test('confirmed deletion removes videos, pose data, profile and personal records
   await page.getByRole('button', { name: 'Clear personal records' }).click();
   await page.getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Personal records, videos and profile cleared.' })).toBeVisible();
-  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Alex Morgan');
+  await expectCrew(page, 'Alex Morgan');
   const cleared = { name: 'Alex Morgan', personal: 0, actions: 0, packets: 0, videos: 0 };
   expect(await storedPersonalData(page)).toEqual(cleared);
   await page.reload();
-  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Alex Morgan');
+  await expectCrew(page, 'Alex Morgan');
   expect(await storedPersonalData(page)).toEqual(cleared);
 });
 
@@ -89,7 +95,7 @@ test('an aborted deletion preserves records and reports failure', async ({ page 
   await expect(page.getByRole('alert')).toContainText('Could not delete personal records');
   expect(await storedPersonalData(page)).toMatchObject({ name: 'Private Crew', personal: 1, actions: 2, packets: 2, videos: 1 });
   await page.reload();
-  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Private Crew');
+  await expectCrew(page, 'Private Crew');
 });
 
 test('demo reports and movement views exclude personal recordings while personal reports retain them', async ({ page }) => {

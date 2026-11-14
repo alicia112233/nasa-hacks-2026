@@ -259,7 +259,7 @@ A 1.5px ink frame with internal ink dividers. The pressed state inverts to an in
 - **Focus:** the global amber ring.
 
 ### Navigation
-The black 56px top bar holds the wordmark (Condensed 700, 22px, 0.1em) and the nav links (Condensed 500, 18px, uppercase, `#c9c5bb`). Hover turns a link to stock, and the current page gets stock text with a 3px amber underline that runs flush to the bar's bottom edge. Status labels and the sol/delay readout sit at the right in tabular figures. On phones the nav moves to its own scrolling row.
+The black 56px top bar holds the wordmark (Condensed 700, 22px, 0.1em) and the nav links (Condensed 500, 18px, uppercase, `#c9c5bb`). Hover turns a link to stock, and the current page gets stock text with a 3px amber underline that runs flush to the bar's bottom edge. Status labels and the sol readout sit at the right in tabular figures, then the crew switch: the selected crew member's initials in a 32px stock square and their name, in a 1.5px frame that brightens on hover. It names who every page is showing. It opens a stock panel under the bar (toast lift), listing the crew with initials squares and scan status, the current member washed in Amber Tint and ticked, then Edit profile and Add crew member. It is a disclosure: Tab moves through it, and Escape or leaving closes it. Initials stand in for a face, because GhostPilot keeps no photos. The one-way delay lives on the Handoff page. On phones the nav moves to its own scrolling row, the name truncates, and under 380px only the initials show.
 
 ### Cards / Containers
 - **Corner Style:** 3px.
@@ -273,6 +273,9 @@ The left edge holds a 34px strip of hazard tabs (26px on phones). Each tab is a 
 
 ### Caution Note
 A 3px amber frame with 12px/16px padding. A condensed uppercase label block sits on the left: an amber fill with ink text for a report, or a red fill with white text for TREND. The sentence and a follow-up link sit beside it.
+
+### Crew Card
+A row above the 3D stage (never over it, so it can't cover a region tag) holds the one scan button, an outlined Scan me (Rescan once scanned) that opens the camera directly. Who is shown is chosen in the top bar's crew switch, whose Edit profile opens the crew card in place of the region card and clears the body's region selection. The crew card has an ink edge tab labelled CREW (never a hazard ink) and the initials in the letter tab. It has no steps, times or red action. The name (the Display title) and the mission under it edit in place: each shows a muted pencil, underlines on hover, and becomes a field on click (Enter or leaving saves, Escape cancels). A newly added member opens with the name field ready to type. Below sits one Body list of label / control rows between hairlines (Scan, Body, Build, Height, Mass), and every control saves as it changes. When others are on the roster, an outlined red Remove from crew asks for confirmation before removing the member and their records.
 
 ### Crew Body Index (signature)
 The toon-shaded GLB body sits on a stock stage, with lettered 26px square region tags joined to it by leader lines. Tag states are ink (default), red (trend), an amber double ring (reported) and an amber fill (selected). The matching region list repeats the letters as 24px ink squares, adds a 10px square state swatch, and marks a pressed row with an amber fill. A key below names the four body fills (trend, reported, done today, not measured/hatched).

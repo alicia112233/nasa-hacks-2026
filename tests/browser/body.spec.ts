@@ -122,7 +122,7 @@ test('movement comparison keeps the trained 4DGS model as a secondary reference'
   await expect(page.getByRole('button', { name: 'Compare movement' })).toBeFocused();
 });
 
-test('the crew profile reshapes the body, and preflight compares it with the 0g stature', async ({ page }) => {
+test('the crew card edits in place: name, shape and height reshape the body beside it', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   const seg = page.getByRole('group', { name: 'Body shown' });
@@ -132,15 +132,39 @@ test('the crew profile reshapes the body, and preflight compares it with the 0g 
   await seg.getByRole('button', { name: 'Preflight 168 cm' }).click();
   await expect(seg.getByRole('button', { name: 'Preflight 168 cm' })).toHaveAttribute('aria-pressed', 'true');
 
-  await page.getByRole('link', { name: 'Mission' }).click();
-  await page.getByLabel('Sex').selectOption('male');
-  await page.getByLabel('Height cm').fill('188');
-  await page.getByLabel('Mass kg').fill('95');
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByText('BMI 26.9')).toBeVisible();
-  await page.reload();
-  await expect(page.getByLabel('Height cm')).toHaveValue('188');
-  await page.getByRole('link', { name: 'Body' }).click();
+  // The crew member's name sits in the top bar; Edit profile opens the crew card in place of the region card.
+  const who = page.locator('.crew-switch-btn');
+  await expect(who).toContainText('Alex Morgan');
+  await who.click();
+  await page.getByRole('button', { name: 'Edit profile' }).click();
+  await expect(page.getByRole('button', { name: /^A Head/ })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', { name: /Scan me/ })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /^Scan 5 s|^Begin$/ })).toHaveCount(0);
+
+  // Click the name to edit it; the plate and initials follow.
+  await page.getByRole('button', { name: /Alex Morgan · edit name/ }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Sam Rivera');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: /Sam Rivera/, level: 2 })).toBeVisible();
+  await expect(who).toContainText('Sam Rivera');
+  await expect(who).toContainText('SR');
+
+  // Body facts edit in one list, with no Save buttons.
+  await page.getByRole('group', { name: 'Body' }).getByRole('button', { name: 'Male', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Body' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByLabel('Height').fill('188');
+  await page.getByLabel('Height').press('Enter');
+  // The stage beside the card updates at once: 188 cm preflight, 194 cm in flight.
+  await expect(seg.getByRole('button', { name: 'Preflight 188 cm' })).toBeVisible();
   await expect(seg.getByRole('button', { name: /^Sol \d+ 194 cm$/ })).toBeVisible();
+  await expect(page.getByText('194 cm in zero g')).toBeVisible();
+  await page.reload();
+  await expect(seg.getByRole('button', { name: /^Sol \d+ 194 cm$/ })).toBeVisible();
+  await page.locator('.crew-switch-btn').click();
+  await page.getByRole('button', { name: 'Edit profile' }).click();
+  await expect(page.getByLabel('Height')).toHaveValue('188');
+  // Picking a region returns to its procedure card.
+  await page.getByRole('button', { name: /^H Legs/ }).click();
+  await expect(page.getByRole('heading', { name: 'Legs', level: 2 })).toBeVisible();
   await expect(page.locator('.tag[data-region="head"]')).toHaveCSS('opacity', '1', { timeout: 20000 });
 });

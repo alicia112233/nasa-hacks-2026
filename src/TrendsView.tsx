@@ -12,12 +12,16 @@ const metrics = [
   { key: 'heartRate', label: 'Heart rate', unit: 'bpm', worse: 'none' },
   { key: 'leftRange', label: 'L shoulder', unit: '°', worse: 'down' },
   { key: 'exerciseMin', label: 'Exercise', unit: 'min', worse: 'down' },
+  { key: 'thighCm', label: 'Thigh', unit: 'cm', worse: 'down' },
   { key: 'appetite', label: 'Appetite', unit: '/5', worse: 'down' },
   { key: 'workload', label: 'Workload', unit: '/5', worse: 'down' },
   { key: 'team', label: 'Crew', unit: '/5', worse: 'down' },
 ] as const;
 type Key = typeof metrics[number]['key'];
 const axis = { fontSize: 12, fill: '#3b3a37', fontFamily: 'Barlow Condensed' };
+/** Change that marks a row, in percent; thigh breadth matches the Legs rule (src/rules.mjs). */
+const alertAt = (key: string) => (key === 'thighCm' ? 5 : 8);
+const show = (v: number, unit: string) => `${unit === 'cm' ? v.toFixed(1) : Math.round(v)}${/^[/°]/.test(unit) ? '' : ' '}${unit}`;
 
 export default function TrendsView({ checkIns, simulated }: { checkIns: CheckIn[]; simulated: boolean }) {
   const [key, setKey] = useState<Key>('reactionMs');
@@ -26,7 +30,7 @@ export default function TrendsView({ checkIns, simulated }: { checkIns: CheckIn[
     const ghost = median(analysis.baselineRecords.map((c: CheckIn) => c[m.key]));
     const now = median(analysis.recent.map((c: CheckIn) => c[m.key]));
     const change = ghost && now != null ? Math.round((now - ghost) / ghost * 100) : null;
-    const worse = change != null && m.worse !== 'none' && Math.abs(change) >= 8 && (m.worse === 'up' ? change > 0 : change < 0);
+    const worse = change != null && m.worse !== 'none' && Math.abs(change) >= alertAt(m.key) && (m.worse === 'up' ? change > 0 : change < 0);
     return { ...m, ghost, now, change, worse };
   });
   const active = rows.find(r => r.key === key)!;
@@ -39,8 +43,8 @@ export default function TrendsView({ checkIns, simulated }: { checkIns: CheckIn[
         <thead><tr><th scope="col">Measure</th><th scope="col">Last 3</th><th scope="col">Ghost</th><th scope="col">Change</th></tr></thead>
         <tbody>{rows.map(r => <tr key={r.key} className={`${r.key === key ? 'on' : ''} ${r.worse ? 'worse' : ''}`}>
           <th scope="row"><button aria-pressed={r.key === key} onClick={() => setKey(r.key)}>{r.label}</button></th>
-          <td>{r.now != null ? `${Math.round(r.now)}${/^[/°]/.test(r.unit) ? '' : ' '}${r.unit}` : '—'}</td>
-          <td>{r.ghost != null ? `${Math.round(r.ghost)}${/^[/°]/.test(r.unit) ? '' : ' '}${r.unit}` : '—'}</td>
+          <td>{r.now != null ? show(r.now, r.unit) : '—'}</td>
+          <td>{r.ghost != null ? show(r.ghost, r.unit) : '—'}</td>
           <td>{r.change != null ? `${r.change > 0 ? '+' : ''}${r.change}%` : '—'}</td>
         </tr>)}</tbody>
       </table>
@@ -63,8 +67,8 @@ export default function TrendsView({ checkIns, simulated }: { checkIns: CheckIn[
       <h3>History</h3>
       <div className="scroll" tabIndex={0} role="region" aria-label="Check-in history">
         <table className="ledger small">
-          <thead><tr><th scope="col">Sol</th><th scope="col">Date</th><th scope="col">Attn</th><th scope="col">Sleep</th><th scope="col">HR</th><th scope="col">Shoulder</th></tr></thead>
-          <tbody>{analysis.records.slice().reverse().map((c: CheckIn) => <tr key={c.id}><td>{c.sol}</td><td>{formatDate(c.date)}</td><td>{c.reactionMs ?? '—'}</td><td>{c.sleep ?? '—'}</td><td>{c.heartRate ?? '—'}</td><td>{c.leftRange ?? '—'}</td></tr>)}</tbody>
+          <thead><tr><th scope="col">Sol</th><th scope="col">Date</th><th scope="col">Attn</th><th scope="col">Sleep</th><th scope="col">HR</th><th scope="col">Shoulder</th><th scope="col">Thigh</th></tr></thead>
+          <tbody>{analysis.records.slice().reverse().map((c: CheckIn) => <tr key={c.id}><td>{c.sol}</td><td>{formatDate(c.date)}</td><td>{c.reactionMs ?? '—'}</td><td>{c.sleep ?? '—'}</td><td>{c.heartRate ?? '—'}</td><td>{c.leftRange ?? '—'}</td><td>{c.thighCm ?? '—'}</td></tr>)}</tbody>
         </table>
         {!analysis.records.length && <p className="muted pad">No check-ins yet.</p>}
       </div>

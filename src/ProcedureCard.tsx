@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, Camera, Check, ChevronDown, Move3d, Play } from 'lucide-react';
+import { ArrowUpRight, Camera, Check, ChevronDown, Move3d, Play, ScanLine } from 'lucide-react';
 import { hazards, risks, totalSeconds } from './body.mjs';
 import { median } from './rules.mjs';
 import NasaData from './NasaData';
@@ -10,12 +10,13 @@ type Item = { check: Check; value: number | null; last: number | null; done: boo
 interface Props {
   region: { id: RegionId; letter: string; label: string; checks: Check[]; risks: string[]; hazards: string[] };
   status: { state: string; items: Item[] };
-  analysis: { baselineRecords: CheckIn[]; recent: CheckIn[]; current: Record<string, number | null>; baseline: Record<string, number | null>; attentionDelta: number | null; movementDelta: number | null };
+  analysis: { baselineRecords: CheckIn[]; recent: CheckIn[]; current: Record<string, number | null>; baseline: Record<string, number | null>; attentionDelta: number | null; movementDelta: number | null; legDelta: number | null };
   simulated: boolean;
   actions: FollowUp[];
   onSave: (field: string, value: number) => void;
   onAttention: () => void;
-  onCapture: () => void;
+  /** Open a camera check: 'shoulder' records movement, 'legs' runs the body scan. */
+  onCamera: (checkId: string) => void;
   onMovement: () => void;
   onFollowUp: (action: FollowUp) => void;
 }
@@ -23,7 +24,7 @@ interface Props {
 const followUps = ['Repeat this check tomorrow', 'Note it for the flight surgeon', 'Review the mission-approved procedure'];
 const fmt = (s: number) => s >= 60 ? `${Math.floor(s / 60)} MIN${s % 60 ? ` ${s % 60} S` : ''}` : `${s} S`;
 
-export default function ProcedureCard({ region, status, analysis, simulated, actions, onSave, onAttention, onCapture, onMovement, onFollowUp }: Props) {
+export default function ProcedureCard({ region, status, analysis, simulated, actions, onSave, onAttention, onCamera, onMovement, onFollowUp }: Props) {
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [plan, setPlan] = useState(false);
@@ -40,7 +41,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
     const next = pending[0]?.check;
     if (!next) return;
     if (next.kind === 'task') onAttention();
-    else if (next.kind === 'camera') onCapture();
+    else if (next.kind === 'camera') onCamera(next.id);
     else setOpen(next.id);
   }
   function save(check: Check, value: number) {
@@ -53,6 +54,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
     const c = i.check;
     if (c.field === 'reactionMs') return `Response ${analysis.attentionDelta}% slower than your ghost.`;
     if (c.field === 'leftRange') return `Left shoulder range ${Math.abs(analysis.movementDelta ?? 0)}% below your ghost.`;
+    if (c.field === 'thighCm') return `Thigh breadth ${Math.abs(analysis.legDelta ?? 0)}% below your ghost.`;
     if (c.field === 'sleep') return `Sleep ${analysis.current.sleep}/5 against a ghost of ${analysis.baseline.sleep}/5.`;
     return c.title;
   }
@@ -98,7 +100,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
               else setOpen(isOpen ? null : c.id);
             }}>
               <span className="n">{n + 1}</span>
-              <span className="t">{c.title}{g != null && <small>Ghost {c.kind === 'symptom' ? c.options![Math.round(g)] : `${Math.round(g)}${c.kind === 'scale' ? '/5' : c.unit ? ` ${c.unit}` : ''}`}</small>}</span>
+              <span className="t">{c.title}{g != null && <small>Ghost {c.kind === 'symptom' ? c.options![Math.round(g)] : `${c.unit === 'cm' ? g.toFixed(1) : Math.round(g)}${c.kind === 'scale' ? '/5' : c.unit ? ` ${c.unit}` : ''}`}</small>}</span>
               <span className="time">{instrument ? c.needs : c.kind === 'data' ? 'NASA data' : fmt(c.seconds!)}</span>
               {c.kind === 'data' ? <span aria-hidden="true"/> : <span className={`box ${item.done ? 'done' : ''} ${item.flagged ? 'flag' : ''}`} role="img" aria-label={item.done ? `Done: ${valueText}` : instrument ? 'Not measured onboard' : 'Not done today'}>
                 {item.done && <Check size={16} strokeWidth={3}/>}
@@ -113,10 +115,14 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
                 <label><span className="sr">{c.title}</span><input autoFocus type="number" inputMode="numeric" min={c.min} max={c.max} required value={draft} placeholder={item.value != null ? String(item.value) : ''} onChange={e => setDraft(e.target.value)}/><span>{c.unit}</span></label>
                 <button className="btn">Save</button>
               </form>}
-              {c.kind === 'camera' && <div className="row-actions">
+              {c.id === 'shoulder' && <div className="row-actions">
                 <p>{item.value != null ? `Today ${item.value}°` : 'Not recorded today.'}{g != null && ` Ghost ${Math.round(g)}°.`} Same camera spot each time.</p>
-                <button className="btn" onClick={onCapture}><Camera size={16}/> Record 12 s</button>
+                <button className="btn" onClick={() => onCamera('shoulder')}><Camera size={16}/> Record 12 s</button>
                 <button className="btn ghost" onClick={onMovement}><Move3d size={16}/> Compare movement</button>
+              </div>}
+              {c.id === 'legs' && <div className="row-actions">
+                <p>{item.value != null ? `Today ${item.value} cm` : 'Not scanned today.'}{g != null && ` Ghost ${g.toFixed(1)} cm.`} Zero-g fluid shift alone thins legs up to 6% in the first days (NASA HIDH).</p>
+                <button className="btn" onClick={() => onCamera('legs')}><ScanLine size={16}/> Scan 5 s</button>
               </div>}
               {c.kind === 'data' && <NasaData series={c.series!}/>}
               {instrument && <p className="muted">Not measured onboard by GhostPilot. Log it in the handoff when the {c.needs!.replace(/^Needs /, '').toLowerCase()} is used.</p>}
