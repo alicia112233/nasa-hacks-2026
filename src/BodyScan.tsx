@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Camera } from 'lucide-react';
+import { AlertCircle, Camera, Pause, Play } from 'lucide-react';
 import type { PoseLandmarker } from '@mediapipe/tasks-vision';
 import Dialog from './Dialog';
+import FigurePreview from './FigurePreview';
+import calibration from './body-calibration.mjs';
 import { cameraMessage, loadPose, openCamera } from './pose';
-import { MIN_FRAMES, SHAPE, frameIssue, measureFrame, summarise, thighCm } from './scan.mjs';
+import { MEASURES, MIN_FRAMES, compareScan, frameIssue, measureFrame, scanSpread, summarise, thighCm } from './scan.mjs';
 import { BUILDS, LIMITS, detectShape, physique } from './physique.mjs';
 import type { BodyScan as Scan, Profile } from './types';
 
 /**
  * setup (Mission → Crew): suggests body shape and build, fits shoulders, waist and hips, and starts the leg ghost.
  * legs (Body → H Legs): thigh breadth against the crew member's ghost.
+ * Both record the seconds they measured, lines included, so the result can be checked against the footage.
+ * The clip lives in memory and is dropped on retake or close.
  */
 export type ScanMode = 'setup' | 'legs';
 interface Props {
@@ -20,17 +24,85 @@ interface Props {
   onSave: (scan: Scan, choice: { sex?: Profile['sex']; build?: Profile['build'] }) => void;
 }
 type Measured = NonNullable<ReturnType<typeof measureFrame>>;
+/** The recorded seconds as an object URL, how long they ran, and the picture's width / height. */
+interface Clip { url: string; seconds: number; aspect: number }
 
 const SECONDS = 5;
 /** Usable frames in a row (about a second at the detection rate) before the scan starts itself. */
 const STEADY = 6;
 const MAX_SECONDS = 15;
-const LABEL: Record<string, string> = { shoulders: 'Shoulders', waist: 'Waist', hips: 'Hips', female: 'Female', male: 'Male', slight: 'Slight', average: 'Average', muscular: 'Muscular' };
+const LABEL: Record<string, string> = { shoulders: 'Shoulders', waist: 'Waist', hips: 'Hips', thighs: 'Thighs', arms: 'Upper arms', female: 'Female', male: 'Male', slight: 'Slight', average: 'Average', muscular: 'Muscular' };
 /** Person mask tint, from --amber. */
 const TINT = [224, 161, 0, 96];
+/** Half-width of the result bars: a mark at the edge is this far from the baseline, or further. */
+const SCALE = { setup: 0.2, legs: 0.1 };
 
 export const percent = (x: number) => `${x > 0.005 ? '+' : x < -0.005 ? '−' : ''}${Math.abs(Math.round(x * 100))}%`;
-const Bar = ({ value }: { value: number }) => <dd className="scan-bar" aria-hidden="true"><i style={{ left: `${50 + Math.max(-50, Math.min(50, value * 500))}%` }}/></dd>;
+const within = (spread: number) => `±${Math.max(1, Math.ceil(spread * 100 - 1e-9))}%`;
+const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[s.length >> 1] : 0.5; };
+
+/** One measure on a shared scale: the ink block is the measurement, the open square the figure, the band the frame scatter. */
+function Bar({ you, figure, spread = 0, scale }: { you: number; figure?: number; spread?: number; scale: number }) {
+  const at = (v: number) => 50 + Math.max(-50, Math.min(50, (v / scale) * 50));
+  return <dd className="scan-bar" aria-hidden="true">
+    {spread > 0 && <span className="band" style={{ left: `${at(you - spread)}%`, width: `${at(you + spread) - at(you - spread)}%` }}/>}
+    {figure != null && <span className="fig" style={{ left: `${at(figure)}%` }}/>}
+    <i style={{ left: `${at(you)}%` }}/>
+  </dd>;
+}
+
+/** The recorded seconds, looping, with pause and a scrubber. portrait: cropped to the person, beside the figure. */
+function ClipReview({ clip, centre = 0.5, portrait, caption }: { clip: Clip | null | undefined; centre?: number; portrait?: boolean; caption: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [time, setTime] = useState(0);
+  const [length, setLength] = useState(clip?.seconds ?? 0);
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || !clip) return;
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let fixing = false;
+    const start = () => { if (!still) void v.play().catch(() => {}); };
+    // A recording made in the browser carries no duration, so it can't be scrubbed until the player has seen its end.
+    const onMeta = () => { if (Number.isFinite(v.duration)) { setLength(v.duration); start(); } else { fixing = true; v.currentTime = 1e101; } };
+    const onTime = () => {
+      if (fixing) {
+        if (!Number.isFinite(v.duration) || v.duration <= 0) return;
+        fixing = false; setLength(v.duration); v.currentTime = 0; start(); return;
+      }
+      setTime(v.currentTime);
+    };
+    const onDuration = () => { if (Number.isFinite(v.duration) && v.duration > 0) { setLength(v.duration); if (fixing) onTime(); } };
+    const onPlay = () => setPlaying(true), onPause = () => setPlaying(false);
+    v.addEventListener('loadedmetadata', onMeta); v.addEventListener('timeupdate', onTime); v.addEventListener('durationchange', onDuration);
+    v.addEventListener('play', onPlay); v.addEventListener('pause', onPause);
+    if (v.readyState >= 1) onMeta();
+    return () => { v.removeEventListener('loadedmetadata', onMeta); v.removeEventListener('timeupdate', onTime); v.removeEventListener('durationchange', onDuration); v.removeEventListener('play', onPlay); v.removeEventListener('pause', onPause); };
+  }, [clip]);
+
+  // Keep the person in the middle of a portrait crop of a landscape recording.
+  const k = clip ? clip.aspect / (3 / 4) : 1;
+  const position = portrait && k > 1 ? `${Math.max(0, Math.min(1, (0.5 - centre * k) / (1 - k))) * 100}% 50%` : undefined;
+  const shown = Math.min(time, length);
+
+  return <figure className={`scan-shot ${portrait ? '' : 'landscape'}`}>
+    <div className="clip-frame">
+      <div className="clip-picture">
+        {clip ? <video ref={ref} src={clip.url} loop muted playsInline preload="auto" aria-label="Recorded scan clip" style={{ objectPosition: position }}/>
+          : <div className="camera-empty"><Camera size={32}/><strong>{clip === undefined ? 'Preparing clip…' : 'No clip'}</strong>{clip === null && <span>This browser can’t record video. The measurements are unaffected.</span>}</div>}
+      </div>
+      {/* Under the picture, not over it: the feet and the thigh lines stay in view. */}
+      {clip && <div className="clip-controls">
+          <button className="icon-btn" aria-label={playing ? 'Pause clip' : 'Play clip'} onClick={() => { const v = ref.current; if (v) void (v.paused ? v.play() : v.pause()); }}>{playing ? <Pause size={18}/> : <Play size={18}/>}</button>
+          <input type="range" aria-label="Clip position" min={0} max={length || 1} step={0.05} value={shown} aria-valuetext={`${shown.toFixed(1)} of ${length.toFixed(1)} seconds`}
+            onChange={e => { const v = ref.current; if (v) { v.currentTime = Number(e.currentTarget.value); setTime(v.currentTime); } }}/>
+          <span>{shown.toFixed(1)} s</span>
+      </div>}
+    </div>
+    <figcaption>{caption}</figcaption>
+  </figure>;
+}
 
 export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Props) {
   const video = useRef<HTMLVideoElement>(null);
@@ -44,11 +116,18 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
   const run = useRef(0);
   /** Consecutive usable frames while waiting; the scan starts itself after STEADY of them. */
   const steady = useRef(0);
+  /** Frames analysed during the scan (usable or not), where the person stood (a fraction of the frame width), and whether the recording is wanted. */
+  const seen = useRef(0);
+  const centre = useRef(0.5);
+  const keepClip = useRef(false);
+  const clipUrl = useRef('');
   const [status, setStatus] = useState<'intro' | 'loading' | 'ready' | 'scanning' | 'done'>('intro');
   const [issue, setIssue] = useState<string | null>('Step back');
   const [remaining, setRemaining] = useState(SECONDS);
   const [error, setError] = useState('');
   const [result, setResult] = useState<Scan | null>(null);
+  /** undefined: still being put together; null: this browser can't record. */
+  const [clip, setClip] = useState<Clip | null | undefined>(undefined);
   const [sex, setSex] = useState<NonNullable<Profile['sex']>>('female');
   const [build, setBuild] = useState<NonNullable<Profile['build']>>('average');
   const hasHeight = typeof profile.heightCm === 'number' && profile.heightCm >= LIMITS.heightCm[0] && profile.heightCm <= LIMITS.heightCm[1];
@@ -58,11 +137,12 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
   const scanned = { ...profile, massKg: undefined };
 
   const stopCamera = () => { stream.current?.getTracks().forEach(t => t.stop()); stream.current = null; };
+  const dropClip = () => { if (clipUrl.current) URL.revokeObjectURL(clipUrl.current); clipUrl.current = ''; setClip(undefined); };
   // Opening the scan is the request for the camera, so it starts at once.
   useEffect(() => {
     mounted.current = true;
     if (!needsHeight) void enableCamera();
-    return () => { mounted.current = false; run.current++; stopCamera(); tracker.current?.close(); tracker.current = null; };
+    return () => { mounted.current = false; run.current++; stopCamera(); tracker.current?.close(); tracker.current = null; if (clipUrl.current) URL.revokeObjectURL(clipUrl.current); };
   }, []);
 
   async function enableCamera() {
@@ -103,7 +183,10 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
       try {
         const result = tracker.current.detectForVideo(element, now);
         const pose = result.landmarks[0], mask = result.segmentationMasks?.[0];
-        const context = canvas.current?.getContext('2d');
+        const board = canvas.current;
+        // The overlay takes the camera's own size, so the lines sit on the body whatever shape the camera delivers.
+        if (board && mask && (board.width !== mask.width || board.height !== mask.height)) { board.width = mask.width; board.height = mask.height; }
+        const context = board?.getContext('2d');
         if (pose && mask) {
           const data = mask.getAsFloat32Array();
           m = measureFrame(data, mask.width, mask.height, pose);
@@ -116,7 +199,7 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
             }
             context.putImageData(image, 0, 0);
           }
-        } else context?.clearRect(0, 0, 640, 480);
+        } else if (board) context?.clearRect(0, 0, board.width, board.height);
         if (context && m) {
           for (const [key, line] of Object.entries(m.lines)) {
             if (!line) continue;
@@ -140,6 +223,7 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
         if (steady.current >= STEADY) begin();
         return;
       }
+      seen.current++;
       if (!why && m) frames.current.push(m);
       const elapsed = (now - started.current) / 1000;
       setRemaining(Math.max(0, SECONDS - elapsed));
@@ -149,8 +233,55 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
     return () => { cancelAnimationFrame(frameId); clearTimeout(timer); };
   }, [status, mode]);
 
+  // The footage: the camera picture with the outline and measuring lines drawn on it, exactly as it was measured.
+  useEffect(() => {
+    if (status !== 'scanning') return;
+    const element = video.current, board = canvas.current;
+    const film = document.createElement('canvas');
+    film.width = element?.videoWidth || 640; film.height = element?.videoHeight || 480;
+    const context = film.getContext('2d');
+    let recorder: MediaRecorder | null = null;
+    const chunks: BlobPart[] = [];
+    let frameId = 0;
+    let capture: MediaStream | null = null;
+    const t0 = performance.now();
+    if (element && board && context && typeof MediaRecorder !== 'undefined' && typeof film.captureStream === 'function') {
+      try {
+        const mimeType = ['video/webm;codecs=vp9', 'video/webm', 'video/mp4'].find(type => MediaRecorder.isTypeSupported(type));
+        capture = film.captureStream(30);
+        const track = capture.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack;
+        const draw = () => {
+          frameId = requestAnimationFrame(draw);
+          context.drawImage(element, 0, 0, film.width, film.height);
+          context.drawImage(board, 0, 0, film.width, film.height);
+          track.requestFrame?.();
+        };
+        recorder = new MediaRecorder(capture, mimeType ? { mimeType } : {});
+        recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+        recorder.start();
+        // Paint after recording starts, so even a still camera provides the first frame immediately.
+        draw();
+      } catch { recorder = null; capture?.getTracks().forEach(t => t.stop()); }
+    }
+    return () => {
+      cancelAnimationFrame(frameId);
+      const seconds = (performance.now() - t0) / 1000, keep = keepClip.current;
+      if (!recorder || recorder.state === 'inactive') { capture?.getTracks().forEach(t => t.stop()); if (keep) setClip(null); return; }
+      const type = recorder.mimeType;
+      recorder.onstop = () => {
+        capture?.getTracks().forEach(t => t.stop());
+        if (!keep || !mounted.current || !chunks.length) { if (keep && mounted.current) setClip(null); return; }
+        clipUrl.current = URL.createObjectURL(new Blob(chunks, { type }));
+        setClip({ url: clipUrl.current, seconds, aspect: film.width / film.height });
+      };
+      recorder.stop();
+    };
+  }, [status]);
+
   function begin() {
     frames.current = [];
+    seen.current = 0;
+    keepClip.current = false;
     started.current = performance.now();
     setError('');
     setRemaining(SECONDS);
@@ -164,11 +295,14 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
       setStatus('ready');
       return;
     }
+    keepClip.current = true;
+    const lines = frames.current.map(m => (m.lines.shoulders[0] + m.lines.shoulders[2]) / 2 / (canvas.current?.width || 640));
+    centre.current = median(lines);
     stopCamera();
     const scan: Scan = { date: new Date().toISOString(), ...summary };
     if (mode === 'setup') {
       const guess = detectShape(scanned, scan);
-      const detected = { sex: guess.sex as NonNullable<Profile['sex']>, build: guess.build as NonNullable<Profile['build']>, weight: guess.weight, sure: guess.sure };
+      const detected = { sex: guess.sex as NonNullable<Profile['sex']>, build: guess.build as NonNullable<Profile['build']>, weight: guess.weight, weights: guess.weights, sure: guess.sure };
       scan.detected = detected;
       setSex(detected.sex);
       setBuild(detected.build);
@@ -178,50 +312,95 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
   }
 
   const cm = result ? thighCm(result, profile.heightCm) : null;
-  const fit = useMemo(() => (result && mode === 'setup' ? physique({ ...profile, massKg: undefined, sex, build, scan: result }).scan : null), [result, mode, profile, sex, build]);
+  // The figure this scan gives, and both of them against the standard figure.
+  const fitted = useMemo(() => (result && mode === 'setup' ? physique({ ...profile, massKg: undefined, sex, build, scan: result }) : null), [result, mode, profile, sex, build]);
+  const compare = useMemo(() => (result && fitted ? compareScan(result, fitted.weights) : null), [result, fitted]);
   const live = status === 'ready' || status === 'scanning';
   const legChange = cm != null && ghostCm ? cm / ghostCm - 1 : null;
+  const spread = scanSpread(result);
+  const agree = result && spread != null ? `${result.frames} frames agree within ${within(spread)}.` : '';
+  const clipCaption = result ? `Clip · ${clip ? `${Math.round(clip.seconds)} s · ` : ''}${result.frames} of ${Math.max(seen.current, result.frames)} frames used` : '';
+  const guessed = (field: 'sex' | 'build', value: string) => {
+    const d = result?.detected;
+    return !d || d[field] !== value ? 'Set by you' : d.sure[field] ? 'From scan' : 'Best guess. Check it.';
+  };
+  const retake = () => { setResult(null); dropClip(); void enableCamera(); };
 
-  return <Dialog title={mode === 'legs' ? `Leg outline · ${SECONDS} s` : `Body scan · ${SECONDS} s`} onClose={onClose} label="Close body scan">
+  return <Dialog title={mode === 'legs' ? `Leg outline · ${SECONDS} s` : `Body scan · ${SECONDS} s`} wide={status === 'done' && mode === 'setup'} onClose={onClose} label="Close body scan">
     {status !== 'done' && <div className={`camera-preview ${live ? '' : 'empty'}`}>
       <video ref={video} muted playsInline/><canvas ref={canvas} width={640} height={480}/>
       {!live && <div className="camera-empty"><Camera size={40}/><strong>{status === 'loading' ? 'Starting camera…' : needsHeight ? 'Add your height first.' : 'Camera off.'}</strong>{needsHeight && <span>Crew card, step 2. It is the scan’s ruler.</span>}</div>}
-      {live && <div className="tracking-status" aria-live="polite"><i className={`status-dot ${issue ? 'amber' : ''}`}/>{issue ?? (status === 'scanning' ? 'Hold still' : 'Body found')}{status === 'scanning' && <strong>{Math.ceil(remaining)} S</strong>}</div>}
+      {live && <div className="tracking-status" aria-live="polite"><i className={`status-dot ${issue ? 'amber' : ''}`}/>{issue ?? (status === 'scanning' ? 'Hold still · recording' : 'Body found')}{status === 'scanning' && <strong>{Math.ceil(remaining)} S</strong>}</div>}
     </div>}
     {error && <p className="error" role="alert"><AlertCircle size={16}/> {error}</p>}
 
-    {status === 'done' && result && mode === 'setup' && result.detected && fit && <>
-      <div className="scan-picks">
-        <div className="scan-pick">
-          <span id="pick-body">Body</span>
-          <div className="seg" role="group" aria-labelledby="pick-body">{(['female', 'male'] as const).map(v => <button key={v} aria-pressed={sex === v} onClick={() => setSex(v)}>{LABEL[v]}</button>)}</div>
-          <small>{result.detected.sure.sex ? 'From scan' : 'Not sure'}</small>
+    {status === 'done' && result && mode === 'setup' && result.detected && fitted && compare && <>
+      <div className="scan-review">
+        {/* What was measured, what it made, and the two answers that shape the figure. */}
+        <div className="scan-side">
+          <div className="scan-evidence">
+            <ClipReview clip={clip} centre={centre.current} portrait caption={clipCaption}/>
+            <figure className="scan-shot">
+              <FigurePreview weights={fitted.weights}/>
+              <figcaption>Your figure · {LABEL[sex]} · {LABEL[build]}</figcaption>
+            </figure>
+          </div>
+          <div className="scan-picks">
+            <div className="scan-pick">
+              <span id="pick-body">Body</span>
+              <div><div className="seg" role="group" aria-labelledby="pick-body">{(['female', 'male'] as const).map(v => <button key={v} aria-pressed={sex === v} onClick={() => setSex(v)}>{LABEL[v]}</button>)}</div><small>{guessed('sex', sex)}</small></div>
+            </div>
+            <div className="scan-pick">
+              <span id="pick-build">Build</span>
+              <div><div className="seg" role="group" aria-labelledby="pick-build">{(BUILDS as NonNullable<Profile['build']>[]).map(v => <button key={v} aria-pressed={build === v} onClick={() => setBuild(v)}>{LABEL[v]}</button>)}</div><small>{guessed('build', build)}</small></div>
+            </div>
+          </div>
+          <dl className="how-why scan-notes">
+            <div><dt>Figure</dt><dd>The app’s 3D model reshaped toward you, not a 3D copy of you. A gap between the two marks is what it could not follow.</dd></div>
+          </dl>
         </div>
-        <div className="scan-pick">
-          <span id="pick-build">Build</span>
-          <div className="seg" role="group" aria-labelledby="pick-build">{(BUILDS as NonNullable<Profile['build']>[]).map(v => <button key={v} aria-pressed={build === v} onClick={() => setBuild(v)}>{LABEL[v]}</button>)}</div>
-          <small>{result.detected.sure.build ? 'From scan' : 'Not sure'}</small>
+        {/* The numbers, then what they are measured against and how far to trust them. */}
+        <div className="scan-side">
+          <div>
+            <p className="scan-axis" aria-hidden="true">
+              <span className="scan-key"><i className="mark-you"/>You<i className="mark-figure"/>Figure</span>
+              <span className="scan-ends"><span>Narrower</span><span>0</span><span>Wider</span></span>
+            </p>
+            <dl className="scan-result" aria-label={`Breadths against the standard ${LABEL[sex].toLowerCase()} figure`}>
+              {MEASURES.map((m: string) => <div key={m}>
+                <dt>{LABEL[m]}</dt>
+                <Bar you={compare[m].you} figure={compare[m].figure} spread={result.spread?.[m]} scale={SCALE.setup}/>
+                <dd className="scan-value">{percent(compare[m].you)}<span className="sr">, your figure {percent(compare[m].figure)}</span></dd>
+              </div>)}
+            </dl>
+          </div>
+          <dl className="how-why scan-notes">
+            <div><dt>Baseline</dt><dd>0 is the standard {LABEL[sex].toLowerCase()} figure: the app’s 3D model at average build and weight. Not a population norm.</dd></div>
+            <div><dt>Accuracy</dt><dd>One front view, so an estimate. Loose clothing reads wider. {agree} Tested on {calibration.validation.heldOutBodies} rendered bodies, not on people.</dd></div>
+            {cm != null && <div><dt>Legs</dt><dd>Thigh {cm} cm starts your leg ghost.</dd></div>}
+          </dl>
         </div>
       </div>
-      <dl className="scan-result" aria-label="Proportions compared with that body">
-        {SHAPE.map(m => <div key={m}><dt>{LABEL[m]}</dt><Bar value={fit.relative[m]}/><dd className="scan-value">{percent(fit.relative[m])}</dd></div>)}
-      </dl>
-      <p className="muted">Compared with a typical {LABEL[build].toLowerCase()} {LABEL[sex].toLowerCase()} body of your weight.{cm != null && ` Thigh ${cm} cm starts your leg ghost.`} {result.frames} frames.</p>
     </>}
 
     {status === 'done' && result && mode === 'legs' && <>
+      <ClipReview clip={clip} caption={clipCaption}/>
       <dl className="scan-result" aria-label="Thigh breadth">
-        <div><dt>Thigh</dt>{legChange != null ? <Bar value={legChange}/> : <dd className="scan-bar" aria-hidden="true"/>}<dd className="scan-value">{cm != null ? `${cm} cm` : '—'}</dd></div>
+        <div><dt>Thigh</dt>{legChange != null ? <Bar you={legChange} spread={result.spread?.thighs} scale={SCALE.legs}/> : <dd className="scan-bar none" aria-hidden="true"/>}<dd className="scan-value">{cm != null ? `${cm} cm` : '—'}</dd></div>
       </dl>
-      <p className="muted">{legChange != null ? `${percent(legChange)} against your ghost of ${ghostCm!.toFixed(1)} cm.` : 'First outline. It starts your ghost.'} Zero-g fluid shift alone thins legs up to 6% in the first days (NASA HIDH). {result.frames} frames.</p>
+      <dl className="how-why scan-notes">
+        <div><dt>Baseline</dt><dd>{legChange != null ? `Your ghost, ${ghostCm!.toFixed(1)} cm, from your earlier outlines. Today is ${percent(legChange)}.` : 'None yet. This outline starts your ghost.'}</dd></div>
+        <div><dt>Accuracy</dt><dd>A front-view breadth with your height as the ruler, not a tape measure. {agree} Wear the same fit each time: loose trousers read wider.</dd></div>
+        <div><dt>Zero g</dt><dd>Fluid shift alone thins legs up to 6% in the first days (NASA HIDH).</dd></div>
+      </dl>
     </>}
 
     {status !== 'done' && <ol className="steps compact"><li><span>Step back until your feet show</span></li><li><span>Arms straight, a little out</span></li><li><span>Hold still. It scans by itself.</span></li></ol>}
     {status === 'intro' && !needsHeight && <button className="btn primary" onClick={() => void enableCamera()}><Camera size={16}/> Try again</button>}
+    <p className="muted">Runs on this device. {status === 'done' ? 'The clip is for this review only and is erased when you close.' : 'A short clip is recorded for you to review, then erased when you close.'} Only body ratios are kept.</p>
     {status === 'done' && result && <div className="scan-actions">
       <button className="btn primary" onClick={() => onSave(result, mode === 'setup' ? { sex, build } : {})}>{mode === 'setup' ? 'Use scan' : 'Save'}</button>
-      <button className="btn ghost" onClick={() => { setResult(null); void enableCamera(); }}>Retake</button>
+      <button className="btn ghost" onClick={retake}>Retake</button>
     </div>}
-    <p className="muted">Runs on this device. Nothing is recorded; only body ratios are kept.</p>
   </Dialog>;
 }

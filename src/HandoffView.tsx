@@ -8,14 +8,16 @@ import type { FollowUp, MissionPacket, MissionState, Recording } from './types';
 interface Props {
   mission: MissionState; recordings: Recording[]; sol: number;
   delay: number; setDelay: (n: number) => void;
+  /** Note carried from a finished region card. */
+  note?: string;
   onSavePacket: (p: MissionPacket) => Promise<void>;
   onDownloaded: (id: string) => void;
   onComplete: (a: FollowUp) => void;
 }
 
-export default function HandoffView({ mission, recordings, sol, delay, setDelay, onSavePacket, onDownloaded, onComplete }: Props) {
+export default function HandoffView({ mission, recordings, sol, delay, setDelay, onSavePacket, onDownloaded, onComplete, note = '' }: Props) {
   const [blackout, setBlackout] = useState(false);
-  const [context, setContext] = useState('');
+  const [context, setContext] = useState(note);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const simulated = mission.demo;

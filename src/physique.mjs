@@ -62,7 +62,9 @@ function profileWeights(profile, weight = undefined) {
 export function physique(profile = {}, zeroG = 0, cal = undefined) {
   // A stated mass (a measurement) beats the scan's weight estimate; saving a scan clears mass, so this is rare.
   const massStated = valid(profile.massKg, LIMITS.massKg) && valid(profile.heightCm, LIMITS.heightCm);
-  const scanWeight = validScan(profile.scan) && !massStated ? profile.scan.detected?.weight : undefined;
+  // The weight estimate belongs to a body shape and build: the one picked, when the scan kept one for each.
+  const detected = validScan(profile.scan) && !massStated ? profile.scan.detected : undefined;
+  const scanWeight = detected?.weights?.[`${profile.sex === 'female' ? 'female' : 'male'}/${profile.build ?? 'average'}`] ?? detected?.weight;
   const { weights, stature, height, scale, bmi } = profileWeights(profile, typeof scanWeight === 'number' ? scanWeight : undefined);
   const scan = validScan(profile.scan) ? fitScan(profile.scan, weights, cal) : null;
   if (scan) for (const m of SHAPE) { weights[`${m}_wide`] = Math.max(0, scan.amount[m]); weights[`${m}_narrow`] = Math.max(0, -scan.amount[m]); }
@@ -87,9 +89,10 @@ export const WEIGHTS = [-0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1];
  * @param {Parameters<typeof profileWeights>[0]} profile mass is used when stated; sex and build are ignored
  * @param {Record<string, any>} scan
  * @param {object} [cal] scan calibration (defaults to src/body-calibration.mjs)
- * @returns {{ sex: 'female' | 'male', build: 'slight' | 'average' | 'muscular', weight: number | null,
+ * @returns {{ sex: 'female' | 'male', build: 'slight' | 'average' | 'muscular', weight: number | null, weights: Record<string, number>,
  *   sure: { sex: boolean, build: boolean }, margin: { sex: number, build: number }, fits: object[] }}
- *   weight: the heavy (+) / light (-) estimate, or null when mass was stated
+ *   weight: the heavy (+) / light (-) estimate, or null when mass was stated; weights: the best estimate for every
+ *   "sex/build", so the body stays the best fit when the crew member corrects the guess (empty when mass was stated)
  */
 export function detectShape(profile, scan, cal = undefined) {
   const { bmi } = profileWeights(profile);
@@ -102,7 +105,10 @@ export function detectShape(profile, scan, cal = undefined) {
   const best = fits[0];
   const next = pred => Math.min(...fits.filter(pred).map(f => f.cost)) - best.cost;
   const margin = { sex: next(f => f.sex !== best.sex), build: next(f => f.sex === best.sex && f.build !== best.build) };
-  return { sex: best.sex, build: best.build, weight: best.weight, sure: { sex: margin.sex >= SURE, build: margin.build >= SURE }, margin, fits };
+  // fits is sorted, so the first of each sex and build is its best weight.
+  const weights = {};
+  for (const f of fits) if (f.weight != null) weights[`${f.sex}/${f.build}`] ??= f.weight;
+  return { sex: best.sex, build: best.build, weight: best.weight, weights, sure: { sex: margin.sex >= SURE, build: margin.build >= SURE }, margin, fits };
 }
 
 /** HIDH Table 4.3-4: stature increases about 3% in 0g from spinal elongation. */

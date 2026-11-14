@@ -17,7 +17,9 @@
  * Calibration (src/body-calibration.mjs) comes from the same model: scripts/blender/build_body.py renders
  * every basis body shape in the scan pose, and scripts/calibrate-scan.mjs measures those frames with this
  * file. src/physique.mjs compares a scan with the bodies a profile could have, to suggest body shape and
- * build, and fits the shoulder, waist and hip morphs to what is left. Only ratios are kept; no image.
+ * build, and fits the shoulder, waist and hip morphs to what is left. Only ratios are kept. The scan dialog
+ * records the few seconds it measured so the crew member can check where the lines fell; that clip lives in
+ * memory and is dropped when the dialog closes.
  */
 import calibration from './body-calibration.mjs';
 
@@ -146,18 +148,26 @@ export function frameIssue(m) {
 
 /**
  * Median of the usable frames, or null when there are too few. thighOfHeight: thigh breadth / outline height.
- * @returns {null | { shoulders: number, waist: number, hips: number, thighs: number, arms: number, thighOfHeight: number, armAngle: number, frames: number }}
+ * spread: how far the frames disagree on each breadth, as a fraction of it (a robust standard deviation:
+ * 1.4826 x the median distance from the median). It says how repeatable this scan was, not how true it is.
+ * @returns {null | { shoulders: number, waist: number, hips: number, thighs: number, arms: number, thighOfHeight: number, armAngle: number,
+ *   frames: number, spread: Record<string, number> }}
  */
 export function summarise(frames) {
   const good = frames.filter(m => m && !frameIssue(m));
   if (good.length < MIN_FRAMES) return null;
   const pick = (f, d = 4) => Math.round(median(good.map(f)) * 10 ** d) / 10 ** d;
+  const spread = k => { const xs = good.map(m => m[k]), mid = median(xs); return Math.round(1.4826 * median(xs.map(x => Math.abs(x - mid))) / mid * 1e4) / 1e4; };
   return {
     ...Object.fromEntries(MEASURES.map(k => [k, pick(m => m[k])])),
     thighOfHeight: pick(m => (m.heightPx ? m.thighs * m.torsoPx / m.heightPx : NaN), 5),
     armAngle: Math.round(median(good.map(m => m.armAngle))), frames: good.length,
+    spread: Object.fromEntries(MEASURES.map(k => [k, spread(k)])),
   };
 }
+
+/** The largest frame-to-frame disagreement among a scan's breadths, or null for a scan saved before it was kept. */
+export const scanSpread = scan => (scan?.spread ? Math.max(...MEASURES.map(m => scan.spread[m] ?? 0)) : null);
 
 /** Thigh breadth in centimetres, with the crew member's height as the ruler. */
 export const thighCm = (scan, heightCm) => (scan?.thighOfHeight > 0 && heightCm > 0 ? Math.round(scan.thighOfHeight * heightCm * 10) / 10 : null);
@@ -203,6 +213,31 @@ export function fitScan(scan, weights, cal = calibration) {
     relative: Object.fromEntries(MEASURES.map((m, j) => [m, r[j] / predicted[j]])),
     cost,
   };
+}
+
+/** Front-view breadths, in torso lengths, that the calibration predicts for a body with these morph weights. */
+export function modelBreadths(weights = {}, cal = calibration) {
+  const out = [...cal.reference];
+  for (const [k, d] of Object.entries(cal.deltas)) if (weights[k]) d.forEach((v, j) => { out[j] += weights[k] * v; });
+  return out;
+}
+
+/**
+ * What the result screen shows: a scan, and the figure fitted to it, each against one fixed baseline, the standard
+ * figure of that body shape (the MakeHuman model at average build and weight). 0.04 = 4% wider than that figure.
+ * "you" is the camera's measurement; "figure" is how far the fitted 3D body actually moved, so a gap between
+ * them is the part of the measurement the figure does not show.
+ * @param {Record<string, any>} scan
+ * @param {Record<string, number>} weights the fitted body's morph weights (physique().weights)
+ * @returns {Record<string, { you: number, figure: number }>}
+ */
+export function compareScan(scan, weights, cal = calibration) {
+  const standard = modelBreadths({ female: weights.female ?? 0 }, cal), figure = modelBreadths(weights, cal);
+  const armAngle = typeof scan.armAngle === 'number' ? scan.armAngle : cal.pose.armsFromVertical;
+  return Object.fromEntries(MEASURES.map((m, j) => [m, {
+    you: (scan[m] - cal.armSlope[j] * (armAngle - cal.pose.armsFromVertical)) / standard[j] - 1,
+    figure: figure[j] / standard[j] - 1,
+  }]));
 }
 
 export const validScan = s => !!s && MEASURES.every(m => typeof s[m] === 'number' && Number.isFinite(s[m]) && s[m] > 0.05 && s[m] < 3);

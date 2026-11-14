@@ -15,7 +15,8 @@ export function analyze(checkIns, simulated) {
   const isNum = v => typeof v === 'number' && Number.isFinite(v);
   const after = records.slice(baselineRecords.length);
   const recentValues = key => after.map(c => c[key]).filter(isNum).slice(-3);
-  const keys = ['reactionMs', 'sleep', 'energy', 'leftRange', 'rightRange', 'thighCm'];
+  const keys = ['reactionMs', 'sleep', 'energy', 'leftRange', 'rightRange', 'thighCm',
+    'mood', 'heartRate', 'exerciseMin', 'appetite', 'workload', 'team'];
   const baseline = Object.fromEntries(keys.map(k => [k, median(baselineRecords.map(c => c[k]))]));
   const current = Object.fromEntries(keys.map(k => [k, median(recentValues(k))]));
   const change = (value, base) => value != null && base != null && base !== 0 ? Math.round((value - base) / base * 100) : null;

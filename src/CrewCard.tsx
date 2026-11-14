@@ -52,7 +52,7 @@ export default function CrewCard({ profile, onProfile, onLegs, editName = false,
   const height = inRange(profile.heightCm ?? NaN, LIMITS.heightCm) ? profile.heightCm! : null;
   const cm = scan ? thighCm(scan, height ?? undefined) : null;
   const zeroG = height ? physique(profile, zeroGForSol(99)).statureCm : null;
-  const fromScan = (field: 'sex' | 'build') => scan?.detected && scan.detected[field] === profile[field] ? <small>From scan</small> : null;
+  const fromScan = (field: 'sex' | 'build') => scan?.detected && scan.detected[field] === profile[field] ? <small>{scan.detected.sure[field] ? 'From scan' : 'Scan’s best guess'}</small> : null;
   const byHand = scan ? {} : { setByHand: true };
 
   return <article className="card crew-card" aria-labelledby="card-title">

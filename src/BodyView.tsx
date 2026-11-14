@@ -22,7 +22,7 @@ const toneRamp = (() => {
   return t;
 })();
 
-function cardMaterial() {
+export function cardMaterial() {
   const material = new THREE.MeshToonMaterial({ color: '#ece7da', gradientMap: toneRamp });
   const uniforms = { uHatch: { value: 0 } };
   material.onBeforeCompile = shader => {
@@ -35,7 +35,7 @@ function cardMaterial() {
 }
 
 // Inverted hull ink line. Uses Three's morph chunks so the outline follows the crew member's shape.
-const outlineMaterial = new THREE.ShaderMaterial({
+export const outlineMaterial = new THREE.ShaderMaterial({
   side: THREE.BackSide,
   uniforms: { color: { value: INK }, width: { value: 0.0068 } },
   vertexShader: `#include <common>

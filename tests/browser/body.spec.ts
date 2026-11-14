@@ -41,9 +41,11 @@ test('a personal self-check saves to today, marks the region and survives reload
   await page.getByRole('button', { name: 'Begin' }).click();
   await page.getByRole('group', { name: 'Blurred or changed vision' }).getByRole('button', { name: 'Mild' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'blurred or changed vision (mild)' })).toBeVisible();
-  await page.getByRole('button', { name: 'Plan follow-up' }).click();
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByText('Follow-up set: repeat this check tomorrow.')).toBeVisible();
+  // Eyes has one self-check (OCT needs an imager), so it is finished: reassess from the done panel.
+  const done = page.getByRole('status', { name: 'Eyes complete' });
+  await expect(done).toContainText('Done today.');
+  await done.getByRole('button', { name: 'Reassess tomorrow' }).click();
+  await expect(done).toContainText('Reassess set for');
   await page.getByRole('button', { name: /^C Chest/ }).click();
   await page.getByRole('button', { name: /Resting heart rate/ }).click();
   await page.getByRole('spinbutton').fill('71');

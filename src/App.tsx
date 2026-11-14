@@ -46,8 +46,11 @@ export default function App() {
   const [crewOpen, setCrewOpen] = useState(false);
   /** A just-added member opens with their name field ready to type. */
   const [naming, setNaming] = useState<string | null>(null);
+  /** A finished region's summary, carried to Handoff as the note for the surgeon. */
+  const [handoffNote, setHandoffNote] = useState<{ crewId?: string; simulated: boolean; text: string } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const simulated = mission.demo;
+  const handoffText = handoffNote?.crewId === mission.crewId && handoffNote?.simulated === simulated ? handoffNote.text : '';
   /** The selected crew member's records only; every page reads this. */
   const view = useMemo(() => scoped(mission), [mission]);
   const analysis = useMemo(() => analyze(view.checkIns, simulated), [view.checkIns, simulated]);
@@ -175,6 +178,7 @@ export default function App() {
     const next = { ...mission, packets: [...(mission.packets ?? []), { ...packet, crewId: mission.crewId }] };
     await saveMission(next);
     setMission(next);
+    setHandoffNote(null);
     notify('Handoff saved on board. Not transmitted.');
   }
 
@@ -220,6 +224,8 @@ export default function App() {
             {/* Back to height, weight and the rest after picking a region: one click, amber while open, like a region. */}
             <button className="stage-scan" aria-pressed={crewOpen} onClick={() => { setCrewOpen(!crewOpen); if (!crewOpen) revealCard(); }}><User size={16} aria-hidden="true"/> Profile</button>
             <button className="stage-scan" onClick={() => { setCrewOpen(true); setModal('scan-setup'); }}><ScanLine size={16}/> {mission.profile.scan ? 'Rescan' : 'Scan me'}</button>
+            {/* Says whose shape the figure has: fitted to this crew member's scan, or still the standard model. */}
+            <span className="figure-source">{mission.profile.scan ? `Figure fitted to scan · ${formatDate(mission.profile.scan.date)}` : 'Standard figure · not scanned'}</span>
           </div>
           <BodyView selected={crewOpen ? null : selected} states={statuses as Record<string, { state: RegionState }>} onSelect={pickRegion} shape={shape}>
             <div className="seg stage-seg" role="group" aria-label="Body shown">
@@ -238,10 +244,11 @@ export default function App() {
         : <ProcedureCard key={selected} region={selectedRegion as never} status={statuses[selected] as never} analysis={analysis as never} simulated={simulated} actions={view.actions.filter(a => a.simulated === simulated)}
           onSave={(field, value) => { record({ [field]: value }); notify('Saved.'); }}
           onAttention={() => setModal('attention')} onCamera={id => setModal(id === 'legs' ? 'scan-legs' : 'capture')} onMovement={() => setModal('movement')}
+          onHandoff={note => { setHandoffNote({ crewId: mission.crewId, simulated, text: note }); go('handoff'); }}
           onFollowUp={(a: FollowUp) => { setMission(old => ({ ...old, actions: [...old.actions, { ...a, crewId: old.crewId }] })); notify(`Follow-up set for ${formatDate(a.scheduledAt)}.`); }}/>}
       </div>}
       {page === 'trends' && <TrendsView checkIns={view.checkIns} simulated={simulated}/>}
-      {page === 'handoff' && <HandoffView mission={view} recordings={crewRecordings} sol={sol} delay={delay} setDelay={setDelay} onSavePacket={savePacket}
+      {page === 'handoff' && <HandoffView key={`${mission.crewId}-${simulated}-${handoffText}`} note={handoffText} mission={view} recordings={crewRecordings} sol={sol} delay={delay} setDelay={setDelay} onSavePacket={savePacket}
         onDownloaded={id => setMission(old => ({ ...old, packets: (old.packets ?? []).map(p => p.id === id ? { ...p, status: 'downloaded', downloadedAt: new Date().toISOString() } : p) }))}
         onComplete={a => setMission(old => ({ ...old, actions: old.actions.map(x => x.id === a.id ? { ...x, status: 'complete' } : x) }))}/>}
       {page === 'mission' && <MissionView mission={view} onOpenRegion={openRegion}

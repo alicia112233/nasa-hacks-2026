@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { analyze, median } from './rules.mjs';
+import { analyze } from './rules.mjs';
 import { formatDate } from './data';
 import type { CheckIn } from './types';
 
@@ -26,11 +26,15 @@ const show = (v: number, unit: string) => `${unit === 'cm' ? v.toFixed(1) : Math
 export default function TrendsView({ checkIns, simulated }: { checkIns: CheckIn[]; simulated: boolean }) {
   const [key, setKey] = useState<Key>('reactionMs');
   const analysis = useMemo(() => analyze(checkIns, simulated), [checkIns, simulated]);
+  const flags: Record<string, boolean> = { reactionMs: analysis.attentionFlag, sleep: analysis.wellbeingFlag,
+    leftRange: analysis.movementFlag, thighCm: analysis.legFlag };
   const rows = metrics.map(m => {
-    const ghost = median(analysis.baselineRecords.map((c: CheckIn) => c[m.key]));
-    const now = median(analysis.recent.map((c: CheckIn) => c[m.key]));
+    const ghost = analysis.baseline[m.key];
+    const now = analysis.current[m.key];
     const change = ghost && now != null ? Math.round((now - ghost) / ghost * 100) : null;
-    const worse = change != null && m.worse !== 'none' && Math.abs(change) >= alertAt(m.key) && (m.worse === 'up' ? change > 0 : change < 0);
+    const comparable = analysis.quality[m.key].baseline >= 3 && analysis.quality[m.key].recent === 3;
+    const worse = flags[m.key] ?? (comparable && change != null && m.worse !== 'none'
+      && Math.abs(change) >= alertAt(m.key) && (m.worse === 'up' ? change > 0 : change < 0));
     return { ...m, ghost, now, change, worse };
   });
   const active = rows.find(r => r.key === key)!;
@@ -48,7 +52,7 @@ export default function TrendsView({ checkIns, simulated }: { checkIns: CheckIn[
           <td>{r.change != null ? `${r.change > 0 ? '+' : ''}${r.change}%` : '—'}</td>
         </tr>)}</tbody>
       </table>
-      <p className="muted">Ghost = median of your earliest {analysis.baselineRecords.length} check-ins. Last 3 = median of the latest three. {simulated ? 'Demo data.' : 'Your records only.'}</p>
+      <p className="muted">Ghost = median of your earliest {analysis.baselineRecords.length} check-ins. Last 3 = median of each measure’s latest three valid readings after that baseline. {simulated ? 'Demo data.' : 'Your records only.'}</p>
     </section>
     <section className="sheet">
       <h2>{active.label} <small>{active.unit}</small></h2>

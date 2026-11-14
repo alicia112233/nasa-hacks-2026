@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { MEASURES, MIN_FRAMES, SHAPE, fitScan, frameIssue, measureFrame, summarise, thighCm } from '../src/scan.mjs';
+import { MEASURES, MIN_FRAMES, SHAPE, compareScan, fitScan, frameIssue, measureFrame, modelBreadths, scanSpread, summarise, thighCm } from '../src/scan.mjs';
 import { detectShape, physique } from '../src/physique.mjs';
 import { analyze } from '../src/rules.mjs';
 import calibration from '../src/body-calibration.mjs';
@@ -84,6 +84,40 @@ test('a scan keeps medians of enough usable frames, and the stated height turns 
   assert.equal(thighCm(s, undefined), null);
 });
 
+test('a scan reports how far its frames disagree, and that is repeatability, not truth', () => {
+  const m = measure(figure());
+  const steady = summarise(Array(MIN_FRAMES).fill(m));
+  for (const k of MEASURES) assert.equal(steady.spread[k], 0, k);
+  assert.equal(scanSpread(steady), 0);
+  // Waist readings of 0.57, 0.6 and 0.63 around a 0.6 median: a robust SD of 1.4826 x 0.03, 7.4% of the waist.
+  const shaky = summarise([...Array(4).fill({ ...m, waist: 0.57 }), ...Array(4).fill({ ...m, waist: 0.6 }), ...Array(4).fill({ ...m, waist: 0.63 })]);
+  near(shaky.spread.waist, 1.4826 * 0.03 / 0.6, 0.002, 'waist spread');
+  assert.equal(shaky.spread.hips, 0);
+  near(scanSpread(shaky), shaky.spread.waist, 1e-9, 'largest spread');
+  assert.equal(scanSpread({ shoulders: 1 }), null);
+});
+
+test('the result compares the scan and its fitted figure with one fixed baseline: the standard figure of that body shape', () => {
+  const ref = { ...Object.fromEntries(MEASURES.map((m, j) => [m, calibration.reference[j]])), armAngle: 30 };
+  // The standard male body against the standard male figure: nothing to report, and the figure sits on it.
+  const same = compareScan(ref, {});
+  for (const m of MEASURES) { near(same[m].you, 0, 1e-9, m); near(same[m].figure, 0, 1e-9, m); }
+  // Build and weight move the figure, not the baseline, so picking another build never changes what "you" reads.
+  const muscular = compareScan(ref, { muscular: 0.7, shoulders_wide: 0.5 });
+  for (const m of MEASURES) near(muscular[m].you, 0, 1e-9, m);
+  near(muscular.shoulders.figure, (0.7 * calibration.deltas.muscular[0] + 0.5 * calibration.deltas.shoulders_wide[0]) / calibration.reference[0], 1e-9, 'figure shoulders');
+  // Body shape moves the baseline: the same male scan is wider in the shoulders than the standard female figure.
+  const female = compareScan(ref, { female: 1 });
+  near(female.shoulders.you, calibration.reference[0] / modelBreadths({ female: 1 })[0] - 1, 1e-9, 'against the female figure');
+  assert.ok(female.shoulders.you > 0.04 && female.hips.you < -0.04);
+  near(female.shoulders.figure, 0, 1e-9, 'unfitted female figure');
+  // A scan 10% wider at the waist: the fitted figure moves toward it and stops short, and the gap is reported.
+  const wide = { ...ref, waist: ref.waist * 1.1 };
+  const fitted = compareScan(wide, physique({ sex: 'male', scan: wide }).weights);
+  near(fitted.waist.you, 0.1, 1e-9, 'measured waist');
+  assert.ok(fitted.waist.figure > 0.02 && fitted.waist.figure < fitted.waist.you, `figure waist ${fitted.waist.figure}`);
+});
+
 test('calibration comes from the app model on Blender renders, refuses cropped frames, and each shape morph moves its own measure', () => {
   assert.match(calibration.model, /MediaPipe Pose Landmarker/);
   assert.deepEqual(calibration.measures, MEASURES);
@@ -132,6 +166,15 @@ test('held-out Blender bodies: body shape from height, mass and the scan, never 
   const scanned = { ...holdout.holdout_f_heavier.scan, detected: { sex: 'female', build: 'average', weight: 0.6, sure: { sex: true, build: false } } };
   assert.equal(physique({ sex: 'female', heightCm: 170, scan: scanned }).weights.heavy, 0.6);
   assert.ok(physique({ sex: 'female', heightCm: 170, massKg: 50, scan: scanned }).weights.light > 0);
+  // Each body shape and build keeps its own best weight, so correcting the guess re-fits the body instead of reusing the wrong weight.
+  const guess = detectShape({ heightCm: 170 }, holdout.holdout_m_heavy_waist_wide.scan);
+  assert.equal(Object.keys(guess.weights).length, 6);
+  assert.equal(guess.weights[`${guess.sex}/${guess.build}`], guess.weight);
+  const kept = { ...holdout.holdout_m_heavy_waist_wide.scan, detected: { sex: 'male', build: 'average', weight: 0.8, weights: { 'male/average': 0.8, 'male/slight': 0.4 }, sure: { sex: true, build: false } } };
+  assert.equal(physique({ sex: 'male', build: 'average', heightCm: 170, scan: kept }).weights.heavy, 0.8);
+  assert.equal(physique({ sex: 'male', build: 'slight', heightCm: 170, scan: kept }).weights.heavy, 0.4);
+  assert.equal(physique({ sex: 'female', build: 'slight', heightCm: 170, scan: kept }).weights.heavy, 0.8);
+  assert.deepEqual(detectShape({ heightCm: 170, massKg: 70 }, holdout.holdout_f_heavier.scan).weights, {});
   assert.equal(physique({ sex: 'female' }).scan, null);
   assert.equal(physique({ scan: { shoulders: NaN } }).scan, null);
 });

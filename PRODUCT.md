@@ -6,6 +6,16 @@
 
 web
 
+## Challenge Reference
+
+Read [the full team-supplied challenge brief](research/challenge-brief.md) before proposing or prioritizing features. It defines the central task: gather health indicators, help astronauts evaluate their health, and provide guidance on actions and health improvements.
+
+Each check should make clear what to measure, how to measure it, why it matters, what the result means, and what next step is available. Do not assume the astronaut already knows how to assess that indicator. The ghost comparison supports this assessment; it does not replace the explanation or the next action.
+
+Blood pressure, heart rate, blood sugar, body temperature, daily sleep hours, and mood are examples in the brief. The clickable human figure, gamification, reminders, charts, and color coding are suggested approaches, not mandatory features. GhostPilot's chosen implementation and the measurements it actually collects are described below and in the README.
+
+For this competition, the team prioritizes frontend UI/UX and ideation, with iterative improvements that preserve the core concept. A coherent experience demonstrating collection, assessment, and action takes priority over making every proposed integration operational.
+
 ## Users
 
 Primary: an astronaut on a long-duration mission (Artemis, Mars transit, ISS) doing a quick self-check between tasks, often alone, with delayed or no contact with the ground. They want to know what to check, do it fast, and see whether they are drifting from their own normal.

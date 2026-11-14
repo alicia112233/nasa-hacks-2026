@@ -49,6 +49,8 @@ for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const audit = async () => {
+      // Audit from the top: rows scrolled under the sticky top bar read as obscured targets, whatever the layout.
+      await page.evaluate(() => window.scrollTo(0, 0));
       const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
       expect(result.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, detail: n.failureSummary })) }))).toEqual([]);
     };

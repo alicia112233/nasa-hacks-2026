@@ -76,12 +76,14 @@ export interface Profile {
   setByHand?: boolean;
 }
 
-/** Camera body scan: front-view breadths divided by torso length (src/scan.mjs). No image is kept. */
+/** Camera body scan: front-view breadths divided by torso length (src/scan.mjs). No image is kept; the review clip is never stored. */
 export interface BodyScan {
   date: string; shoulders: number; waist: number; hips: number; thighs: number; arms: number;
   thighOfHeight: number; armAngle: number; frames: number;
-  /** What the scan suggested, and whether it was sure; the crew member confirms or changes it. */
-  detected?: { sex: 'female' | 'male'; build: 'slight' | 'average' | 'muscular'; weight?: number | null; sure: { sex: boolean; build: boolean } };
+  /** Frame-to-frame disagreement on each breadth, as a fraction of it. Absent on scans saved before it was kept. */
+  spread?: Record<string, number>;
+  /** What the scan suggested, and whether it was sure; the crew member confirms or changes it. weights: the weight estimate per "sex/build". */
+  detected?: { sex: 'female' | 'male'; build: 'slight' | 'average' | 'muscular'; weight?: number | null; weights?: Record<string, number>; sure: { sex: boolean; build: boolean } };
 }
 
 export interface MissionState {
