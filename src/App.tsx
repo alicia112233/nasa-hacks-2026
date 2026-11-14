@@ -8,7 +8,7 @@ import Dialog from './Dialog';
 import TrendsView from './TrendsView';
 import HandoffView from './HandoffView';
 import MissionView from './MissionView';
-import { createDemo, formatDate, loadMission, loadRecordings, saveMission, saveRecording } from './data';
+import { clearPersonalRecords, createDemo, formatDate, loadMission, loadRecordings, saveMission, saveRecording } from './data';
 import { analyze } from './rules.mjs';
 import { dayKey, regions, regionStatuses } from './body.mjs';
 import type { CheckIn, FollowUp, MissionPacket, MissionState, Page, Profile, Recording, RegionId } from './types';
@@ -44,7 +44,7 @@ export default function App() {
   const firstFlag = (regions.find(r => statuses[r.id].state === 'flag') ?? regions.find(r => statuses[r.id].state === 'reported') ?? regions[0]).id as RegionId;
   const selected = region ?? firstFlag;
   const selectedRegion = regions.find(r => r.id === selected)!;
-  const latestRecording = recordings.at(-1);
+  const latestRecording = simulated ? undefined : recordings.at(-1);
   const shape = useMemo(() => physique(mission.profile, preflight ? 0 : zeroGForSol(sol)), [mission.profile, preflight, sol]);
 
   function notify(message: string) {
@@ -107,6 +107,20 @@ export default function App() {
     notify('Handoff saved on board. Not transmitted.');
   }
 
+  async function clearPersonal() {
+    const next: MissionState = {
+      ...mission,
+      profile: createDemo().profile,
+      checkIns: mission.checkIns.filter(c => c.simulated),
+      actions: [],
+      packets: [],
+    };
+    await clearPersonalRecords(next);
+    setRecordings([]);
+    setMission(next);
+    notify('Personal records, videos and profile cleared.');
+  }
+
   if (!loaded) return <div className="boot" role="status">GHOSTPILOT</div>;
 
   return <div className="shell">
@@ -153,7 +167,7 @@ export default function App() {
         onProfile={(patch: Partial<Profile>) => { setMission(old => ({ ...old, profile: { ...old.profile, ...patch, initials: (patch.name ?? old.profile.name).split(/\s+/).map(s => s[0]).join('').slice(0, 2).toUpperCase() } })); notify('Saved.'); }}
         onSource={demo => { setMission(old => ({ ...old, demo })); setRegion(null); notify(demo ? 'Showing demo data.' : 'Showing your records.'); }}
         onReloadDemo={() => { const demo = createDemo(); setMission(old => ({ ...old, demo: true, checkIns: [...old.checkIns.filter(c => !c.simulated), ...demo.checkIns] })); notify('Demo history reloaded. Your records are untouched.'); }}
-        onClear={() => { setMission(old => ({ ...old, checkIns: old.checkIns.filter(c => c.simulated), actions: old.actions.filter(a => a.simulated), packets: (old.packets ?? []).filter(p => p.source === 'simulated') })); notify('Personal records cleared.'); }}/>}
+        onClear={clearPersonal}/>}
       <footer className="foot">Prototype · not a diagnosis · records stay on this device</footer>
     </main>
 

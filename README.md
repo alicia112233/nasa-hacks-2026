@@ -55,7 +55,7 @@ It also runs inside a live Blender session through the Blender MCP add-on (`exec
 ## Run locally
 
 ```powershell
-npm.cmd install
+npm.cmd ci                 # install the locked dependencies, including bundled fonts
 npm.cmd run dev        # http://127.0.0.1:5173
 npm.cmd run build
 npm.cmd run preview    # http://127.0.0.1:4173, offline-capable
@@ -67,7 +67,8 @@ The production build precaches every asset (body model, NASA data, pose model, 4
 
 ```powershell
 npm.cmd test                # 23 Node tests: risk coverage, Blender mesh mapping and morphs, profile shaping, region status, trend rules, handoffs, 4DGS asset
-# With dev (5173) and preview (4173) running:
+# Build first; Playwright starts dev (5173) and preview (4173) automatically:
+npm.cmd run build
 npm.cmd run test:e2e        # Playwright: body, handoff, mission, offline, accessibility
 npm.cmd run test:a11y       # axe WCAG 2.2 AA at 1440/390 px, reflow at 9 viewports, keyboard, forced colours
 python -m unittest discover -s tests -p test_native_4dgs.py   # optional; needs torch, numpy, scipy

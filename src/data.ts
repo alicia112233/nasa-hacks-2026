@@ -59,6 +59,7 @@ export async function saveMission(state: MissionState) {
     transaction.objectStore('mission').put(state, 'state');
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error ?? new Error('Saving mission data was aborted.'));
   });
 }
 
@@ -69,6 +70,20 @@ export async function saveRecording(recording: Recording) {
     tx.objectStore('recordings').put(recording);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new Error('Saving the recording was aborted.'));
+  });
+}
+
+/** Commit the cleared mission and remove videos/pose data in one transaction. */
+export async function clearPersonalRecords(state: MissionState) {
+  const db = await database();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(['mission', 'recordings'], 'readwrite');
+    tx.objectStore('mission').put(state, 'state');
+    tx.objectStore('recordings').clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new Error('Deleting personal records was aborted.'));
   });
 }
 

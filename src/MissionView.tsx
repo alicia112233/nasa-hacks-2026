@@ -13,14 +13,30 @@ interface Props {
   onProfile: (patch: Partial<Profile>) => void;
   onSource: (demo: boolean) => void;
   onReloadDemo: () => void;
-  onClear: () => void;
+  onClear: () => Promise<void>;
 }
 
 export default function MissionView({ mission, onOpenRegion, onProfile, onSource, onReloadDemo, onClear }: Props) {
   const rows = coverage();
   const { data } = useEda();
   const [confirm, setConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState('');
   const { bmi } = physique(mission.profile);
+
+  async function clear() {
+    setClearing(true);
+    setClearError('');
+    try {
+      await onClear();
+      setConfirm(false);
+    } catch {
+      setClearError('Could not delete personal records. Check device storage and try again.');
+    } finally {
+      setClearing(false);
+    }
+  }
+
   return <div className="page-grid mission">
     <section className="sheet span">
       <h2>NASA risk coverage <small>{rows.length} risks · {hazards.length} hazards</small></h2>
@@ -55,7 +71,7 @@ export default function MissionView({ mission, onOpenRegion, onProfile, onSource
 
     <section className="sheet">
       <h2>Crew</h2>
-      <form className="stack" onSubmit={e => {
+      <form key={JSON.stringify(mission.profile)} className="stack" onSubmit={e => {
         e.preventDefault();
         const f = new FormData(e.currentTarget);
         const num = (k: string) => { const raw = String(f.get(k) ?? '').trim(); const n = Number(raw); return raw && Number.isFinite(n) ? n : undefined; };
@@ -81,8 +97,9 @@ export default function MissionView({ mission, onOpenRegion, onProfile, onSource
       <p className="muted">Demo and personal records never share a ghost.</p>
       <button className="link" onClick={onReloadDemo}>Reload demo history</button>
       <div className="danger">
-        {confirm ? <><span>Delete all personal records on this device?</span><button className="btn danger-btn" onClick={() => { onClear(); setConfirm(false); }}>Delete</button><button className="link" onClick={() => setConfirm(false)}>Cancel</button></>
+        {confirm ? <><span>Delete all personal records on this device? This includes videos, pose data, follow-ups, handoffs and your crew profile. Downloaded files must be deleted separately.</span><button className="btn danger-btn" disabled={clearing} onClick={clear}>{clearing ? 'Deleting…' : 'Delete'}</button><button className="link" disabled={clearing} onClick={() => setConfirm(false)}>Cancel</button></>
           : <button className="btn outline-danger" onClick={() => setConfirm(true)}>Clear personal records</button>}
+        {clearError && <p className="error" role="alert">{clearError}</p>}
       </div>
     </section>
 

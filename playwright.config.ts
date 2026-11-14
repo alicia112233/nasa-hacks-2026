@@ -6,6 +6,10 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: 'list',
+  webServer: [
+    { command: 'npm run dev -- --strictPort', url: 'http://127.0.0.1:5173', reuseExistingServer: !process.env.CI },
+    { command: 'npm run preview -- --strictPort', url: 'http://127.0.0.1:4173', reuseExistingServer: !process.env.CI },
+  ],
   use: {
     baseURL: 'http://127.0.0.1:5173',
     headless: true,

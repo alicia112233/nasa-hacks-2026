@@ -18,6 +18,7 @@ export function regionSummary(checkIns: CheckIn[], simulated: boolean) {
 
 export function groundReport(mission: MissionState, recordings: Recording[], sol: number) {
   const simulated = mission.demo;
+  if (simulated) recordings = [];
   const a = analyze(mission.checkIns, simulated);
   const summary = regionSummary(mission.checkIns, simulated);
   const lines = summary.map(r => `### ${r.letter} · ${r.region} — ${r.state}\n${r.checks.map(c => `- ${c.check}: ${c.value ?? c.measured}${c.flagged ? ' · TREND vs ghost' : ''}${c.reported ? ' · REPORTED' : ''}`).join('\n')}`).join('\n\n');
