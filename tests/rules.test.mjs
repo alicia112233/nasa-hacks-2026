@@ -42,3 +42,11 @@ test('shoulder estimate uses geometry and rejects low-confidence observations', 
   assert.equal(shoulderAngle({ x: 0, y: 1, z: 0 }, shoulder, { x: 0, y: -1, z: 0 }), 180);
   assert.equal(shoulderAngle({ x: 0, y: 1, z: 0, visibility: .1 }, shoulder, { x: 1, y: 0, z: 0 }), null);
 });
+test('a partial check-in today keeps each metric on its own last three valid values', () => {
+  const records = Array.from({ length: 14 }, (_, i) => check(i, i > 10 ? { reactionMs: 360 } : {}));
+  records.push(check(14, { reactionMs: undefined, leftRange: undefined, rightRange: undefined, sleep: undefined, energy: undefined, vision: 1 }));
+  const result = analyze(records, true);
+  assert.equal(result.quality.reactionMs.recent, 3);
+  assert.equal(result.attentionDelta, 20);
+  assert.ok(result.attentionFlag);
+});

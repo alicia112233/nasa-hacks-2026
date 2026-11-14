@@ -1,10 +1,11 @@
-// Primary sources read on this date. Published resources inform the interface;
-// no external measurements are imported into a crew member's health history.
+// Primary sources read on this date. Published resources organize the body index;
+// no external measurements enter a crew member's health history or ghost baseline.
 export const researchUse = {
   reviewedOn: '2026-11-14',
   externalMeasurementsImported: false,
+  nasaArchiveImported: 'NASA EDA RR-3 ISS habitat telemetry and SRAG radiation dose (public/data/nasa-eda-rr-3.json), shown as archived mission context only.',
   prototypeThresholdsValidated: false,
-  description: 'NASA and CSA resources inform hazard context and measurement gaps. Trend thresholds and reflection cards are independent prototype choices.',
+  description: 'NASA HRP hazards and its 17 named risks organize the body index; NASA EDA ISS data shows radiation and habitat context. Trend thresholds are independent prototype choices.',
 };
 
 export const researchSources = [
@@ -26,8 +27,8 @@ export const researchSources = [
   { id: 'immune', agency: 'NASA', title: 'Immune Biomarkers', url: 'https://www.nasa.gov/reference/immune-biomarkers/', role: 'Investigates immune changes through blood and saliva samples. Well-being scores cannot stand in for those assays.', type: 'evidence' },
   { id: 'tempus', agency: 'NASA', title: 'Tempus Pro', url: 'https://www.nasa.gov/reference/tempus-pro/', role: 'Studies integrated medical measurements and telemedicine. GhostPilot stores handoffs locally and has no transmission service.', type: 'evidence' },
   { id: 'radi-n2', agency: 'CSA', title: 'Radi-N2: Tracking space radiation and its risks', url: 'https://www.asc-csa.gc.ca/eng/sciences/radi-n2.asp', role: 'Bubble detectors measure neutron exposure at specific locations and intervals. Archived instrument readings are not a personal dose.', type: 'evidence' },
-  { id: 'radlab', agency: 'NASA', title: 'RadLab radiation archive', url: 'https://visualization.osdr.nasa.gov/radlab/gui/overview/', role: 'Explore archived, instrument-specific radiation time series with downloads and an API. Dose rate, dose equivalent rate, and flux have different units.', type: 'data', access: 'Public archive · download / API', limitation: 'Historical instrument context, not current personal dosimetry. No readings imported.' },
-  { id: 'eda', agency: 'NASA', title: 'Environmental Data App', url: 'https://visualization.osdr.nasa.gov/eda/', role: 'Explore mission-specific cabin and hardware temperature, humidity, CO₂, and radiation data, including flight/ground comparisons.', type: 'data', access: 'Public archive · downloadable tables', limitation: 'Confirm mission, location, hardware, and units. These are not readings from your habitat.' },
+  { id: 'radlab', agency: 'NASA', title: 'RadLab radiation archive', url: 'https://visualization.osdr.nasa.gov/radlab/gui/overview/', role: 'Explore archived, instrument-specific radiation time series with downloads and an API. Dose rate, dose equivalent rate, and flux have different units.', type: 'data', access: 'Public archive · download / API', limitation: 'Historical instrument context, not current personal dosimetry. Returned HTTP 500 on 2026-11-14; EDA used instead.' },
+  { id: 'eda', agency: 'NASA', title: 'Environmental Data App', url: 'https://visualization.osdr.nasa.gov/eda/', role: 'Explore mission-specific cabin and hardware temperature, humidity, CO₂, and radiation data, including flight/ground comparisons.', type: 'data', access: 'Public archive · downloadable tables', limitation: 'RR-3 extract imported (hourly medians, daily dose). Habitat-unit readings, not your cabin or your dose.' },
   { id: 'osdr', agency: 'NASA', title: 'Open Science Data Repository', url: 'https://osdr.nasa.gov/bio/repo/', role: 'Space biology and selected human research datasets. Check species, study design, accession, version, and citation before reuse.', type: 'data', access: 'Mostly open · some controlled access', limitation: 'Human processed data may be public; human sequence data requires controlled access. No datasets imported.' },
   { id: 'nlsp', agency: 'NASA', title: 'NASA Life Sciences Portal', url: 'https://www.nasa.gov/hrp/nlsp/', role: 'Find human flight and analog investigations in the Life Sciences Data Archive and review the data request route.', type: 'data', access: 'Public catalog · access varies by dataset', limitation: 'Some non-attributable data is downloadable. Sensitive or attributable data requires a request.' },
 ].map(source => ({ ...source, reviewedOn: researchUse.reviewedOn }));

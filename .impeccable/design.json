@@ -1,0 +1,528 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-14T15:31:54+00:00",
+  "title": "Design System: GhostPilot",
+  "extensions": {
+    "colorMeta": {
+      "binder": {
+        "role": "neutral",
+        "displayName": "Slate Binder",
+        "canonical": "#5b6770",
+        "tonalRamp": [
+          "#242729",
+          "#40464a",
+          "#5a656c",
+          "#75848f",
+          "#98a2a9",
+          "#bac0c4",
+          "#d9dcde",
+          "#f2f2f3"
+        ]
+      },
+      "stock": {
+        "role": "neutral",
+        "displayName": "Card Stock",
+        "canonical": "#f4f1e8",
+        "tonalRamp": [
+          "#2f2a1e",
+          "#574e33",
+          "#827345",
+          "#ae9856",
+          "#bdaf84",
+          "#d0c7af",
+          "#e3dfd4",
+          "#f5f3f0"
+        ]
+      },
+      "stock-2": {
+        "role": "neutral",
+        "displayName": "Stock 2 (hover wash)",
+        "canonical": "#ebe6d8",
+        "tonalRamp": [
+          "#2e2a1f",
+          "#554d34",
+          "#807147",
+          "#aa955a",
+          "#bbad87",
+          "#cec6b0",
+          "#e2dfd4",
+          "#f4f3f0"
+        ]
+      },
+      "stock-3": {
+        "role": "neutral",
+        "displayName": "Stock 3 (hairline)",
+        "canonical": "#ddd6c4",
+        "tonalRamp": [
+          "#2d2920",
+          "#534b37",
+          "#7b6e4c",
+          "#a39161",
+          "#b6aa8b",
+          "#ccc5b3",
+          "#e1ded6",
+          "#f4f3f1"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#111111",
+        "tonalRamp": [
+          "#262626",
+          "#454545",
+          "#636363",
+          "#828282",
+          "#a1a1a1",
+          "#bfbfbf",
+          "#dbdbdb",
+          "#f2f2f2"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#33322f",
+        "tonalRamp": [
+          "#272725",
+          "#474643",
+          "#676560",
+          "#87857d",
+          "#a4a29d",
+          "#c1c0bd",
+          "#dcdcda",
+          "#f3f2f2"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#55534d",
+        "tonalRamp": [
+          "#272725",
+          "#474642",
+          "#68665f",
+          "#88857c",
+          "#a5a39d",
+          "#c2c0bd",
+          "#dcdcda",
+          "#f3f2f2"
+        ]
+      },
+      "amber": {
+        "role": "primary",
+        "displayName": "Caution Amber",
+        "canonical": "#e0a100",
+        "tonalRamp": [
+          "#3e310f",
+          "#785b11",
+          "#bb8a0c",
+          "#feb806",
+          "#f2c450",
+          "#edd391",
+          "#f1e5c6",
+          "#f9f5ec"
+        ]
+      },
+      "amber-tint": {
+        "role": "primary",
+        "displayName": "Amber Tint",
+        "canonical": "#f4e3b2",
+        "tonalRamp": [
+          "#382f15",
+          "#6b581e",
+          "#a58322",
+          "#dfaf25",
+          "#ddbe64",
+          "#e2d09d",
+          "#ebe3cb",
+          "#f7f5ed"
+        ]
+      },
+      "red": {
+        "role": "secondary",
+        "displayName": "Signal Red",
+        "canonical": "#c8102e",
+        "tonalRamp": [
+          "#3a1219",
+          "#711927",
+          "#ae1931",
+          "#eb193b",
+          "#e65c72",
+          "#e798a5",
+          "#eec9cf",
+          "#f8edef"
+        ]
+      },
+      "red-tint": {
+        "role": "secondary",
+        "displayName": "Red Tint",
+        "canonical": "#f6d3d7",
+        "tonalRamp": [
+          "#36171a",
+          "#67232b",
+          "#9d2a37",
+          "#d43043",
+          "#d66b77",
+          "#dea1a8",
+          "#eacdd0",
+          "#f7eeef"
+        ]
+      },
+      "fill-trend": {
+        "role": "neutral",
+        "displayName": "Body Fill: Trend",
+        "canonical": "#e9a3ab",
+        "tonalRamp": [
+          "#35181b",
+          "#64252c",
+          "#992e3a",
+          "#ce3648",
+          "#d26f7a",
+          "#dca3a9",
+          "#e9ced1",
+          "#f6eeef"
+        ]
+      },
+      "fill-reported": {
+        "role": "neutral",
+        "displayName": "Body Fill: Reported",
+        "canonical": "#f1d27e",
+        "tonalRamp": [
+          "#392f13",
+          "#6e581b",
+          "#aa841d",
+          "#e5b01f",
+          "#e2bf60",
+          "#e4d09a",
+          "#ede3ca",
+          "#f7f5ed"
+        ]
+      },
+      "fill-done": {
+        "role": "neutral",
+        "displayName": "Body Fill: Done Today",
+        "canonical": "#d7d1bf",
+        "tonalRamp": [
+          "#2c2921",
+          "#514b39",
+          "#786e4f",
+          "#9f9066",
+          "#b3aa8e",
+          "#cac5b5",
+          "#e0ded6",
+          "#f4f3f1"
+        ]
+      },
+      "hazard-radiation": {
+        "role": "tertiary",
+        "displayName": "Radiation Violet",
+        "canonical": "#8e2a8b",
+        "tonalRamp": [
+          "#331932",
+          "#61295f",
+          "#933490",
+          "#c53fc1",
+          "#cd75ca",
+          "#d8a6d7",
+          "#e7d0e6",
+          "#f6eff6"
+        ]
+      },
+      "hazard-isolation": {
+        "role": "tertiary",
+        "displayName": "Isolation Blue",
+        "canonical": "#2e6f9e",
+        "tonalRamp": [
+          "#192833",
+          "#294961",
+          "#336b93",
+          "#3e8dc6",
+          "#74a8cd",
+          "#a6c3d9",
+          "#cfdde7",
+          "#eff3f6"
+        ]
+      },
+      "hazard-distance": {
+        "role": "tertiary",
+        "displayName": "Distance Green",
+        "canonical": "#1f7a5c",
+        "tonalRamp": [
+          "#18342b",
+          "#26634f",
+          "#2f9775",
+          "#39cc9b",
+          "#71d1b1",
+          "#a4dbc9",
+          "#cee8e0",
+          "#eef6f4"
+        ]
+      },
+      "hazard-gravity": {
+        "role": "tertiary",
+        "displayName": "Gravity Rust",
+        "canonical": "#9c5419",
+        "tonalRamp": [
+          "#372515",
+          "#6a4120",
+          "#a35d24",
+          "#db7929",
+          "#db9b66",
+          "#e1bc9e",
+          "#ebdacc",
+          "#f7f2ee"
+        ]
+      },
+      "hazard-habitat": {
+        "role": "tertiary",
+        "displayName": "Habitat Teal",
+        "canonical": "#0f7c86",
+        "tonalRamp": [
+          "#133639",
+          "#1c676e",
+          "#1e9ea9",
+          "#1fd4e5",
+          "#60d6e1",
+          "#9adee4",
+          "#caeaed",
+          "#edf7f7"
+        ]
+      },
+      "field-paper": {
+        "role": "neutral",
+        "displayName": "Field Paper",
+        "canonical": "#fbfaf6"
+      },
+      "red-deep": {
+        "role": "secondary",
+        "displayName": "Red Deep (primary hover)",
+        "canonical": "#a50d26"
+      },
+      "fill-unmarked": {
+        "role": "neutral",
+        "displayName": "Body Fill: Unmarked",
+        "canonical": "#ece7da"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Procedure card title beside the letter tab."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Sheet titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Sheet sub-sections under an ink rule."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Headline data numbers, tabular."
+      },
+      "step": {
+        "displayName": "Step",
+        "purpose": "Check names in step rows."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Sentences, notes, inputs."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Provenance, sources, captions."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Buttons, segments, field labels (uppercase)."
+      },
+      "label-small": {
+        "displayName": "Label small",
+        "purpose": "Keys, sub-labels, units (uppercase)."
+      }
+    },
+    "shadows": [
+      {
+        "name": "dialog-lift",
+        "value": "0 18px 50px rgba(0, 0, 0, .35)",
+        "purpose": "Modal dialogs over a 60% ink scrim."
+      },
+      {
+        "name": "toast-lift",
+        "value": "0 10px 28px rgba(0, 0, 0, .3)",
+        "purpose": "Bottom-right ink toast."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-fade",
+        "value": "200ms ease",
+        "purpose": "Tag opacity and chevron rotation; all transitions removed under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stack",
+        "value": "900px"
+      },
+      {
+        "name": "phone",
+        "value": "640px"
+      },
+      {
+        "name": "narrow",
+        "value": "380px"
+      },
+      {
+        "name": "short-laptop",
+        "value": "(max-height: 640px) and (min-width: 901px)"
+      }
+    ],
+    "rule": "1.5px solid var(--ink)",
+    "hatch": "repeating-linear-gradient(45deg, var(--ink) 0 1.5px, transparent 1.5px 7px)",
+    "body3d": {
+      "material": "MeshToonMaterial, three-step gradient ramp (150/214/255, nearest filter), base #ece7da",
+      "outline": "Back-face ink hull (#111111), normal offset 0.0075",
+      "hatch": "Screen-space diagonal hatch (9px pitch, 1.6px line, x0.55) on unmeasured regions",
+      "lights": "Hemisphere #fffaf0/#8b8f94 at 2.1, key 1.6, rim 0.5",
+      "source": "public/models/body.glb built by scripts/blender/build_body.py"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single red action on a card (BEGIN).",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><polygon points=\"6 3 20 12 6 21 6 3\"/></svg>Begin</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 26px;border:1.5px solid var(--red,#c8102e);background:var(--red,#c8102e);color:#fff;font:700 17px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;border-radius:0;cursor:pointer}.ds-btn-primary:hover{background:#a50d26;border-color:#a50d26}.ds-btn-primary:focus-visible{outline:3px solid var(--amber,#e0a100);outline-offset:2px}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Default action: 1.5px ink outline.",
+      "html": "<button class=\"ds-btn-outline\">Save handoff</button>",
+      "css": ".ds-btn-outline{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 18px;border:1.5px solid var(--ink,#111);background:transparent;color:var(--ink,#111);font:700 17px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;border-radius:0;cursor:pointer}.ds-btn-outline:hover{background:var(--stock-2,#ebe6d8)}.ds-btn-outline:focus-visible{outline:3px solid var(--amber,#e0a100);outline-offset:2px}.ds-btn-outline:disabled{opacity:.45}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "chip",
+      "refersTo": "segmented-active",
+      "description": "Ink-framed options; the pressed state inverts to ink.",
+      "html": "<div class=\"ds-seg\"><button aria-pressed=\"true\">Dose</button><button aria-pressed=\"false\">Air</button></div>",
+      "css": ".ds-seg{display:inline-flex;border:1.5px solid var(--ink,#111);background:var(--stock,#f4f1e8)}.ds-seg button{min-height:40px;padding:6px 14px;border:0;background:none;color:var(--ink,#111);font:700 15px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;cursor:pointer}.ds-seg button+button{border-left:1.5px solid var(--ink,#111)}.ds-seg button:hover{background:var(--stock-2,#ebe6d8)}.ds-seg button[aria-pressed=true]{background:var(--ink,#111);color:var(--stock,#f4f1e8)}.ds-seg button:focus-visible{outline:3px solid var(--amber,#e0a100);outline-offset:2px}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Condensed label over a square ink-ruled input on field paper.",
+      "html": "<label class=\"ds-field\">Heart rate<input placeholder=\"bpm\"></label>",
+      "css": ".ds-field{display:grid;gap:6px;font:700 15px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;color:var(--ink,#111)}.ds-field input{border:1.5px solid var(--ink,#111);background:#fbfaf6;padding:10px 12px;font:400 16px var(--sans,Barlow,sans-serif);text-transform:none;letter-spacing:0;border-radius:0}.ds-field input:focus-visible{outline:3px solid var(--amber,#e0a100);outline-offset:2px}"
+    },
+    {
+      "name": "Top Bar",
+      "kind": "nav",
+      "refersTo": "top-bar",
+      "description": "Black bar; the current page has a flush 3px amber underline.",
+      "html": "<nav class=\"ds-bar\"><b>GhostPilot</b><a href=\"#\" aria-current=\"page\">Body</a><a href=\"#\">Trends</a><a href=\"#\">Handoff</a><span class=\"ds-status\">Demo data</span></nav>",
+      "css": ".ds-bar{display:flex;align-items:center;gap:20px;height:56px;padding:0 24px;background:var(--ink,#111);color:var(--stock,#f4f1e8);font-family:var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em}.ds-bar b{font-size:22px;letter-spacing:.1em}.ds-bar a{display:flex;align-items:center;height:100%;padding:0 12px;font-size:18px;font-weight:500;color:#c9c5bb;text-decoration:none;border-bottom:3px solid transparent;box-sizing:border-box}.ds-bar a:hover{color:var(--stock,#f4f1e8)}.ds-bar a[aria-current=page]{color:var(--stock,#f4f1e8);border-bottom-color:var(--amber,#e0a100)}.ds-bar a:focus-visible{outline:3px solid var(--amber,#e0a100);outline-offset:-3px}.ds-status{margin-left:auto;background:var(--amber,#e0a100);color:var(--ink,#111);font-weight:700;font-size:14px;letter-spacing:.08em;padding:4px 10px}"
+    },
+    {
+      "name": "Procedure Card",
+      "kind": "card",
+      "refersTo": "procedure-card",
+      "description": "Hazard tab strip, letter tab and title, amber note, numbered timed step rows.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-tabs\"><span style=\"background:#2e6f9e\">Isolation</span><span style=\"background:#9c5419\">Gravity</span></div><div class=\"ds-main\"><header><span class=\"ds-letter\">A</span><h2>Head</h2><small>2 checks · 1 min 5 s</small></header><div class=\"ds-note\"><b>Trend</b><p>Response 18% slower than your ghost.</p></div><ol><li><span class=\"n\">1</span><span class=\"t\">Attention<small>Ghost 312 ms</small></span><span class=\"tm\">1 min</span><i class=\"ds-box flag\"></i></li><li><span class=\"n\">2</span><span class=\"t\">Sleep quality<small>Ghost 4/5</small></span><span class=\"tm\">5 s</span><i class=\"ds-box done\"></i></li></ol></div></article>",
+      "css": ".ds-card{display:grid;grid-template-columns:34px 1fr;background:var(--stock,#f4f1e8);color:var(--ink,#111);border-radius:3px;overflow:hidden;font:16px/1.5 var(--sans,Barlow,sans-serif)}.ds-tabs{display:flex;flex-direction:column}.ds-tabs span{flex:1;min-height:80px;display:grid;place-items:center;color:#fff;writing-mode:vertical-rl;transform:rotate(180deg);font:700 13px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.14em}.ds-main{padding:26px 32px 28px;display:grid;gap:20px}.ds-main header{display:flex;align-items:center;gap:16px}.ds-letter{display:grid;place-items:center;width:56px;height:56px;background:var(--ink,#111);color:var(--stock,#f4f1e8);font:700 36px var(--cond,'Barlow Condensed',sans-serif)}.ds-main h2{margin:0;font:700 46px/1 var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase}.ds-main header small{margin-left:auto;font:700 18px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.08em}.ds-note{display:flex;gap:14px;align-items:flex-start;border:3px solid var(--amber,#e0a100);padding:12px 16px}.ds-note b{background:var(--red,#c8102e);color:#fff;font:700 16px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.08em;padding:2px 8px}.ds-note p{margin:0}.ds-main ol{list-style:none;margin:0;padding:0;border-bottom:1.5px solid var(--ink,#111)}.ds-main li{display:grid;grid-template-columns:44px 1fr auto 28px;align-items:center;gap:12px;min-height:56px;border-top:1.5px solid var(--ink,#111)}.ds-main li:hover{background:var(--stock-2,#ebe6d8)}.ds-main .n{font:700 26px var(--cond,'Barlow Condensed',sans-serif);text-align:center}.ds-main .t{font-size:18px;font-weight:600;line-height:1.25}.ds-main .t small{display:block;font:500 14px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#55534d)}.ds-main .tm{font:600 15px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase}.ds-box{position:relative;width:26px;height:26px;border:2px solid var(--ink,#111);box-sizing:border-box}.ds-box.done{background:var(--ink,#111)}.ds-box.flag::after{content:'';position:absolute;top:-5px;right:-5px;width:9px;height:9px;background:var(--red,#c8102e);border:1.5px solid var(--stock,#f4f1e8)}"
+    },
+    {
+      "name": "Region Tag",
+      "kind": "custom",
+      "refersTo": "region-tag",
+      "description": "Lettered square tags on the body index: default, trend, reported, selected.",
+      "html": "<div class=\"ds-tags\"><span class=\"ds-rtag\">C</span><span class=\"ds-rtag trend\">E</span><span class=\"ds-rtag reported\">B</span><span class=\"ds-rtag on\">A</span></div>",
+      "css": ".ds-tags{display:flex;gap:16px;padding:12px;background:var(--stock,#f4f1e8)}.ds-rtag{display:grid;place-items:center;width:26px;height:26px;background:var(--ink,#111);color:var(--stock,#f4f1e8);font:700 15px var(--cond,'Barlow Condensed',sans-serif)}.ds-rtag.trend{background:var(--red,#c8102e);color:#fff}.ds-rtag.reported{box-shadow:0 0 0 2px var(--stock,#f4f1e8),0 0 0 4px var(--amber,#e0a100)}.ds-rtag.on{background:var(--amber,#e0a100);color:var(--ink,#111)}"
+    },
+    {
+      "name": "Crew Switch",
+      "kind": "nav",
+      "description": "Who the app is showing, at the right of the top bar on every page. Opens the crew list with Edit profile and Add crew member; initials stand in for a face.",
+      "html": "<div class=\"ds-bar\"><button class=\"ds-crew-switch\" aria-expanded=\"true\"><b>AM</b>Alex Morgan</button><div class=\"ds-crew-menu\"><button aria-current=\"true\"><b>AM</b><span><strong>Alex Morgan</strong><small>Scanned 14 Nov</small></span></button><button><b>JL</b><span><strong>Jordan Lee</strong><small>Not scanned</small></span></button><button class=\"ds-crew-action\">Add crew member</button></div></div>",
+      "css": ".ds-bar{display:flex;flex-direction:column;align-items:flex-end;gap:8px;padding:12px;background:var(--ink,#111)}.ds-crew-switch{display:flex;align-items:center;gap:10px;min-height:40px;padding:3px 10px 3px 3px;background:none;color:var(--stock,#f4f1e8);border:1.5px solid #4a4a46;font:600 16px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;cursor:pointer}.ds-crew-switch:hover,.ds-crew-switch[aria-expanded=\"true\"]{border-color:var(--stock,#f4f1e8)}.ds-crew-switch:focus-visible,.ds-crew-menu button:focus-visible{outline:3px solid var(--amber,#e0a100);outline-offset:2px}.ds-crew-switch b{display:grid;place-items:center;width:32px;height:32px;background:var(--stock,#f4f1e8);color:var(--ink,#111);font:700 15px var(--cond,'Barlow Condensed',sans-serif)}.ds-crew-menu{width:280px;background:var(--stock,#f4f1e8);border:1.5px solid var(--ink,#111);box-shadow:0 10px 28px rgba(0,0,0,.3)}.ds-crew-menu button{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 12px;background:none;border:0;border-bottom:1px solid var(--stock-3,#ddd6c4);text-align:left;cursor:pointer;color:var(--ink,#111)}.ds-crew-menu button:hover{background:var(--stock-2,#ebe6d8)}.ds-crew-menu button[aria-current=\"true\"]{background:var(--amber-tint,#f4e3b2)}.ds-crew-menu b{display:grid;place-items:center;width:30px;height:30px;background:var(--ink,#111);color:var(--stock,#f4f1e8);font:700 14px var(--cond,'Barlow Condensed',sans-serif)}.ds-crew-menu span{display:grid}.ds-crew-menu strong{font:700 15px/1.15 var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em}.ds-crew-menu small{font:500 13px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#55534d)}.ds-crew-action{font:700 15px var(--cond,'Barlow Condensed',sans-serif)!important;text-transform:uppercase;letter-spacing:.06em;border-bottom:0!important}"
+    },
+    {
+      "name": "Hatch Mark",
+      "kind": "chip",
+      "refersTo": "",
+      "description": "The not-measured / needs-instrument mark.",
+      "html": "<span class=\"ds-needs\"><i></i>Needs instrument</span>",
+      "css": ".ds-needs{display:inline-flex;align-items:center;gap:6px;font:500 14px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2,#33322f)}.ds-needs i{width:14px;height:14px;border:1.5px solid var(--ink,#111);background:repeating-linear-gradient(45deg,#111 0 1.5px,transparent 1.5px 7px),#f4f1e8}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Crew Procedure Card",
+    "overview": "Every surface is a printed flight-data-file card clipped to a slate binder. Matte card stock carries black ink: 1.5px rules, square check boxes, numbered steps with their times, condensed uppercase labels. The body itself is drawn as a manual illustration (a three-tone toon render with an ink outline and hatching) and serves as a lettered index; picking a region fills it amber and opens its card. The world reads as an operational document, not as a screen.\n\nDensity is a checklist's density: rows sit at 46 to 56px, separated by full-width ink rules rather than boxes, and there is one red action per card. Colour is spent sparingly and by meaning. Amber means caution or \"selected\", red means a trend alert or the one primary action, and the five NASA hazard inks appear only as the card's edge tabs and as chart lines for the matching data.\n\nThe world rejects the dark holographic body-scan dashboard and the rounded wellness-tile grid. Nothing glows, nothing is glass, and nothing is rounded beyond the 3px of a cut card corner.",
+    "keyCharacteristics": [
+      "Card stock panels on a slate binder ground, with a solid black top bar.",
+      "Black 1.5px rules divide content, and square marks carry state.",
+      "Barlow Condensed uppercase for every label, number and heading; Barlow for sentences.",
+      "Amber marks caution and selection; red marks trend alerts and the single primary action.",
+      "Diagonal hatching means \"not measured / needs instrument\" wherever it appears: on the 3D body, in keys, and in check boxes.",
+      "The body is a toon-shaded manual illustration with ink outlines, never a photoreal or glowing scan."
+    ],
+    "rules": [
+      {
+        "name": "The One Meaning Rule",
+        "body": "Amber always means caution or selection, red always means a trend alert or the single primary action, and each hazard ink always means its hazard. A colour never doubles as decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Single Red Button Rule",
+        "body": "A card carries at most one red filled button (BEGIN). Every other action is a 1.5px ink outline or a text link.",
+        "section": "colors"
+      },
+      {
+        "name": "The Amber Note Rule",
+        "body": "Every note is framed in amber, whatever its cause. A trend note shows its severity through a red TREND label inside the amber frame, not through a red frame.",
+        "section": "colors"
+      },
+      {
+        "name": "The Uppercase Condensed Rule",
+        "body": "Labels, numbers, times, headings and buttons are set in Barlow Condensed, uppercase and letterspaced (0.04 to 0.14em). Sentences are never uppercase.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Numbers Rule",
+        "body": "Every number that can change (times, sols, figures, ledger values) uses tabular figures.",
+        "section": "typography"
+      },
+      {
+        "name": "The Paper Doesn't Float Rule",
+        "body": "Cards, sheets and the index never cast shadows. Only dialogs and toasts do.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do separate content with full-width 1.5px ink rules and 1px stock-3 hairlines instead of boxes or shadows.",
+      "Do set every label, number, time and heading in uppercase Barlow Condensed, with tabular figures for numbers that change.",
+      "Do keep each card to one red filled action. Everything else is an ink outline or an underlined link.",
+      "Do mark \"not measured / needs instrument\" with the 45-degree ink hatch, in 2D and in 3D alike.",
+      "Do use square marks for state: check boxes, swatches, corner flags and tags.",
+      "Do frame every note in 3px amber, and show severity with the label block inside it.",
+      "Do use a hazard ink only for its own hazard: card edge tabs, keys and that hazard's data line."
+    ],
+    "donts": [
+      "Don't add rounded corners beyond the 3px card corner, or pill-shaped controls.",
+      "Don't put shadows on cards, sheets or the body index. Only dialogs and toasts lift.",
+      "Don't use dark glowing panels, gradients or glass. This is printed card stock, not a holographic body-scan dashboard.",
+      "Don't arrange checks as a grid of rounded wellness tiles. They are numbered rows on a card.",
+      "Don't use red for anything other than a trend alert, the primary action or a destructive action.",
+      "Don't set a small uppercase kicker or eyebrow line above a title. The letter tab beside the title does that job.",
+      "Don't render the body photoreal, translucent or glowing. It is a three-tone toon illustration with an ink outline."
+    ]
+  }
+}

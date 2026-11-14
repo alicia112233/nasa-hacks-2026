@@ -1,5 +1,7 @@
 # Challenge review · 13 November 2026
 
+The full team-supplied challenge text is now preserved in [the challenge brief](challenge-brief.md). Read it directly for the Background, Objectives, and Potential Considerations; the notes below retain the earlier research and implementation history.
+
 Update, 14 November 2026: the user has now supplied five NASA/CSA resource URLs and the NASA-resource eligibility statement. All five pages were read and followed into relevant research and data portals; see [the detailed resource review](nasa-csa-resource-review.md). The application now uses 22 cited resources. The official Resources tab remains inaccessible, so its exact membership is still unverified. The earlier access notes below describe the previous investigation.
 
 ## What was retrievable

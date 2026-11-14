@@ -10,35 +10,34 @@ export function analyze(checkIns, simulated) {
   const records = checkIns.filter(c => c.simulated === simulated).sort((a, b) => a.date.localeCompare(b.date));
   const baselineRecords = records.slice(0, Math.min(11, Math.max(0, records.length - 3)));
   const recent = records.slice(-3);
-  const baseline = {
-    reactionMs: median(baselineRecords.map(c => c.reactionMs)),
-    sleep: median(baselineRecords.map(c => c.sleep)),
-    energy: median(baselineRecords.map(c => c.energy)),
-    leftRange: median(baselineRecords.map(c => c.leftRange)),
-    rightRange: median(baselineRecords.map(c => c.rightRange)),
-  };
-  const current = {
-    reactionMs: median(recent.map(c => c.reactionMs)),
-    sleep: median(recent.map(c => c.sleep)),
-    energy: median(recent.map(c => c.energy)),
-    leftRange: median(recent.map(c => c.leftRange)),
-    rightRange: median(recent.map(c => c.rightRange)),
-  };
+  // Each metric compares its own last three valid values after the baseline window, so a
+  // partial check-in (one self-check today) never hides or fabricates another metric's trend.
+  const isNum = v => typeof v === 'number' && Number.isFinite(v);
+  const after = records.slice(baselineRecords.length);
+  const recentValues = key => after.map(c => c[key]).filter(isNum).slice(-3);
+  const keys = ['reactionMs', 'sleep', 'energy', 'leftRange', 'rightRange', 'thighCm',
+    'mood', 'heartRate', 'exerciseMin', 'appetite', 'workload', 'team'];
+  const baseline = Object.fromEntries(keys.map(k => [k, median(baselineRecords.map(c => c[k]))]));
+  const current = Object.fromEntries(keys.map(k => [k, median(recentValues(k))]));
   const change = (value, base) => value != null && base != null && base !== 0 ? Math.round((value - base) / base * 100) : null;
   const attentionDelta = change(current.reactionMs, baseline.reactionMs);
   const movementDelta = change(current.leftRange, baseline.leftRange);
+  const legDelta = change(current.thighCm, baseline.thighCm);
   const enough = baselineRecords.length >= 3 && recent.length === 3;
-  const quality = Object.fromEntries(['reactionMs', 'sleep', 'energy', 'leftRange', 'rightRange'].map(key => [key, {
-    baseline: baselineRecords.filter(c => typeof c[key] === 'number' && Number.isFinite(c[key])).length,
-    recent: recent.filter(c => typeof c[key] === 'number' && Number.isFinite(c[key])).length,
+  const quality = Object.fromEntries(keys.map(key => [key, {
+    baseline: baselineRecords.filter(c => isNum(c[key])).length,
+    recent: recentValues(key).length,
   }]));
   const comparable = key => quality[key].baseline >= 3 && quality[key].recent === 3;
   return {
     baseline, current, recent, baselineRecords, records, enough, quality,
-    attentionDelta, movementDelta,
+    attentionDelta, movementDelta, legDelta,
     attentionFlag: enough && comparable('reactionMs') && attentionDelta != null && attentionDelta >= 15,
     movementFlag: enough && comparable('leftRange') && movementDelta != null && movementDelta <= -8,
     wellbeingFlag: enough && comparable('sleep') && current.sleep != null && baseline.sleep != null && current.sleep <= baseline.sleep - 1,
+    // Thigh breadth 5% or more below the ghost. Illustrative, like the others: the 0g fluid shift alone thins legs up to
+    // 6% in the first days (HIDH Table 4.3-4), so a ghost taken in flight makes further loss point to muscle.
+    legFlag: enough && comparable('thighCm') && legDelta != null && legDelta <= -5,
   };
 }
 

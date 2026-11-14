@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Video, X, Circle, Square, CircleCheck, ShieldCheck, AlertCircle, ArrowRight } from 'lucide-react';
+import { Camera, Circle, Square, CircleCheck, AlertCircle } from 'lucide-react';
+import Dialog from './Dialog';
 import type { PoseLandmarker } from '@mediapipe/tasks-vision';
 import { shoulderAngle } from './rules.mjs';
+import { cameraMessage, loadPose, openCamera } from './pose';
 import type { PoseFrame, Recording } from './types';
 
 interface Props { onClose: () => void; onSave: (recording: Recording) => Promise<void>; sol: number }
@@ -24,7 +26,6 @@ export default function Capture({ onClose, onSave, sol }: Props) {
 
   useEffect(() => {
     mounted.current = true;
-    document.querySelector<HTMLButtonElement>('[aria-label="Close movement recording"]')?.focus();
     return () => {
       mounted.current = false;
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -38,24 +39,17 @@ export default function Capture({ onClose, onSave, sol }: Props) {
     setStatus('loading');
     setError('');
     try {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera access needs localhost or a secure HTTPS connection.');
-      const media = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
+      const media = await openCamera();
       if (!mounted.current) { media.getTracks().forEach(t => t.stop()); return; }
       stream.current = media;
       if (video.current) { video.current.srcObject = media; await video.current.play(); }
-      const { FilesetResolver, PoseLandmarker } = await import('@mediapipe/tasks-vision');
-      const vision = await FilesetResolver.forVisionTasks('/wasm');
-      const landmarker = await PoseLandmarker.createFromOptions(vision, {
-        baseOptions: { modelAssetPath: '/models/pose_landmarker_lite.task', delegate: 'CPU' },
-        runningMode: 'VIDEO', numPoses: 1, minPoseDetectionConfidence: .6, minTrackingConfidence: .6,
-      });
+      const landmarker = await loadPose();
       if (!mounted.current) { landmarker.close(); return; }
       tracker.current = landmarker;
       setStatus('ready');
     } catch (err) {
       stream.current?.getTracks().forEach(t => t.stop());
-      const message = err instanceof Error ? err.message : String(err);
-      setError(/denied|Permission|NotAllowed/i.test(message) ? 'Camera permission was declined. Allow camera access in your browser and try again.' : `Could not start movement tracking. ${message}`);
+      setError(cameraMessage(err, 'movement tracking'));
       setStatus('intro');
     }
   }
@@ -126,5 +120,21 @@ export default function Capture({ onClose, onSave, sol }: Props) {
     } catch (err) { setError(`Recording could not start: ${err instanceof Error ? err.message : String(err)}`); }
   }
 
-  return <div className="modal-overlay"><section className="modal capture-modal" role="dialog" aria-modal="true" aria-labelledby="capture-title"><button className="modal-close icon-button" aria-label="Close movement recording" onClick={onClose}><X size={20}/></button><div className="eyebrow">MOVEMENT DIARY · LOCAL CAPTURE</div><h2 id="capture-title">Meet yourself in motion.</h2><p className="modal-description">A 12-second shoulder mobility check. Keep the same camera, distance, restraints, and gravity conditions for future sessions.</p><div className={`camera-preview ${status === 'intro' || status === 'saved' ? 'empty' : ''}`}><video ref={video} muted playsInline/><canvas ref={canvas} width={640} height={480}/>{(status === 'intro' || status === 'loading') && <div className="camera-empty"><Camera size={42}/><strong>{status === 'loading' ? 'Preparing your camera & pose model…' : 'Your camera, your private space.'}</strong><span>Stand far enough back to show your full body.</span></div>}{status === 'saved' && <div className="camera-empty"><CircleCheck size={42}/><strong>Movement saved to your diary.</strong><span>{frames.current.length ? `${frames.current.length} pose frames and original video retained.` : 'Original video saved. No confident pose was detected.'}</span></div>}{(status === 'ready' || status === 'recording') && <div className="tracking-status"><i className={`status-dot ${tracking ? '' : 'amber'}`}/>{tracking ? 'Pose detected' : 'Step back until your body is visible'}{status === 'recording' && <strong>{Math.ceil(remaining)}s</strong>}</div>}</div>{error && <div className="inline-alert"><AlertCircle size={17}/>{error}</div>}<div className="capture-instructions"><span><i>1</i> Face the camera</span><span><i>2</i> Slowly raise both arms</span><span><i>3</i> Lower and repeat</span></div>{status === 'intro' && <button className="button primary full-width" onClick={() => void enableCamera()}><Camera size={17}/> Enable camera & pose tracking</button>}{status === 'loading' && <button disabled className="button primary full-width"><span className="spinner"/> Loading local tracking model</button>}{status === 'ready' && <button className="button primary full-width" onClick={beginRecording}><Circle size={15} fill="currentColor"/> Record 12-second movement</button>}{status === 'recording' && <button className="button primary full-width" onClick={() => { if (timerRef.current) clearTimeout(timerRef.current); setStatus('saving'); recorder.current?.stop(); }}><Square size={14} fill="currentColor"/> Stop & save recording</button>}{status === 'saving' && <button disabled className="button primary full-width">Saving original video…</button>}{status === 'saved' && <button className="button primary full-width" onClick={onClose}>Open movement diary <ArrowRight size={17}/></button>}<p className="privacy-note"><ShieldCheck size={14}/> Video and pose processing stay on this device. No audio is recorded.</p><p className="fine-print"><Video size={12}/> MediaPipe estimates experimental movement angles. The 3D replay is pose driven; it is not a trained 4D Gaussian reconstruction or a clinical measurement.</p></section></div>;
+  return <Dialog title="Shoulder range · 12 s" onClose={onClose} label="Close movement recording">
+    <div className={`camera-preview ${status === 'intro' || status === 'saved' ? 'empty' : ''}`}>
+      <video ref={video} muted playsInline/><canvas ref={canvas} width={640} height={480}/>
+      {(status === 'intro' || status === 'loading') && <div className="camera-empty"><Camera size={40}/><strong>{status === 'loading' ? 'Loading pose model…' : 'Stand back so your whole upper body shows.'}</strong></div>}
+      {status === 'saved' && <div className="camera-empty"><CircleCheck size={40}/><strong>Saved.</strong><span>{frames.current.length ? `${frames.current.length} pose frames and the video stay on this device.` : 'Video saved. No confident pose found, so no angle.'}</span></div>}
+      {(status === 'ready' || status === 'recording') && <div className="tracking-status"><i className={`status-dot ${tracking ? '' : 'amber'}`}/>{tracking ? 'Pose found' : 'Step back'}{status === 'recording' && <strong>{Math.ceil(remaining)} S</strong>}</div>}
+    </div>
+    {error && <p className="error" role="alert"><AlertCircle size={16}/> {error}</p>}
+    <ol className="steps compact"><li><span>Face the camera</span></li><li><span>Raise both arms slowly</span></li><li><span>Lower and repeat</span></li></ol>
+    {status === 'intro' && <button className="btn primary" onClick={() => void enableCamera()}><Camera size={16}/> Enable camera</button>}
+    {status === 'loading' && <button disabled className="btn primary">Loading…</button>}
+    {status === 'ready' && <button className="btn primary" onClick={beginRecording}><Circle size={14} fill="currentColor"/> Record</button>}
+    {status === 'recording' && <button className="btn primary" onClick={() => { if (timerRef.current) clearTimeout(timerRef.current); setStatus('saving'); recorder.current?.stop(); }}><Square size={14} fill="currentColor"/> Stop and save</button>}
+    {status === 'saving' && <button disabled className="btn primary">Saving…</button>}
+    {status === 'saved' && <button className="btn primary" onClick={onClose}>Done</button>}
+    <p className="muted">Runs on this device. No audio. Angles are estimates, not a clinical measure.</p>
+  </Dialog>;
 }

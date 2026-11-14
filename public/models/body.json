@@ -1,0 +1,90 @@
+{
+  "source": {
+    "mesh": "MakeHuman hm08 base mesh, macro targets and default rig weights (CC0)",
+    "archive": "https://extensions.blender.org/download/sha256:c075b3e9b94b8e5556a5f03f4653602d02ea306de08126e8f55ed6dee28a2dad/add-on-mpfb-v2.0.18.zip?repository=%2Fapi%2Fv1%2Fextensions%2F&blender_version_min=4.2.0",
+    "sha256": "c075b3e9b94b8e5556a5f03f4653602d02ea306de08126e8f55ed6dee28a2dad",
+    "posture": "NASA/SP-2010-3407/REV1 Human Integration Design Handbook, Figure 4.3-2",
+    "adaptation": "NASA/SP-2010-3407/REV1 Table 4.3-4 Anthropometric Changes in 0g"
+  },
+  "reference": {
+    "sex": "male",
+    "ageYears": 35,
+    "stature": 1.7242
+  },
+  "stature": {
+    "male": 1.7242,
+    "female": 1.5907
+  },
+  "posture": {
+    "headForward": 24,
+    "shoulderFlexion": 36,
+    "elbow": 122,
+    "trunkThigh": 128,
+    "knee": 133,
+    "foot": 111
+  },
+  "morphs": [
+    "female",
+    "heavy",
+    "light",
+    "muscular",
+    "slight",
+    "female_heavy",
+    "female_light",
+    "female_muscular",
+    "female_slight",
+    "shoulders_wide",
+    "shoulders_narrow",
+    "waist_wide",
+    "waist_narrow",
+    "hips_wide",
+    "hips_narrow",
+    "fluid_0g",
+    "spine_0g"
+  ],
+  "zeroG": {
+    "spineStretchOfStature": 0.03,
+    "legCircumference": -0.06,
+    "chestCircumference": 0.02,
+    "faceMm": 2.5
+  },
+  "scanFrames": {
+    "count": 300,
+    "armsFromVertical": [
+      22,
+      30,
+      38
+    ],
+    "views": [
+      [
+        2.3,
+        0.0
+      ],
+      [
+        2.6,
+        0.1
+      ],
+      [
+        2.9,
+        -0.15
+      ],
+      [
+        1.7,
+        0.25
+      ]
+    ],
+    "calibration": "scripts/calibrate-scan.mjs -> src/body-calibration.mjs"
+  },
+  "bounds": {
+    "min": [
+      -0.4279,
+      -0.2811,
+      0.06
+    ],
+    "max": [
+      0.4284,
+      0.3434,
+      1.6631
+    ]
+  }
+}

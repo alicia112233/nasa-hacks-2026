@@ -1,102 +1,116 @@
 # GhostPilot
 
-A local-first crew health prototype for astronaut self-assessment and flight surgeon review, built with React, TypeScript, Three.js, Recharts, and MediaPipe.
+Crew health checks you navigate by body region, built for long missions far from Earth. An offline-first web app for astronaut self-assessment and flight surgeon handoff, built with React, TypeScript, Three.js, Blender, Recharts, MediaPipe and Spark.
 
-## Small screens and accessibility
+Built for the NASA Space Apps Challenge 2026 [health monitoring software challenge](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/). See [the judging rubric and submission notes](research/judging-rubric.md).
 
-- **Health at a glance** puts the latest heart rate, sleep quality, mood, energy, attention response, and estimated shoulder range beside review actions. The complete summary fits a 1024 × 600 laptop viewport. Latest readings are separate from the median-based trend flags; absent measurements stay explicitly unrecorded.
-- The crew check uses a responsive form with a separately laid out heart-rate unit. Its header and Save action remain visible while the content scrolls on short screens. Text keeps a minimum 12px size; primary reading text and controls use 14–16px.
-- Keyboard users can skip to the main content, use the history table's scroll region, and navigate dialogs and the mobile menu with focus containment and Escape. Hidden navigation and background content become inert. Selected options expose their state, and focus uses a visible outline.
-- The timed attention task is optional. Skipping it records no reaction-time measurement; partial task results are discarded. Reduced motion and Windows forced colors are supported.
-- Automated checks cover nine screen sizes, including short landscape and CSS viewports equivalent to 200% and 400% zoom on 1280 × 960. These reflow checks do not replace manual browser zoom or assistive-technology testing. Axe scans cover all six views and representative dialogs at desktop and mobile widths.
+The complete team-supplied **Background, Objectives, and Potential Considerations** are preserved in [the challenge brief](research/challenge-brief.md). AI contributors should start with [AGENTS.md](AGENTS.md); product decisions live in [PRODUCT.md](PRODUCT.md).
 
-With the dev server running, run `npm.cmd run test:a11y`. See [the accessibility review](research/accessibility-review.md) for results and limits. This is a prototype, not NASA-certified medical software.
+## How it works
 
-## Mission Lens
+1. **Tap a body region.** A full human body, built in Blender and posed to NASA's measured zero-g posture, is the navigation. It is shaped to you: tap Scan me above the body, and a 5-second camera scan reads your body shape, build and weight; your height is the one number you type. A crew can share one device: the top bar names who is shown, and each member has their own body, checks, ghost and handoffs. Nine lettered regions (A Head … H Legs, plus I Cabin for the habitat around you) each open a crew procedure card.
+2. **Run that region's checks.** The card shows how far you are ("2 of 7 complete"), marks the next check, and finishes with Reassess tomorrow or Hand off. Checks that need equipment stay out of the count. Every card lists numbered, timed checks traced to NASA's [17 named spaceflight risks](https://www.nasa.gov/hrp/risks/) and [five hazards](https://www.nasa.gov/hrp/hazards/). The hazards are shown as coloured tabs. Checks are a 60-second attention task, 1–5 self-reports, none/mild/strong symptom reports, heart rate, exercise minutes, a 12-second camera shoulder-range check, and a 5-second camera leg-outline scan. Checks that need equipment GhostPilot doesn't have (OCT, blood pressure cuff, DXA, lab samples, dosimeter) are hatched and labelled with what they need.
+3. **Compare against your ghost.** Your ghost is your own baseline: the median of your earliest check-ins. Trend flags turn a region red, and symptoms you report today turn it amber. Regions with nothing measured are hatched.
+   **Clear next steps.** Every check says how to take it and why it matters, in one line each, when you open it. A saved result says what it means ("Today 64 bpm · ghost 62 bpm", or "high at rest: rest 5 min, recheck"). When a reading is off, the note lists up to three plain steps, each with its action beside it (Retake, Plan follow-up or Hand off), under a label that says how urgent it is: **Watch** (look after yourself and recheck), **Tell surgeon** (add it to the next handoff) or **Act now** (strong breathlessness, a strong symptom after a spacewalk). The text lives in `src/guidance.mjs`.
+4. **Hand off.** Handoffs are saved on board and timestamped, with the body index, actions and cutoffs. They work during a communication blackout and are never shown as sent. Ground reports download as Markdown or JSON.
 
-Open **http://127.0.0.1:4173/#lens** in the production preview, or choose **Mission lens** in the navigation.
+| Page | What it shows |
+| --- | --- |
+| Every page | The crew switch at the right of the top bar: who is shown, switch member, Edit profile, Add crew member |
+| Body | 3D body index shaped to the crew member, Profile and Scan me above it (Profile toggles the crew card, one click from any region), a Preflight / Sol toggle for the zero-g body, and the selected region's procedure card or the crew card (name, mission and body facts, edited in place) |
+| Trends | Last 3 vs ghost for eleven measures (including thigh breadth from the scan), a chart with the ghost line, and check-in history |
+| Handoff | One-way delay (0–30 min), blackout drill, saved handoffs, ground reports, follow-ups |
+| Mission | All 17 NASA risks mapped to regions and checks, NASA ISS radiation and habitat data, data source (demo or personal) and clearing records, sources |
 
-- Explore an interactive constellation organized around NASA's five spaceflight hazards. Each node separates observations, missing measurements, uncertainty, and an available next step.
-- Rewind or play through the mission history. Every replay position uses only the check-ins available at that time, including the linked investigation dialog. Simulated history never enters a personal baseline.
-- Try a clearly labelled communications blackout and adjust a planning delay. The round-trip estimate assumes a symmetric link. Browser connectivity is distinct from a functioning ground link.
-- Save an immutable onboard handoff with the selected observations, analysis, context, dated actions, and research sources. A saved receipt is shown only after IndexedDB confirms the write. Reload or download its JSON offline. Downloads are explicitly **not transmissions**.
-- Historical handoffs exclude later actions. A handoff at the latest observation includes subsequent actions recorded before the handoff is created. The packet records both cutoffs.
-- Trend flags now require three valid earlier and three valid recent samples **for the specific metric**. Missing pose measurements cannot generate a movement flag just because enough crew check-ins exist.
+## Crew roster
 
-NASA and CSA sources are linked inside the lens, with hazard-specific study references and a downloadable list of 22 primary resources. The five supplied pages, linked investigations, and data-access routes are reviewed in [the NASA and CSA research brief](research/nasa-csa-resource-review.md). The prototype is not a validated NASA risk model. Radiation exposure, bone density, immune function, and habitat conditions remain explicitly unmeasured.
+Several crew members can share one device. The crew switch at the right of the top bar shows the selected member's initials and name on every page, so it is always clear whose body, checks, trends and handoffs are on screen. GhostPilot keeps no photos, so initials stand in for a face. The switch lists the crew with each member's scan status, and offers Edit profile and Add crew member. A new member opens with their name ready to type, then Scan me. Records, ghosts, follow-ups, handoffs and videos all belong to one member. Removing a member asks first and removes their records too; Mission → Data clears everyone. The demo has two members: Alex Morgan (attention, sleep and shoulder trends) and Jordan Lee (a leg-outline trend, thigh breadth 6% below the ghost). Saves from before the roster become a crew of one.
 
-Choose **Research for this hazard** to read the evidence behind a selected node, or **Explore NASA data sources** for RadLab, environmental telemetry, OSDR, and human-research catalogs. Access labels distinguish public archives from data requiring requests. No external measurements have been imported; synthetic history and personal records remain separate. New handoffs and Markdown/JSON reports include citations and research-use metadata. Source notes and source-list downloads work offline after caching; external agency pages require connectivity.
+## NASA data and resources
 
-The official 2026 challenge summary was accessible through the search index. Full Details/Resources-tab retrieval failed; these background sources are **independent NASA references**, not a verified challenge resource list. See [the research and access notes](research/challenge-review.md).
+- **Risk coverage:** every one of NASA HRP's 17 risks maps to at least one region check, and each links to its NASA reference page. A unit test fails if any risk loses coverage. See [risk coverage and link check](research/risk-coverage.md).
+- **ISS data:** the Cabin region and Mission page plot NASA's Environmental Data App record for Rodent Research-3 (ISS, 2016). That means 43 days of absorbed dose (0.227 mGy/day median, 9.9 mGy accumulated, split into galactic cosmic rays and South Atlantic Anomaly) and 50 days of habitat CO₂, temperature and humidity. `scripts/fetch-nasa-eda.py` reproduces the extract and records the source URL, retrieval time, SHA-256 and transformations. The data is archived mission context, never a personal reading, and never part of a ghost.
+- **Research:** 22 NASA and CSA sources (hazards, investigations such as ARCHeR, CIPHER, Immune Biomarkers, Tempus Pro, and CSA's CANS and Radi-N2) are bundled in `src/research.mjs`, included in exports, and reviewed in [the NASA and CSA resource review](research/nasa-csa-resource-review.md). NASA's RadLab archive returned HTTP 500 during this work, so radiation data comes from the Environmental Data App instead.
+
+## The Blender body
+
+`scripts/blender/build_body.py` builds the body in Blender 5.2 from the CC0 MakeHuman assets: base mesh, macro targets and default rig weights. It reads them straight from the [MPFB 2.0.18](https://extensions.blender.org/add-ons/mpfb/) archive, downloaded once to `.cache/` and checked against its SHA-256; no add-on is installed. The script:
+
+- **Poses** the body to NASA's 0g neutral body posture ([HIDH](https://www.nasa.gov/wp-content/uploads/2015/03/human_integration_design_handbook_revision_1.pdf) Figure 4.3-2: head 24°, shoulder 36°, elbow 122°, trunk–thigh 128°, knee 133°, foot 111°), using MakeHuman's own skeleton and skin weights.
+- **Bakes 17 morph targets.** Female, heavier, lighter, more and less muscular (with sex-specific cross terms), shoulder, waist and hip measurements, and HIDH Table 4.3-4's zero-g changes: +3% stature from spinal elongation, and the fluid shift that thins the legs and fills the face. Each shape is posed with its own fitted skeleton.
+- **Cuts regions** with anatomical planes (neck, lower ribcage, iliac crest, shoulders, armpits) through one skin, so seams are straight and shading stays smooth across them. It then exports `public/models/body.glb` (about 2.6 MB) and `body.json` (sources, statures, posture angles).
+
+In the app, `src/physique.mjs` turns the crew profile and body scan into morph weights and a height scale. The **Preflight / Sol** toggle on the Body page shows the zero-g body next to the preflight one, with stature, e.g. 168 cm → 173 cm. See [the body model notes](research/body-model.md) for sources, validation and limits.
+
+```powershell
+& "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --factory-startup -P scripts/blender/build_body.py -- .
+```
+
+It also runs inside a live Blender session through the Blender MCP add-on (`execute_code`) with `REPO` set to the repository path.
+
+### Body scan
+
+One scan, used twice. Stand back until your feet show, arms a little out, and hold still for 5 seconds. The bundled MediaPipe Pose Landmarker runs on the device and gives pose landmarks plus a person mask. `src/scan.mjs` reads five breadths from the mask (shoulders, waist, hips, thighs, upper arms), each divided by torso length, and keeps the median of at least 8 usable frames. Frames are refused when the feet are cut off, the arms touch the body or the body leans. Only ratios are stored. The seconds that were measured are recorded, with the outline and measuring lines drawn on them, so you can replay them on the result and check where the lines fell; that clip lives in memory and is erased on retake or close.
+
+- **Setup (Body → Scan me).** One tap starts the camera, and the scan starts itself once it sees your whole body. It tries every body shape, build and weight level and keeps the best fit; you confirm or change shape and build (marked "Best guess. Check it." when the fit isn't clear), and each choice keeps its own best weight. The result puts the clip beside the fitted figure and lists all five breadths against one fixed baseline, the standard figure of that body shape (the app's MakeHuman model at average build and weight, not a population norm). Each row carries two marks, what the camera measured and how far the figure actually moved, plus a band for how far the frames disagreed, so a breadth the figure could not follow is visible rather than hidden. Above the body, a caption says whether the figure is fitted to a scan or is still the standard one. Edit profile in the top bar's crew switch opens the crew card, where everything about you edits in place: click the name or mission to change it, and one Body list holds shape, build, height and mass. Height is the one number a camera can't measure: it is the scan's ruler and sets your zero-g height. Without a camera, shape, build and mass can be set by hand there. This reads body proportions, not gender identity.
+- **Legs check (Body → H Legs → Leg outline).** The same scan gives thigh breadth in centimetres, with your height as the ruler. It joins your record, your ghost, Trends and handoffs like any other check. Its result replays the clip and names its baseline (your ghost, or none yet) and its limits. It is flagged at 5% below the ghost, and it is linked to NASA's muscle-fitness and cardiovascular risks. The card notes that the zero-g fluid shift alone thins legs up to 6% in the first days (HIDH), which is the same change the Preflight / Sol toggle shows.
+
+The scan is calibrated with the app's own model, not with guessed joint positions. The Blender build renders all 16 basis body shapes plus 9 held-out bodies, at 3 arm angles from 4 camera positions (300 frames in `.cache/scan-frames`). `scripts/calibrate-scan.mjs` runs MediaPipe on every frame and writes `src/body-calibration.mjs`. Results on the 8 held-out bodies:
+
+- Body shape guessed right on 8 of 8, build on 7 of 8, and no guess was marked sure while wrong.
+- Shoulder, waist and hip morphs recovered to within 0.35.
+- The fluid-shift body reads −5.5% thigh breadth (HIDH: up to −6%), and thigh breadth repeats to ±0.16 cm across camera positions.
+- All 75 frames with the feet cropped are refused.
+
+A browser test feeds a rendered body to Chrome as a fake webcam and runs both scans in the app.
+
+```powershell
+& "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --factory-startup -P scripts/blender/build_body.py -- .
+npm.cmd run calibrate:scan
+```
+
+## Movement capture and the 4DGS reference
+
+- **Shoulder range** (Arms → Shoulder range → Record 12 s) asks for the camera only when selected and records without audio. It runs the bundled MediaPipe Pose Landmarker locally and estimates shoulder range from the 90th percentile of confident hip–shoulder–elbow angles. Fewer than 10 confident frames means no angle. Video and pose frames stay in IndexedDB on the device.
+- **Compare movement** opens a pose comparison (today vs ghost) and, in demo mode, a **4DGS reference**: a genuine community-trained native 4D Gaussian splat (D-NeRF "Mutant", 120,007 Gaussians) rendered with Spark. It is a technical showcase, not crew data. See [the 4DGS integration notes](research/4dgs-integration.md) and [asset provenance](public/4dgs/mutant/SOURCE.md). `scripts/export-native-4dgs.py` reproduces the export.
+
+## Honest limits
+
+- The thresholds (15% slower attention, 8% less left shoulder range, a 1-point sleep drop, 5% less thigh breadth) are illustrative prototype rules, **not clinically validated**. The ghost uses the earliest 11 check-ins of the same source. Each flag needs three valid baseline and three valid recent values for its own metric. See `src/rules.mjs`.
+- The body scan is calibrated and validated on rendered MakeHuman bodies in fitted clothes, not on measured people. Loose clothing widens the outline. The "frames agree within" figure on the result is repeatability within one scan, not accuracy. The figure is the standard model reshaped toward the scan, not a reconstruction of the person. Its body-shape and build suggestions are confirmed by the crew member, and thigh breadth is a front-view estimate, not a tape measurement.
+- Guidance is procedural, not clinical: rest and recheck, follow the mission-approved procedure, and hand off to the flight surgeon. The only general range used is the adult resting heart rate of 60–100 bpm (American Heart Association). Each "why" line follows the NASA risk its check maps to.
+- Self-reports are subjective prompts for reflection and handoff, not diagnoses. GhostPilot cannot diagnose SANS, bone loss, immune changes, radiation injury or mental health conditions.
+- Demo history is synthetic and labelled. Demo and personal records never share a ghost. A camera recording always goes to personal records.
+- This is a prototype, not NASA-certified medical software or a NASA-approved risk model.
 
 ## Run locally
 
 ```powershell
-npm.cmd install
-npm.cmd run dev
-```
-
-Open **http://127.0.0.1:5173**. On PowerShell, `npm.cmd` avoids the system's script execution policy.
-
-```powershell
+npm.cmd ci                 # install the locked dependencies, including bundled fonts
+npm.cmd run dev        # http://127.0.0.1:5173
 npm.cmd run build
-npm.cmd run preview
+npm.cmd run preview    # http://127.0.0.1:4173, offline-capable
 ```
 
-The production preview runs at **http://127.0.0.1:4173**. Offline support is enabled in the production build. Allow the first load to finish caching all assets, including the local pose and 4DGS models (about 53 MB total), before disconnecting. HTTPS or localhost is required for the camera and service worker.
-
-## Demo flow
-
-1. The initial dashboard contains **clearly labelled synthetic mission history**: 14 check-ins, worsening sleep and attention, and a smaller left shoulder movement.
-2. Explore **Trained 4DGS**: orbit a trained humanoid reconstruction, pause, and scrub its learned motion. Select **Pose comparison** to compare the illustrative astronaut with the ghost baseline. The public reconstruction supplies no crew health measurements; the ghost represents typical performance, never a high score.
-3. Open **Start flight check**. The standard check has a 60-second docking task and a brief crew form. An optional 15-second demo is saved as simulated data. Respond to randomly appearing signals with a tap or the space bar.
-4. Open an evidence card, review observations and uncertainty, select a reflection checklist/action, and schedule a reassessment.
-5. View the **Action log**, mark an action complete, or reassess. Prepare a ground report and download Markdown or JSON. Nothing is sent automatically.
-6. Choose **Switch to my data** for an empty personal baseline. Demo entries never affect personal trends. The demo can be reloaded from mission settings without deleting personal records.
-
-## Movement capture and honest limits
-
-- **Record movement** requests camera access only when selected. The app records up to 12 seconds without audio and runs the bundled MediaPipe Pose Landmarker locally. No API keys or model downloads at runtime are needed.
-- Video blobs, pose frames, check-ins, and actions persist in **IndexedDB on the current device**. The original video can be replayed or downloaded from the session's source panel. Clearing site data removes these records; use report/video downloads when you need an external copy.
-- Shoulder estimates use the 90th percentile of confident hip–shoulder–elbow angles. Sessions with fewer than 10 confident frames have no angle estimate. No confident pose means **video only**, with no fabricated avatar playback.
-- Captured sessions can drive arm movement in the 3D avatar. This is an experimental, simplified pose replay, **not a full anatomical reconstruction**. Today’s captured angle estimates join a real crew check-in on the same day; no wellbeing responses are fabricated by recording a video.
-- **Trained 4DGS** now plays a genuine community native 4D Gaussian checkpoint: the D-NeRF **Mutant** synthetic humanoid, with 120,007 Gaussians at checkpoint iteration 30,000. Its learned space/time covariance determines motion and visibility continuously on the GPU. It is a public research example, separate from the simulated shoulder measurements and personal recordings.
-- **Pose comparison** retains the articulated particle-surface astronaut for the illustrative today/baseline overlay and recorded MediaPipe replay. Recording a webcam session still saves video and pose estimates; it does not train a new 4DGS reconstruction.
-- Compare recordings made with the same camera placement, distance, restraints, and gravity. An Earth baseline cannot be treated as directly equivalent to free-floating movement.
-
-## Trained 4DGS playback
-
-The bundled model is an 8.70 MB compressed parameter export from [youngbongbong/4dgs](https://huggingface.co/youngbongbong/4dgs/tree/5e71153953624e09e7d2ff4ea1e839fc3ca75716), a community checkpoint whose tensor layout matches [Yang et al.'s native 4DGS implementation](https://github.com/LogosIntelligenceLab/4d-gaussian-splatting). This is a different method from [Wu et al.'s HUST 4DGaussians](https://github.com/hustvl/4DGaussians). The original training inputs/run were not independently verified. The publisher declares Apache-2.0 for the checkpoint; the source revision, hashes and provenance are retained in [the asset notes](public/4dgs/mutant/SOURCE.md) and manifest.
-
-[Spark](https://sparkjs.dev/) renders anisotropic Gaussians with depth sorting and alpha blending. The player conditions the learned 4D distribution on a continuously adjustable time using a GPU shader. It preserves all Gaussians and their conditional spatial covariance, position and temporal opacity. This compact display uses DC color and omits higher-order view-dependent spherical harmonics. The eight-second playback cycle is illustrative; original recording duration is unknown. Reduced-motion users start paused. The model and renderer are served locally and included in the production offline cache.
-
-The exported asset is already bundled; Python is unnecessary to run the app. To reproduce the export, download the pinned `4dgs_mutant_iter30000.pth` checkpoint into `.4dgs-cache/`, then run with a Python environment containing `torch`, `numpy`, and `scipy`:
-
-```powershell
-python scripts/export-native-4dgs.py
-```
-
-The CPU exporter uses restricted tensor loading, conditions the 4D covariance analytically, and records the checkpoint and exported-data SHA-256 hashes. It does not train a model. Astronaut-specific or personal reconstructions still need suitable source imagery and a separate training pipeline. See [the integration notes](research/4dgs-integration.md) for the format and validation.
-
-## Prototype trend rules
-
-Medians from the latest three entries are compared with up to 11 earlier entries of the same source. A minimum of three earlier and three recent check-ins is needed. Prototype flags use a 15% increase in response time or an 8% reduction in left shoulder range; a sleep change of at least one point provides wellbeing context. These are illustrative rules, **not clinically validated thresholds**. Recorded and simulated data never share a baseline.
-
-Follow-up cards are predefined reflection aids. They are not approved medical protocols. GhostPilot cannot diagnose illness, mental health conditions, bone loss, radiation injury, or immune changes. Medical decisions and escalation require mission-approved procedures.
+The production build precaches every asset (body model, NASA data, pose model, 4DGS model, about 52 MB) for offline use. Let the first load finish before disconnecting. The camera and service worker need HTTPS or localhost. On PowerShell, `npm.cmd` avoids the script execution policy.
 
 ## Checks
 
 ```powershell
-npm.cmd test
+npm.cmd test                # 40 Node tests: crew roster, risk coverage, Blender mesh mapping and morphs, profile shaping, body scan measurement, shape guesses and the Legs rule on held-out bodies, region status, trend rules, handoffs, 4DGS asset
+# Build first; Playwright starts dev (5173) and preview (4173) automatically:
 npm.cmd run build
-# With dev (5173) and production preview (4173) running:
-npm.cmd run test:e2e
+npm.cmd run test:e2e        # Playwright: body, crew roster, handoff, mission, privacy, offline, accessibility, and the body scan on a rendered fake webcam
+npm.cmd run test:a11y       # axe WCAG 2.2 AA at 1440/390 px, reflow at 9 viewports, keyboard, forced colours
+python -m unittest discover -s tests -p test_native_4dgs.py   # optional; needs torch, numpy, scipy
 ```
 
-Browser tests use an isolated installed Chrome session and a **fake camera**, never the device's real camera. They cover docking inputs, crew forms, source separation, actions, persistence, report downloads, responsive navigation, local capture, and offline reloads.
+Browser tests use installed Chrome with a **fake camera** and software WebGL. Automated accessibility checks don't replace manual screen-reader or real-zoom testing. See [the accessibility review](research/accessibility-review.md) for the earlier audit.
+
+## Design tooling
+
+The interface was designed with the [Impeccable](https://github.com/pbakaus/impeccable) skill (Apache-2.0, v4.9.0, commit `c4cd192`), installed for Claude Code in `.claude/skills/impeccable` with its subagents in `.claude/agents/`. Product context lives in `PRODUCT.md` and the visual system in `DESIGN.md`. The design-check hook is not installed (`npx impeccable install` adds it).
 
 ## Deploy
 
-This is a static Vite application. On Vercel, use the Vite preset, build command `npm run build`, and output directory `dist`. No backend, environment variables, or paid services are required. This repository does not provision or deploy a Vercel project automatically.
-
-The local MediaPipe assets are copied from `@mediapipe/tasks-vision` (Apache 2.0); the pose landmarker model comes from Google's official `mediapipe-models` storage. Three.js is MIT licensed. Dependency licenses remain in `node_modules`.
+This is a static Vite app. On Vercel, use the Vite preset with build command `npm run build` and output directory `dist`. It needs no backend, environment variables or paid services. MediaPipe assets come from `@mediapipe/tasks-vision` (Apache 2.0). Three.js is MIT licensed, and Barlow fonts are under the SIL OFL via Fontsource. The body mesh derives from MakeHuman assets (CC0).
