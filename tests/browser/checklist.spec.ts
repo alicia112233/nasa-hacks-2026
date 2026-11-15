@@ -26,15 +26,14 @@ test('a region checklist shows progress, the next check, and finishes with reass
   await expect(progress).toContainText('2 of 3 complete');
   await page.getByRole('group', { name: 'Joint pain after a spacewalk' }).getByRole('button', { name: /None/ }).click();
 
-  // Finished: a done panel offers reassess or hand off; nothing is pending, so there is no Begin.
+  // Finished: the done panel sends you to the next region with checks left; nothing is pending, so there is no Begin.
   await expect(progress).toContainText('3 of 3 complete');
   const done = page.getByRole('status', { name: 'Chest complete' });
-  await expect(done).toContainText('All 3 done today.');
+  await expect(done).toContainText('All 3 done.');
   await expect(page.getByRole('button', { name: /^(Begin|Continue)$/ })).toHaveCount(0);
-  await done.getByRole('button', { name: 'Reassess tomorrow' }).click();
-  await expect(done).toContainText('Reassess set for');
-  await done.getByRole('button', { name: 'Hand off' }).click();
-  await expect(page.getByLabel('Observation for medical team')).toHaveValue(/^C Chest: 3 of 3 checks done today\./);
+  await expect(done.getByRole('button', { name: 'Reassess tomorrow' })).toHaveCount(0);
+  await done.getByRole('button', { name: /^Next: A Head/ }).click();
+  await expect(page.getByRole('heading', { name: 'Head', level: 2 })).toBeVisible();
 
   // A region with no self-checks is reference only.
   await page.getByRole('link', { name: 'Body' }).click();

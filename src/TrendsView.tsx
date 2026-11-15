@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { analyze } from './rules.mjs';
 import { formatDate } from './data';
 import { phases } from './references.mjs';
 import type { CheckIn, GhostReference } from './types';
 
-const metrics = [
+export const trendMetrics = [
   { key: 'reactionMs', label: 'Attention', unit: 'ms', worse: 'up' },
   { key: 'sleep', label: 'Sleep', unit: '/5', worse: 'down' },
   { key: 'mood', label: 'Mood', unit: '/5', worse: 'down' },
@@ -18,18 +18,20 @@ const metrics = [
   { key: 'workload', label: 'Workload', unit: '/5', worse: 'down' },
   { key: 'team', label: 'Crew', unit: '/5', worse: 'down' },
 ] as const;
-type Key = typeof metrics[number]['key'];
+type Key = typeof trendMetrics[number]['key'];
 const axis = { fontSize: 12, fill: '#3b3a37', fontFamily: 'Barlow Condensed' };
 /** Change that marks a row, in percent; thigh breadth matches the Legs rule (src/rules.mjs). */
 const alertAt = (key: string) => (key === 'thighCm' ? 5 : 8);
 const show = (v: number, unit: string) => `${unit === 'cm' ? v.toFixed(1) : Math.round(v)}${/^[/°]/.test(unit) ? '' : ' '}${unit}`;
 
-export default function TrendsView({ checkIns, simulated, references }: { checkIns: CheckIn[]; simulated: boolean; references?: GhostReference[] }) {
+export default function TrendsView({ checkIns, simulated, references, tourMetric }: { checkIns: CheckIn[]; simulated: boolean; references?: GhostReference[]; tourMetric?: string }) {
   const [key, setKey] = useState<Key>('reactionMs');
+  // The tutorial opens Trends on the measure it is following.
+  useEffect(() => { if (tourMetric) setKey(tourMetric as Key); }, [tourMetric]);
   const analysis = useMemo(() => analyze(checkIns, simulated, references), [checkIns, simulated, references]);
   const flags: Record<string, boolean> = { reactionMs: analysis.attentionFlag, sleep: analysis.wellbeingFlag,
     leftRange: analysis.movementFlag, thighCm: analysis.legFlag };
-  const rows = metrics.map(m => {
+  const rows = trendMetrics.map(m => {
     const ghost = analysis.baseline[m.key];
     const now = analysis.current[m.key];
     const change = ghost && now != null ? Math.round((now - ghost) / ghost * 100) : null;
@@ -48,17 +50,18 @@ export default function TrendsView({ checkIns, simulated, references }: { checkI
       <table className="ledger">
         <thead><tr><th scope="col">Measure</th><th scope="col">Last 3</th><th scope="col">Ghost</th><th scope="col">Change</th></tr></thead>
         <tbody>{rows.map(r => <tr key={r.key} className={`${r.key === key ? 'on' : ''} ${r.worse ? 'worse' : ''}`}>
-          <th scope="row"><button data-tour={r.key === 'heartRate' ? 'heart-trend' : undefined} aria-pressed={r.key === key} onClick={() => setKey(r.key)}>{r.label}</button><small className="metric-last">{r.comparison.lastMeasuredAt ? formatDate(r.comparison.lastMeasuredAt, { hour: '2-digit', minute: '2-digit' }) : 'Never measured'}</small></th>
+          <th scope="row"><button aria-pressed={r.key === key} onClick={() => setKey(r.key)}>{r.label}</button><small className="metric-last">{r.comparison.lastMeasuredAt ? formatDate(r.comparison.lastMeasuredAt, { hour: '2-digit', minute: '2-digit' }) : 'Never measured'}</small></th>
           <td>{r.now != null ? show(r.now, r.unit) : '—'}</td>
           <td>{r.ghost != null ? show(r.ghost, r.unit) : '—'}</td>
           <td>{r.comparison.state === 'unreliable' ? 'Unreliable' : !r.comparison.comparable ? 'Need readings' : r.change != null ? `${r.change > 0 ? '+' : ''}${r.change}%` : '—'}</td>
         </tr>)}</tbody>
       </table>
-      <p className="muted">Ghost = a fixed, explicitly established phase reference. Preflight is retained. Last 3 = later readings; comparisons need matching phase, conditions and quality. Legacy records without conditions are context only. {simulated ? 'Demo data.' : 'Your records only.'}</p>
+      <p className="muted">Ghost = your earlier steady readings. Last 3 = your latest.</p>
     </section>
     <section className="sheet">
+      <div className="trend-focus" data-tour={tourMetric ? 'trend-chart' : undefined}>
       <h2>{active.label} <small>{active.unit}</small></h2>
-      <div className="comparison-note" role="status"><b>{active.comparison.state === 'unreliable' ? 'Comparison unreliable' : active.worse ? 'Trend to review' : active.comparison.comparable ? 'Comparable readings' : 'More readings needed'}</b><p>{active.comparison.reason}</p><p className="muted">Reference: {phases[active.comparison.phase as keyof typeof phases]}. {active.key === 'thighCm' && 'Leg outline alone cannot establish muscle loss; fluid shifts also change leg volume.'}</p></div>
+      <div className="comparison-note" role="status"><b>{active.comparison.state === 'unreliable' ? 'Comparison unreliable' : active.worse ? 'Trend to review' : active.comparison.comparable ? 'No trend' : 'More readings needed'}</b><p>{active.comparison.reason}</p><p className="muted">Ghost from {phases[active.comparison.phase as keyof typeof phases].toLowerCase()}.{active.key === 'thighCm' && ' Fluid shifts also thin the legs, so a narrower outline alone doesn’t mean muscle loss.'}</p></div>
       <div className="chart tall" role="img" aria-label={`${active.label} by sol with ghost line`}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 12, left: -8, bottom: 0 }}>
@@ -70,6 +73,7 @@ export default function TrendsView({ checkIns, simulated, references }: { checkI
             <Line dataKey="value" name={active.label} stroke={active.worse ? '#c8102e' : '#111'} strokeWidth={2} dot={{ r: 3, fill: '#f4f1e8' }} connectNulls isAnimationActive={false}/>
           </LineChart>
         </ResponsiveContainer>
+      </div>
       </div>
       <h3>History</h3>
       <div className="scroll" tabIndex={0} role="region" aria-label="Check-in history">

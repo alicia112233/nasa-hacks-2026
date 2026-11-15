@@ -50,7 +50,7 @@ test('matching fixed references allow trends; recording changes suppress a clini
   const a = analyze(records, false, refs);
   assert.equal(a.legFlag, false);
   assert.equal(a.comparisons.thighCm.state, 'unreliable');
-  assert.match(a.comparisons.thighCm.reason, /conditions differ/);
+  assert.match(a.comparisons.thighCm.reason, /Conditions differ/);
   assert.equal(a.attentionFlag, true);
 });
 
@@ -61,7 +61,7 @@ test('poor frames and unknown legacy conditions cannot produce a trend', () => {
   assert.equal(analyze(records, false, refs).movementFlag, false);
   const legacy = records.map(({ measurements, ...r }) => r);
   assert.equal(analyze(legacy, false).attentionFlag, false);
-  assert.match(analyze(legacy, false).comparisons.reactionMs.reason, /No explicitly established reference/);
+  assert.match(analyze(legacy, false).comparisons.reactionMs.reason, /No ghost set/);
 });
 
 test('adding a phase reference preserves preflight and rejects replacement; snapshots resist gradual deterioration', () => {
@@ -85,7 +85,7 @@ test('phase mismatch is unreliable and per-metric times survive another check', 
   const records = series(), refs = referencesFor(records);
   records.at(-1).measurements.thighCm.phase = 'surface';
   const a = analyze(records, false, refs);
-  assert.match(a.comparisons.thighCm.reason, /phase differs/);
+  assert.match(a.comparisons.thighCm.reason, /Different mission phase/);
   assert.equal(a.comparisons.thighCm.lastMeasuredAt, records.at(-1).measurements.thighCm.measuredAt);
   assert.equal(a.comparisons.sleep.comparable, true);
 });

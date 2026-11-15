@@ -112,7 +112,10 @@ export interface Profile {
   name: string; initials: string; mission: string; duration: number; startDate?: string;
   /** Chosen avatar model, never inferred as the crew member's sex or gender. */
   sex?: 'female' | 'male'; heightCm?: number; massKg?: number; build?: 'slight' | 'average' | 'muscular';
+  /** The scan that shapes the figure: the latest body scan, unless it was deleted. */
   scan?: BodyScan;
+  /** Every saved scan, oldest first: body scans and leg outlines. Ratios only; no image is kept. */
+  scans?: BodyScan[];
   /** Body shape set by hand (no camera). The crew card counts its first step done only after a scan or this. */
   setByHand?: boolean;
   recordingContext?: RecordingContext;
@@ -120,6 +123,10 @@ export interface Profile {
 
 /** Camera body scan: front-view breadths divided by torso length (src/scan.mjs). No image is kept; the review clip is never stored. */
 export interface BodyScan {
+  /** Stable id for the history; scans saved before history fall back to their date. */
+  id?: string;
+  /** setup: Scan me (shapes the figure); legs: the H Legs leg outline. */
+  mode?: 'setup' | 'legs';
   date: string; shoulders: number; waist: number; hips: number; thighs: number; arms: number;
   thighOfHeight: number; armAngle: number; frames: number;
   /** Frame-to-frame disagreement on each breadth, as a fraction of it. Absent on scans saved before it was kept. */
@@ -188,7 +195,7 @@ export interface MissionPacket {
   limitations: string[];
 }
 
-export type Page = 'body' | 'trends' | 'handoff' | 'mission';
+export type Page = 'body' | 'trends' | 'report' | 'mission';
 export type RegionId = 'head' | 'eyes' | 'chest' | 'abdomen' | 'arms' | 'hands' | 'pelvis' | 'legs' | 'cabin';
 export type FlagKind = 'movement' | 'attention' | 'wellbeing';
 export type HazardId = 'isolation' | 'gravity' | 'environment' | 'distance' | 'radiation';

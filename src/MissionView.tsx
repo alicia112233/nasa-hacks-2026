@@ -54,7 +54,7 @@ export default function MissionView({ mission, onOpenRegion, onSource, onReloadD
           </tr>)}</tbody>
         </table>
       </div>
-      <p className="muted">Every risk links to NASA's page. Source list: <a href={risksUrl} target="_blank" rel="noreferrer">Risks of Human Spaceflight<ArrowUpRight size={12}/></a>.</p>
+      <p className="muted">Source: <a href={risksUrl} target="_blank" rel="noreferrer">Risks of Human Spaceflight<ArrowUpRight size={12}/></a>.</p>
     </section>
 
     <section className="sheet">
@@ -72,7 +72,7 @@ export default function MissionView({ mission, onOpenRegion, onSource, onReloadD
         <button aria-pressed={mission.demo} onClick={() => onSource(true)}>Demo</button>
         <button aria-pressed={!mission.demo} onClick={() => onSource(false)}>My records</button>
       </div>
-      <p className="muted">Demo and personal records never share a ghost.</p>
+      
       <button className="link" onClick={onReloadDemo}>Reload demo history</button>
       <div className="danger">
         {confirm ? <><span>Delete all personal records on this device? This includes videos, pose data, follow-ups, handoffs and your crew profile. Downloaded files must be deleted separately.</span><button className="btn danger-btn" disabled={clearing} onClick={clear}>{clearing ? 'Deleting…' : 'Delete'}</button><button className="link" disabled={clearing} onClick={() => setConfirm(false)}>Cancel</button></>

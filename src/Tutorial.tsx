@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { ArrowLeft, Check, Siren, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Play, Siren, X } from 'lucide-react';
 import type { Page } from './types';
 
 export const TUTORIAL_STORAGE_KEY = 'ghostpilot-tutorial-v1';
@@ -10,20 +10,34 @@ export function rememberTutorial() {
   try { localStorage.setItem(TUTORIAL_STORAGE_KEY, 'seen'); } catch { /* Session controls still work. */ }
 }
 
-export const tourSteps: { target: string; title: string; instruction: string; note: string; page: Page }[] = [
-  { target: 'crew', title: 'Open your crew menu', instruction: 'Click the highlighted crew name or initials in the top bar.', note: 'This identifies whose body, checks and handoffs you are viewing.', page: 'body' },
-  { target: 'profile', title: 'Find your profile', instruction: 'Click Edit profile in the crew menu.', note: 'You can update your details or choose the optional Scan me here. This tour will not edit them.', page: 'body' },
-  { target: 'profile-done', title: 'Return to the body', instruction: 'Look over your profile, then click Done.', note: 'Your profile stays as it is. Demo data is synthetic; personal records are separate.', page: 'body' },
-  { target: 'chest', title: 'Choose a body region', instruction: 'Click C Chest in the lettered body-region list.', note: 'Each region opens its own checks. Hatching means it has not been measured.', page: 'body' },
-  { target: 'heart-check', title: 'Open a check', instruction: 'Click the Heart rate row to open its instructions.', note: 'Read How and Why before measuring. We will only open the check, without entering or saving a result.', page: 'body' },
-  { target: 'trends', title: 'Open your trends', instruction: 'Click Trends in the top navigation.', note: 'The check you opened explains how to measure. Trends helps you understand your readings against your ghost.', page: 'body' },
-  { target: 'heart-trend', title: 'Choose a measurement', instruction: 'Click Heart rate in the Trends table.', note: 'Your ghost is a fixed reference from earlier readings. Missing or mismatched readings stay visible; prototype signals are not a diagnosis.', page: 'trends' },
-  { target: 'handoff', title: 'Find the next action', instruction: 'Click Handoff in the top navigation.', note: 'Use result guidance to retake, plan a follow-up or prepare a handoff for the medical team.', page: 'trends' },
-  { target: 'observation', title: 'Start with an observation', instruction: 'Click the Observation for medical team field.', note: 'A handoff also needs the procedure, next check and time, and remaining gaps. Files save locally; the app does not transmit them.', page: 'handoff' },
-];
+/** The challenge loop the tour walks through, in order. */
+export const TOUR_PHASES = ['Spot', 'Check', 'Compare', 'Act'] as const;
+/** A step with a goal advances when its control is used; a `look` step points at something to read and advances with Next. */
+export type TourStep = { target: string | null; phase: number | null; page: Page; title: string; body: string; goal?: string; look?: boolean };
+export type TourContext = { letter: string; label: string; state: string; check: string; checkState: 'flag' | 'reported' | 'none'; metric: string };
+
+/**
+ * One reading followed from spotting a change to acting on it, built from what is on screen for this crew member:
+ * the region that stands out, a check inside it, and that check's trend.
+ */
+export function buildTour(c: TourContext): TourStep[] {
+  const spot = c.state === 'flag' ? `Red means a reading in ${c.label} has drifted from your ghost. Amber means a reported symptom; hatching, not measured yet.`
+    : c.state === 'reported' ? `Amber means a symptom was reported in ${c.label}. Red means drift from your ghost; hatching, not measured yet.`
+    : 'Nothing has drifted yet. Red will mean drift from your ghost, amber a reported symptom, hatching not measured yet.';
+  const why = c.checkState === 'flag' ? `${c.check} is one reason ${c.label} is red. ` : c.checkState === 'reported' ? `${c.check} was reported here. ` : '';
+  return [
+    { target: null, phase: null, page: 'body', title: 'Your first check, start to finish', body: 'GhostPilot compares you with your ghost: your own readings from earlier in the mission. Follow one reading from spotting a change to telling the medical team. About a minute; nothing is saved.' },
+    { target: 'spot', phase: 0, page: 'body', title: c.state === 'clear' ? 'Pick a region' : 'Spot what changed', body: spot, goal: `Tap ${c.label}.` },
+    { target: 'check', phase: 1, page: 'body', title: 'Learn the check', body: `${why}Every check opens with how to take it and why it matters.`, goal: `Tap ${c.check}.` },
+    { target: 'trends', phase: 2, page: 'body', title: 'Is it getting worse?', body: 'One reading can be noise. Trends plots every reading against your ghost.', goal: 'Tap Trends.' },
+    { target: 'trend-chart', phase: 2, page: 'trends', look: true, title: 'Read the trend', body: `This is ${c.metric} over the mission. The dashed line is your ghost. Several readings in a row away from it make a trend; one odd point does not.` },
+    { target: 'report', phase: 3, page: 'trends', title: 'Act on it', body: 'Every check lands in today’s report. Hand it off to the medical team once, at the end of the day.', goal: 'Tap Report.' },
+  ];
+}
 
 interface Props {
   step: number;
+  steps: TourStep[];
   onPrepare: (step: number) => void;
   onAdvance: () => void;
   onBack: () => void;
@@ -35,14 +49,16 @@ const controls = 'button, a[href], input, select, textarea, summary, [tabindex]:
 
 /** A tour of the real controls. Only the current goal and the guide remain interactive. */
 export default function Tutorial(props: Props) {
-  const { step } = props;
+  const { step, steps } = props;
   const callbacks = useRef(props);
   callbacks.current = props;
   const panel = useRef<HTMLElement>(null);
   const [rect, setRect] = useState<Rect | null>(null);
   const [panelSize, setPanelSize] = useState({ width: 380, height: 310 });
   const [complete, setComplete] = useState(false);
-  const current = tourSteps[step];
+  const current = steps[step];
+  const last = steps.length - 1;
+  const look = !!current.look;
 
   useLayoutEffect(() => { callbacks.current.onPrepare(step); }, [step]);
   useLayoutEffect(() => {
@@ -58,9 +74,9 @@ export default function Tutorial(props: Props) {
     let previousDescription: string | null = null;
     let advanceTimer: ReturnType<typeof setTimeout> | undefined;
     let acted = false;
-    let needsFocus = complete;
+    let needsFocus = complete || !current.target;
     const changed = new Map<HTMLElement, boolean>();
-    const selector = `[data-tour="${current.target}"]`;
+    const selector = current.target ? `[data-tour="${current.target}"]` : null;
     const visible = (element: HTMLElement) => element.getClientRects().length > 0 && !element.closest('[hidden]');
     const measure = () => {
       if (!target || complete) { setRect(null); return; }
@@ -69,16 +85,16 @@ export default function Tutorial(props: Props) {
       setRect(old => old && Object.keys(next).every(key => old[key as keyof Rect] === next[key as keyof Rect]) ? old : next);
     };
     const focusGoal = () => {
-      const destination = complete ? panel.current?.querySelector<HTMLElement>('[data-tour-finish]') : target;
-      (destination ?? panel.current?.querySelector<HTMLElement>('button'))?.focus({ preventScroll: !complete });
+      const destination = complete ? panel.current?.querySelector<HTMLElement>('[data-tour-finish]') : look ? panel.current?.querySelector<HTMLElement>('[data-tour-next]') : target ?? panel.current?.querySelector<HTMLElement>('[data-tour-start]');
+      (destination ?? panel.current?.querySelector<HTMLElement>('button'))?.focus({ preventScroll: !complete && !!target });
     };
     const find = () => {
-      const found = complete ? null : document.querySelector<HTMLElement>(selector);
+      const found = complete || !selector ? null : document.querySelector<HTMLElement>(selector);
       if (found && visible(found) && target !== found) {
         target = found;
         needsFocus = true;
         previousDescription = target.getAttribute('aria-describedby');
-        target.setAttribute('aria-describedby', [previousDescription, 'tour-instruction'].filter(Boolean).join(' '));
+        if (!look) target.setAttribute('aria-describedby', [previousDescription, 'tour-instruction'].filter(Boolean).join(' '));
         target.scrollIntoView({ block: innerWidth <= 640 ? 'start' : 'center', inline: 'nearest', behavior: 'instant' });
       }
       for (const element of document.querySelectorAll<HTMLElement>(controls)) {
@@ -96,11 +112,11 @@ export default function Tutorial(props: Props) {
       const source = event.target;
       if (!(source instanceof Node)) return;
       if (panel.current?.contains(source)) return;
-      if (!complete && target?.contains(source)) {
+      if (!complete && !look && target?.contains(source)) {
         if (!acted) {
           acted = true;
           advanceTimer = setTimeout(() => {
-            if (step === tourSteps.length - 1) setComplete(true);
+            if (step === last) setComplete(true);
             else callbacks.current.onAdvance();
           }, 0);
         }
@@ -110,7 +126,7 @@ export default function Tutorial(props: Props) {
     };
     const onFocus = (event: FocusEvent) => {
       const source = event.target;
-      if (source instanceof Node && !panel.current?.contains(source) && (complete || !target?.contains(source))) focusGoal();
+      if (source instanceof Node && !panel.current?.contains(source) && (complete || look || !target?.contains(source))) focusGoal();
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -118,13 +134,10 @@ export default function Tutorial(props: Props) {
       }
       if (event.key === 'Tab') {
         event.preventDefault(); event.stopImmediatePropagation();
-        const items = [!complete ? target : null, ...Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled)') ?? [])].filter((item): item is HTMLElement => !!item && visible(item) && !item.inert);
+        const items = [!complete && !look ? target : null, ...Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled)') ?? [])].filter((item): item is HTMLElement => !!item && visible(item) && !item.inert);
         if (!items.length) return;
         const at = items.indexOf(document.activeElement as HTMLElement);
         items[(at + (event.shiftKey ? -1 : 1) + items.length) % items.length].focus();
-      } else if (document.activeElement === target && target instanceof HTMLTextAreaElement) {
-        event.preventDefault(); event.stopImmediatePropagation();
-        if (event.key === 'Enter' || event.key === ' ') target.click();
       }
     };
     const observer = new MutationObserver(find);
@@ -148,7 +161,7 @@ export default function Tutorial(props: Props) {
         else target.setAttribute('aria-describedby', previousDescription);
       }
     };
-  }, [step, complete, current.target]);
+  }, [step, complete, current.target, last, look]);
 
   let left = 12, top = 12;
   const width = panelSize.width, height = panelSize.height;
@@ -162,9 +175,11 @@ export default function Tutorial(props: Props) {
     else if (rect.left + rect.width + gap + width <= vw - 12) { left = rect.left + rect.width + gap; top = Math.max(12, Math.min(vh - height - 12, rect.top)); }
     else if (rect.left - gap - width >= 12) { left = rect.left - gap - width; top = Math.max(12, Math.min(vh - height - 12, rect.top)); }
     else { left = Math.max(12, vw - width - 12); top = rect.top < vh / 2 ? vh - height - 12 : 12; }
-  } else if (complete) {
+  } else {
     left = Math.max(12, (innerWidth - width) / 2); top = Math.max(12, (innerHeight - height) / 2);
   }
+  const intro = !current.target && !complete;
+  const phase = complete ? TOUR_PHASES.length : current.phase ?? -1;
   return <>
     {rect ? <div className="tour-masks" aria-hidden="true">
       <div className="tour-mask" style={{ inset: '0 0 auto', height: rect.top }}/>
@@ -173,19 +188,24 @@ export default function Tutorial(props: Props) {
       <div className="tour-mask" style={{ top: rect.top + rect.height, left: 0, right: 0, bottom: 0 }}/>
       <div className="tour-spotlight" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}/>
     </div> : <div className="tour-mask tour-cover" aria-hidden="true"/>}
-    <section ref={panel} className="tour-coach" role="dialog" aria-modal="false" aria-labelledby="tour-title" style={{ left, top, maxHeight }}>
-      <header className="tour-head"><h2 id="tour-title">Interactive tutorial</h2><button className="icon-btn" aria-label="Close tutorial" onClick={props.onClose}><X size={18}/></button></header>
+    <section ref={panel} className={`tour-coach ${intro || complete ? 'centered' : ''}`} role="dialog" aria-modal="false" aria-labelledby="tour-title" style={{ left, top, maxHeight }}>
+      <header className="tour-head"><h2 id="tour-title">Tutorial</h2><button className="emergency-entry tour-emergency" onClick={props.onEmergency}><Siren size={16} aria-hidden="true"/>Emergency</button><button className="icon-btn" aria-label="Close tutorial" onClick={props.onClose}><X size={18}/></button></header>
       <div className="tour-content">
-        <div className="tutorial-progress"><span>Step {step + 1} of {tourSteps.length}</span><ol aria-label="Tutorial progress">{tourSteps.map((item, index) => <li key={item.target} aria-current={index === step ? 'step' : undefined} className={index < step || complete ? 'complete' : ''}><span aria-hidden="true">{index + 1}</span><span className="sr">{item.title}</span></li>)}</ol></div>
-        <h3>{complete ? 'You’re ready' : current.title}</h3>
-        <p id="tour-instruction">{complete ? 'You found the key controls. No health readings or handoffs were saved by this tour.' : current.instruction}</p>
-        <p className="tutorial-note">{complete ? 'Replay anytime with Tutorial in the top bar. Your previous page will be restored.' : current.note}</p>
-        {!complete && <p className="tour-goal"><span className="tour-goal-box" aria-hidden="true"/>Click the highlighted control to continue.</p>}
+        <ol className="tour-phases" aria-label="Tutorial progress">
+          {TOUR_PHASES.map((name, index) => <li key={name} aria-current={index === phase ? 'step' : undefined} className={index < phase ? 'complete' : ''}><i aria-hidden="true"/>{name}</li>)}
+        </ol>
+        <span className="sr">{complete ? 'Tutorial complete' : intro ? 'Introduction' : `Step ${step} of ${last}`}</span>
+        <h3>{complete ? 'That’s the loop' : current.title}</h3>
+        <p>{complete ? 'Spot, check, compare, act. Each day, start on Today: fill both rings, then hand off the report.' : current.body}</p>
+        {complete && <p className="tour-aside">Switch crew member or edit your profile from your name, top right.</p>}
+        {current.goal && !complete && <p className="tour-goal" id="tour-instruction"><span className="tour-goal-box" aria-hidden="true"/>{current.goal}</p>}
         <div className="tour-actions">
-          <button className="btn" disabled={step === 0} onClick={() => { setComplete(false); props.onBack(); }}><ArrowLeft size={16} aria-hidden="true"/>Back</button>
-          {complete ? <button className="btn primary" data-tour-finish onClick={props.onClose}><Check size={16} aria-hidden="true"/>Finish</button> : <button className="link" onClick={props.onClose}>Skip tutorial</button>}
+          {intro ? <button className="btn primary" data-tour-start onClick={props.onAdvance}><Play size={16} aria-hidden="true"/>Start</button>
+            : complete ? <button className="btn primary" data-tour-finish onClick={props.onClose}><Check size={16} aria-hidden="true"/>Finish</button>
+            : <button className="btn" onClick={() => { setComplete(false); props.onBack(); }}><ArrowLeft size={16} aria-hidden="true"/>Back</button>}
+          {look && !complete && <button className="btn primary" data-tour-next onClick={props.onAdvance}>Next<ArrowRight size={16} aria-hidden="true"/></button>}
+          {!complete && <button className="link" onClick={props.onClose}>Skip tutorial</button>}
         </div>
-        <button className="btn tour-emergency" onClick={props.onEmergency}><Siren size={16} aria-hidden="true"/>Emergency</button>
       </div>
     </section>
   </>;

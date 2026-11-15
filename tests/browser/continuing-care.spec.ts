@@ -1,36 +1,40 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
-import { fillCarePlan } from './care-helpers';
+import { fillCarePlan, openSection } from './care-helpers';
 
 test.use({ actionTimeout: 15000 });
 
-test('blank observations cannot be saved and incomplete reassessment plans are explained', async ({ page }) => {
-  await page.goto('/#handoff');
-  const save = page.getByRole('button', { name: 'Save handoff', exact: true });
-  await expect(save).toBeDisabled();
-  await page.getByLabel('Observation for medical team').fill('   '); await expect(save).toBeDisabled();
-  await page.getByLabel('Observation for medical team').fill('Headache began after exercise.');
+test('the follow-up plan starts from the day, and an impossible reassessment time is explained', async ({ page }) => {
+  await page.goto('/#report');
+  const save = page.getByRole('button', { name: 'Hand off today’s report', exact: true });
+  await expect(save).toBeEnabled();
+  await openSection(page, 'details.report-plan');
+  await expect(page.getByLabel('What needs checking again', { exact: true })).toHaveValue('Tomorrow’s daily check');
+  await expect(page.getByLabel('Information still missing', { exact: true })).toHaveValue(/Eye imaging \(OCT\)/);
+  await page.getByLabel('Note for the medical team').fill('Headache began after exercise.');
   await fillCarePlan(page);
   await page.getByLabel('Reassess at', { exact: true }).fill('2020-01-01T10:00');
   await save.click(); await expect(page.getByRole('alert')).toContainText('future reassessment time');
   await expect(page.locator('.care-thread')).toHaveCount(0);
-  await expect(page.getByText('This prototype has no ground connection.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Send the file over mission comms.', { exact: true })).toBeVisible();
 });
 
 test('blackout care appends reassessment to the original packet, persists and exports the continuing record', async ({ page, context }) => {
   test.setTimeout(90000);
-  await page.goto('http://127.0.0.1:4173/#handoff');
+  await page.goto('http://127.0.0.1:4173/#report');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   await context.setOffline(true); await page.reload();
+  await openSection(page, 'details.report-link');
   await page.getByLabel('Blackout drill').check();
-  await page.getByLabel('Observation for medical team').fill('Vision blur first reported at 09:00.');
+  await page.getByLabel('Note for the medical team').fill('Vision blur first reported at 09:00.');
+  await openSection(page, 'details.report-plan');
   await page.getByLabel('Procedure followed', { exact: true }).selectOption('followed');
   await page.getByLabel('Procedure name', { exact: true }).fill('Vision observation demo');
   await page.getByLabel('Procedure version', { exact: true }).fill('0.2');
   await fillCarePlan(page, 'Repeat vision report under matching lighting');
-  await page.getByRole('button', { name: 'Save handoff', exact: true }).click();
+  await page.getByRole('button', { name: 'Hand off today’s report', exact: true }).click();
   const thread = page.locator('.care-thread');
   await expect(thread).toContainText('Saved on this device · blackout drill');
   await thread.getByText('Care record · 0 reassessments', { exact: true }).click();
@@ -83,8 +87,8 @@ test('personal movement opens original crew videos and keeps public 4DGS out of 
   const dialog = page.getByRole('dialog', { name: 'Movement' });
   await expect(dialog.getByRole('heading', { name: 'Your movement evidence' })).toBeVisible();
   await expect(dialog.getByLabel('Crew recording', { exact: true })).toBeVisible();
-  await expect(dialog.getByLabel('Retained reference recording', { exact: true })).toBeVisible();
-  await expect(dialog).toContainText('Matching recorded phase and conditions');
+  await expect(dialog.getByLabel('Ghost recording', { exact: true })).toBeVisible();
+  await expect(dialog).toContainText('Same phase and conditions');
   await expect(dialog.locator('.technical-demo')).toHaveCount(0);
   await expect(dialog.locator('.pose-replay canvas')).toHaveCount(0);
   await dialog.getByText('Estimated pose replay', { exact: true }).click();

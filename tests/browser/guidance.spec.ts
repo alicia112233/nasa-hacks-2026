@@ -4,6 +4,7 @@ test('checks explain how and why, results say what they mean, and off readings g
   await page.emulateMedia({ reducedMotion: 'reduce' });
   // A demo trend: the steps say what to do, with a way to act on each.
   await page.goto('/#body');
+  await page.getByRole('button', { name: /^A Head/ }).click();
   const note = page.getByRole('status').filter({ hasText: 'Response 18% slower than your ghost' });
   await expect(note).toContainText('Trend');
   const steps = note.getByRole('list', { name: 'What to do' });
@@ -29,6 +30,10 @@ test('checks explain how and why, results say what they mean, and off readings g
   const urgent = page.getByRole('status').filter({ hasText: 'short of breath (strong)' });
   await expect(urgent).toContainText('Act now');
   await expect(urgent).toContainText('Stop what you are doing and tell a crewmate.');
+  // Hand off opens today's report, where the reading already sits under Needs attention.
   await urgent.getByRole('button', { name: 'Hand off' }).click();
-  await expect(page.getByLabel('Observation for medical team')).toHaveValue(/^C Chest: 2 of 3 checks done today\. Reported short of breath \(strong\)\./);
+  await expect(page).toHaveURL(/#report$/);
+  const attention = page.locator('.report-attention li').filter({ hasText: 'Short of breath' });
+  await expect(attention).toContainText('Act now');
+  await expect(page.locator('.report-table')).toContainText('high at rest');
 });

@@ -130,3 +130,8 @@ export function regionStatuses(checkIns, simulated, now = new Date().toISOString
 }
 
 export const totalSeconds = list => list.reduce((sum, c) => sum + (c.seconds ?? 0), 0);
+
+/** NASA risks that are about the mind: behaviour, teamwork, sleep and workload. Every other self-check is physical. */
+export const MIND_RISKS = ['behavioral', 'teamwork', 'sleep', 'support'];
+/** @param {{ risks: string[] }} check @returns {'mental' | 'physical'} */
+export const domainOf = check => (check.risks.every(r => MIND_RISKS.includes(r)) ? 'mental' : 'physical');

@@ -16,15 +16,15 @@ test('a sleep-only check-in keeps attention and shoulder comparisons consistent 
   await expect(shoulder).toContainText('-12%');
 });
 
-test('a handoff draft never follows a crew switch into another member’s saved packet', async ({ page }) => {
-  await page.goto('/#handoff');
-  await page.getByLabel('Observation for medical team').fill('Alex only: shoulder discomfort.');
+test('a handoff note never follows a crew switch into another member’s saved report', async ({ page }) => {
+  await page.goto('/#report');
+  await page.getByLabel('Note for the medical team').fill('Alex only: shoulder discomfort.');
   await page.locator('.crew-switch-btn').click();
   await page.getByRole('list', { name: 'Crew' }).getByRole('button', { name: /Jordan Lee/ }).click();
-  await expect(page.getByLabel('Observation for medical team')).toHaveValue('');
-  await page.getByLabel('Observation for medical team').fill('Jordan only: repeat leg outline.');
+  await expect(page.getByLabel('Note for the medical team')).toHaveValue('');
+  await page.getByLabel('Note for the medical team').fill('Jordan only: repeat leg outline.');
   await fillCarePlan(page);
-  await page.getByRole('button', { name: 'Save handoff', exact: true }).click();
+  await page.getByRole('button', { name: 'Hand off today’s report', exact: true }).click();
   const [download] = await Promise.all([
     page.waitForEvent('download'), page.getByRole('button', { name: /Download Sol \d+ handoff/ }).click(),
   ]);
@@ -34,14 +34,18 @@ test('a handoff draft never follows a crew switch into another member’s saved 
   expect(packet.context).not.toContain('Alex');
 });
 
-test('a region summary carried to handoff stays with its original crew member', async ({ page }) => {
+test('the daily report shows the selected crew member’s own day', async ({ page }) => {
   await page.goto('/#body');
   await page.getByRole('list', { name: 'Body regions' }).getByRole('button', { name: /^B Eyes/ }).click();
   await page.getByRole('button', { name: 'Begin', exact: true }).click();
   await page.getByRole('group', { name: 'Blurred or changed vision' }).getByRole('button', { name: 'None', exact: true }).click();
-  await page.getByRole('status', { name: 'Eyes complete' }).getByRole('button', { name: 'Hand off', exact: true }).click();
-  await expect(page.getByLabel('Observation for medical team')).toHaveValue(/^B Eyes: 1 of 1 checks done today\./);
+  await page.getByRole('link', { name: 'Report', exact: true }).click();
+  const report = page.locator('.report-sheet');
+  await expect(report).toContainText('Alex Morgan');
+  await expect(report.locator('.report-table')).toContainText('Blurred or changed vision');
   await page.locator('.crew-switch-btn').click();
   await page.getByRole('list', { name: 'Crew' }).getByRole('button', { name: /Jordan Lee/ }).click();
-  await expect(page.getByLabel('Observation for medical team')).toHaveValue('');
+  await expect(report).toContainText('Jordan Lee');
+  await expect(report).not.toContainText('Alex Morgan');
+  await expect(report.locator('.report-table')).toHaveCount(0);
 });

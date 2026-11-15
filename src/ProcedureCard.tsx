@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowUpRight, Camera, Check, ChevronDown, Move3d, Play, RotateCcw, ScanLine, Send } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Camera, Check, ChevronDown, Move3d, Play, ScanLine } from 'lucide-react';
 import { hazards, risks, totalSeconds } from './body.mjs';
 import { formatDate } from './data';
 import { HOW, LEVELS, WHY, nextSteps, resultLine } from './guidance.mjs';
@@ -20,9 +20,14 @@ interface Props {
   onCamera: (checkId: string) => void;
   onMovement: () => void;
   onFollowUp: (action: FollowUp) => void;
-  /** Finish by handing off: opens Handoff with this region's summary as the note. */
-  onHandoff: (note: string) => void;
+  /** Opens today's report, where the whole day is handed off at once. */
+  onHandoff: () => void;
+  /** Where to go once this region is done: the next region with checks left, or the report. */
+  nextRegion?: { id: RegionId; letter: string; label: string } | null;
+  onRegion: (id: RegionId) => void;
   requestedCheck?: { id: string; nonce: number } | null;
+  /** The check the tutorial points at, if it is running. */
+  tourCheck?: string;
   onEmergency: () => void;
   cabinContent?: ReactNode;
 }
@@ -30,7 +35,7 @@ interface Props {
 const followUps = ['Repeat this check tomorrow', 'Note it for the flight surgeon', 'Review the mission-approved procedure'];
 const fmt = (s: number) => s >= 60 ? `${Math.floor(s / 60)} MIN${s % 60 ? ` ${s % 60} S` : ''}` : `${s} S`;
 
-export default function ProcedureCard({ region, status, analysis, simulated, actions, onSave, onAttention, onCamera, onMovement, onFollowUp, onHandoff, requestedCheck, onEmergency, cabinContent }: Props) {
+export default function ProcedureCard({ region, status, analysis, simulated, actions, onSave, onAttention, onCamera, onMovement, onFollowUp, onHandoff, requestedCheck, tourCheck, onEmergency, cabinContent, nextRegion, onRegion }: Props) {
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [plan, setPlan] = useState(false);
@@ -83,9 +88,6 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
   }
   const regionActions = actions.filter(a => a.kind === region.id && a.status === 'scheduled');
   const followUp = (title: string, when: Date) => onFollowUp({ id: crypto.randomUUID(), title, kind: region.id as FollowUp['kind'], notes: '', checklist: [], createdAt: new Date().toISOString(), scheduledAt: when.toISOString(), status: 'scheduled', simulated });
-  const summary = () => [`${region.letter} ${region.label}: ${doneCount} of ${actionable.length} checks done today.`, ...flagged.map(note),
-    ...reported.map(i => `Reported ${i.check.title.toLowerCase()} (${i.check.options?.[i.last ?? 0].toLowerCase()}).`)].join(' ');
-  const shortDate = (iso: string) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(iso));
   // Step numbers follow the actionable checks, so they match the count.
   let number = 0;
 
@@ -120,7 +122,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
               {step.action === 'followup' && !complete && (regionActions.length
                 ? <span className="muted">Follow-up set.</span>
                 : !plan && <button className="link" onClick={() => setPlan(true)}>Plan follow-up</button>)}
-              {step.action === 'handoff' && !complete && <button className={guide.level === 'now' ? 'btn' : 'link'} onClick={() => onHandoff(summary())}>Hand off</button>}
+              {step.action === 'handoff' && !complete && <button className={guide.level === 'now' ? 'btn' : 'link'} onClick={onHandoff}>Hand off</button>}
             </li>)}
           </ol>}
           {plan && !regionActions.length && <form className="plan" onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); followUp(String(f.get('action')), new Date(String(f.get('when')))); setPlan(false); }}>
@@ -146,7 +148,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
           const result = item.done && item.value != null ? resultLine(c, item.value, g) : null;
           if (c.field) number++;
           return <li key={c.id} className={`${isOpen ? 'open' : ''} ${instrument ? 'instrument' : ''} ${isNext ? 'next' : ''}`}>
-            <button data-tour={c.field === 'heartRate' ? 'heart-check' : undefined} className="step" aria-expanded={isOpen} onClick={() => {
+            <button data-tour={c.id === tourCheck ? 'check' : undefined} className="step" aria-expanded={isOpen} onClick={() => {
               if (c.kind === 'task') onAttention();
               else if (c.kind === 'camera' && !isOpen) setOpen(c.id);
               else setOpen(isOpen ? null : c.id);
@@ -179,11 +181,11 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
                 <button className="btn ghost" onClick={onMovement}><Move3d size={16}/> Compare movement</button>
               </div>}
               {c.id === 'legs' && <div className="row-actions">
-                <p>{item.value != null ? `Today ${item.value} cm` : 'Not scanned today.'}{g != null && ` Ghost ${g.toFixed(1)} cm.`} Fluid shifts can reduce leg volume. A narrower silhouette alone cannot establish muscle loss.</p>
+                <p>{item.value != null ? `Today ${item.value} cm` : 'Not scanned today.'}{g != null && ` Ghost ${g.toFixed(1)} cm.`} Fluid shifts also thin the legs, so a narrower outline alone doesn’t mean muscle loss.</p>
                 <button className="btn" onClick={() => onCamera('legs')}><ScanLine size={16}/> Scan 5 s</button>
               </div>}
               {c.kind === 'data' && <NasaData series={c.series!}/>}
-              {instrument && <p className="muted">Not measured onboard by GhostPilot. Log it in the handoff when the {c.needs!.replace(/^Needs /, '').toLowerCase()} is used.</p>}
+              {instrument && <p className="muted">Not measured here. If a {c.needs!.replace(/^Needs /, '').toLowerCase()} is used, add it to the report note.</p>}
               {c.kind === 'data' && c.needs && <p className="muted">{c.needs}. This chart is NASA's ISS record, not your dose.</p>}
             </div>}
           </li>;
@@ -193,12 +195,11 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
       {complete && <section className="done-panel" role="status" aria-label={`${region.label} complete`}>
         <span className="box done" aria-hidden="true"><Check size={16} strokeWidth={3}/></span>
         <div>
-          <p><b>{actionable.length === 1 ? 'Done today.' : `All ${actionable.length} done today.`}</b> {flagged.length ? 'A trend is noted above.' : reported.length ? 'A report is noted above.' : 'Nothing trending against your ghost.'}</p>
+          <p><b>{actionable.length === 1 ? 'Done.' : `All ${actionable.length} done.`}</b> {flagged.length || reported.length ? 'Added to today’s report.' : 'Nothing off.'}</p>
           <div className="row-actions">
-            {guide?.level === 'now' ? <button className="btn" onClick={onEmergency}>Open emergency response</button> : regionActions.length
-              ? <span className="muted">Reassess set for {shortDate(regionActions[0].scheduledAt)}.</span>
-              : <button className="btn" onClick={() => followUp('Repeat this check tomorrow', new Date(Date.now() + 86400000))}><RotateCcw size={16} aria-hidden="true"/> Reassess tomorrow</button>}
-            <button className={`btn ${flagged.length || reported.length ? 'primary' : ''}`} onClick={() => onHandoff(summary())}><Send size={16} aria-hidden="true"/> Hand off</button>
+            {guide?.level === 'now' && <button className="btn" onClick={onEmergency}>Open emergency response</button>}
+            {nextRegion ? <button className="btn primary" onClick={() => onRegion(nextRegion.id)}>Next: {nextRegion.letter} {nextRegion.label}<ArrowRight size={16} aria-hidden="true"/></button>
+              : <button className="btn primary" onClick={onHandoff}>Open today’s report<ArrowRight size={16} aria-hidden="true"/></button>}
           </div>
         </div>
       </section>}

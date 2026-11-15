@@ -11,6 +11,9 @@ test('demo body flags head and arms, and every region opens its procedure card',
   page.on('pageerror', e => errors.push(e.message));
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
+  // The body page opens on Today; the body is still the way into each region.
+  await expect(page.getByRole('heading', { name: 'Today', level: 2 })).toBeVisible();
+  await page.getByRole('button', { name: /^A Head/ }).click();
   await expect(page.getByRole('heading', { name: 'Head', level: 2 })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Response 18% slower than your ghost' })).toBeVisible();
   for (const [letter, label, check] of [['B', 'Eyes', 'Eye imaging (OCT)'], ['C', 'Chest', 'Resting heart rate'], ['D', 'Abdomen', 'Appetite and meals'], ['E', 'Arms', 'Shoulder range'], ['F', 'Hands', 'Rash or cold sore'], ['G', 'Back & pelvis', 'Back pain'], ['H', 'Legs', 'Bone density (DXA)'], ['I', 'Cabin', 'Radiation dose']]) {
@@ -41,11 +44,10 @@ test('a personal self-check saves to today, marks the region and survives reload
   await page.getByRole('button', { name: 'Begin' }).click();
   await page.getByRole('group', { name: 'Blurred or changed vision' }).getByRole('button', { name: 'Mild' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'blurred or changed vision (mild)' })).toBeVisible();
-  // Eyes has one self-check (OCT needs an imager), so it is finished: reassess from the done panel.
+  // Eyes has one self-check (OCT needs an imager), so it is finished: the done panel points at the next region.
   const done = page.getByRole('status', { name: 'Eyes complete' });
-  await expect(done).toContainText('Done today.');
-  await done.getByRole('button', { name: 'Reassess tomorrow' }).click();
-  await expect(done).toContainText('Reassess set for');
+  await expect(done).toContainText('Done.');
+  await expect(done.getByRole('button', { name: 'Next: A Head' })).toBeVisible();
   await page.getByRole('button', { name: /^C Chest/ }).click();
   await page.getByRole('button', { name: /Resting heart rate/ }).click();
   await page.getByRole('spinbutton').fill('71');
@@ -166,7 +168,7 @@ test('the profile popup saves edits and preserves the current page and region', 
   await expect(page.getByRole('group', { name: 'Avatar model' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Height').fill('188');
   await page.getByLabel('Height').press('Enter');
-  await expect(page.getByText('194 cm in zero g')).toBeVisible();
+  await expect(page.getByLabel('Height')).toHaveValue('188');
   await dialog.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(who).toBeFocused();
@@ -190,7 +192,7 @@ test('the profile popup saves edits and preserves the current page and region', 
   await page.getByRole('button', { name: /^H Legs/ }).click();
   await expect(page.getByRole('heading', { name: 'Legs', level: 2 })).toBeVisible();
   // The same editor works on every other page without navigating away.
-  for (const route of ['trends', 'handoff', 'mission']) {
+  for (const route of ['trends', 'report', 'mission']) {
     await page.goto(`/#${route}`);
     await who.click();
     await page.getByRole('button', { name: 'Edit profile' }).click();

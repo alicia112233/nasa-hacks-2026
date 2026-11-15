@@ -19,13 +19,13 @@ export default function MovementEvidence({ recordings, references, onRecord }: {
   const issue = current && candidate ? comparisonIssue({ measurements: { leftRange: current.conditions } }, candidate.entry, 'leftRange') : null;
   return <section className="movement-evidence" aria-labelledby="movement-evidence-title">
     <div className="row-actions"><h3 id="movement-evidence-title">Your movement evidence</h3><button className="btn" onClick={onRecord}>Record movement</button></div>
-    <p className="muted">Original crew video is the visual evidence. Camera angles remain estimates; human accuracy has not been established.</p>
+    <p className="muted">Angles are estimates. Trust the video.</p>
     {ordered.length > 1 && <label className="field">Recording to review<select value={current?.id ?? ''} onChange={e => setSelected(e.target.value)}>{ordered.slice().reverse().map(r => <option key={r.id} value={r.id}>{formatDate(r.date, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · {r.leftRange ?? 'No angle'}°</option>)}</select></label>}
     {current ? <>
-      <div className="movement-video-pair"><RecordingVideo recording={current} label="Crew recording"/>{previous ? <RecordingVideo recording={previous} label="Retained reference recording"/> : <div className="movement-reference-gap"><b>No reference video linked</b><p>A fixed reference may contain an angle without its original recording. Keep future reference captures to compare the same crew member over time.</p></div>}</div>
-      {issue && <p className="comparison-note">Comparison unreliable. {issue} The videos are shown for review; no trend is inferred.</p>}
-      {previous && !issue && <p className="muted">Matching recorded phase and conditions. Review the same movement in each clip. This single pair does not establish a health trend.</p>}
-      <p className="muted">{current.conditions ? `Phase: ${current.conditions.phase}. Camera: ${current.conditions.cameraSetup || 'not recorded'}. Posture: ${current.conditions.posture || 'not recorded'}. Lighting: ${current.conditions.lighting || 'not recorded'}. Clothing: ${current.conditions.clothing || 'not recorded'}.` : 'Recording conditions were not saved with this older capture; comparability is unknown.'}</p>
-    </> : <p>No personal movement recording is saved. Record a movement to review your own evidence.</p>}
+      <div className="movement-video-pair"><RecordingVideo recording={current} label="Crew recording"/>{previous ? <RecordingVideo recording={previous} label="Ghost recording"/> : <div className="movement-reference-gap"><b>No ghost video yet</b></div>}</div>
+      {issue && <p className="comparison-note">Can’t compare. {issue}</p>}
+      {previous && !issue && <p className="muted">Same phase and conditions.</p>}
+      <p className="muted">{current.conditions ? `Phase: ${current.conditions.phase}. Camera: ${current.conditions.cameraSetup || 'not recorded'}. Posture: ${current.conditions.posture || 'not recorded'}. Lighting: ${current.conditions.lighting || 'not recorded'}. Clothing: ${current.conditions.clothing || 'not recorded'}.` : 'Conditions weren’t saved with this recording.'}</p>
+    </> : <p>No recording yet. Record one to review it here.</p>}
   </section>;
 }

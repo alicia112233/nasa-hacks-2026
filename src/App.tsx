@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, CircleCheck, ScanLine, Siren, WifiOff, X } from 'lucide-react';
-import Tutorial, { hasSeenTutorial, rememberTutorial, tourSteps } from './Tutorial';
+import { ArrowLeft, BookOpen, CircleCheck, ScanLine, Siren, WifiOff, X } from 'lucide-react';
+import Tutorial, { buildTour, hasSeenTutorial, rememberTutorial } from './Tutorial';
 import EmergencyWorkflow from './EmergencyWorkflow';
-import DailyPanel, { type Recommendation } from './DailyPanel';
+import TodayPanel, { type DaySummary, type Recommendation } from './TodayPanel';
+import { daySummary, nextRegion } from './today.mjs';
 import ReferencePanel from './ReferencePanel';
 import CabinReview from './CabinReview';
 import { createIncident } from './emergency.mjs';
@@ -16,10 +17,11 @@ import ProcedureCard from './ProcedureCard';
 import CrewCard from './CrewCard';
 import CrewSwitch from './CrewSwitch';
 import { addCrew, normalise, recordingsFor, removeCrew, scoped, switchCrew, withProfile } from './crew';
+import { addScan, deleteScan as withoutScan } from './scan-history.mjs';
 import AttentionTask, { type AttentionResult } from './AttentionTask';
 import Dialog from './Dialog';
-import TrendsView from './TrendsView';
-import HandoffView from './HandoffView';
+import TrendsView, { trendMetrics } from './TrendsView';
+import ReportView from './ReportView';
 import MissionView from './MissionView';
 import { clearPersonalRecords, createDemo, formatDate, loadMission, loadRecordings, saveMission, saveRecording } from './data';
 import { analyze } from './rules.mjs';
@@ -33,10 +35,11 @@ const BodyScan = lazy(() => import('./BodyScan'));
 const pages: { id: Page; label: string }[] = [
   { id: 'body', label: 'Body' },
   { id: 'trends', label: 'Trends' },
-  { id: 'handoff', label: 'Handoff' },
+  { id: 'report', label: 'Report' },
   { id: 'mission', label: 'Mission' },
 ];
-const pageFromHash = () => pages.find(p => p.id === location.hash.slice(1))?.id ?? 'body';
+/** #handoff is the Report page's old address. */
+const pageFromHash = () => location.hash === '#handoff' ? 'report' : pages.find(p => p.id === location.hash.slice(1))?.id ?? 'body';
 type Modal = null | 'profile' | 'attention' | 'capture' | 'movement' | 'scan-setup' | 'scan-legs' | 'emergency';
 
 export default function App() {
@@ -58,11 +61,8 @@ export default function App() {
   const [preflight, setPreflight] = useState(false);
   /** A just-added member opens with their name field ready to type. */
   const [naming, setNaming] = useState<string | null>(null);
-  /** A finished region's summary, carried to Handoff as the note for the surgeon. */
-  const [handoffNote, setHandoffNote] = useState<{ crewId?: string; simulated: boolean; text: string } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const simulated = mission.demo;
-  const handoffText = handoffNote?.crewId === mission.crewId && handoffNote?.simulated === simulated ? handoffNote.text : '';
   /** The selected crew member's records only; every page reads this. */
   const view = useMemo(() => scoped(mission), [mission]);
   const analysis = useMemo(() => analyze(view.checkIns, simulated, view.references), [view.checkIns, simulated, view.references]);
@@ -74,11 +74,24 @@ export default function App() {
   const sharedHeadaches = crewHeadaches(mission.checkIns, simulated);
   const sol = Math.max(mission.profile.startDate ? Math.floor((Date.now() - new Date(mission.profile.startDate).getTime()) / 86400000) + 1 : 1, ...view.checkIns.map(c => c.sol));
   const firstFlag = (regions.find(r => statuses[r.id].state === 'flag') ?? regions.find(r => statuses[r.id].state === 'reported') ?? regions[0]).id as RegionId;
-  const selected = region ?? firstFlag;
-  const selectedRegion = regions.find(r => r.id === selected)!;
+  // No region picked means the Today view: the day's rings and the next step, not a region card.
+  const selectedRegion = region ? regions.find(r => r.id === region)! : null;
+  const summary = useMemo(() => daySummary(statuses, analysis.baseline), [statuses, analysis]);
   const crewRecordings = useMemo(() => recordingsFor(mission, recordings).sort((a, b) => a.date.localeCompare(b.date)), [mission, recordings]);
   const latestRecording = simulated ? undefined : crewRecordings.at(-1);
   const shape = useMemo(() => physique(mission.profile, preflight ? 0 : zeroGForSol(sol)), [mission.profile, preflight, sol]);
+  /** The tour follows what stands out for this crew member: the first flagged region, one check in it and that check's trend. */
+  const tour = useMemo(() => {
+    type TourItem = { check: { id: string; title: string; kind: string; field?: string }; flagged: boolean; reported: boolean };
+    const target = regions.find(r => r.id === firstFlag)!;
+    const items = (statuses[firstFlag] as unknown as { items: TourItem[] }).items;
+    const item = items.find(i => i.flagged && i.check.kind !== 'task') ?? items.find(i => i.reported)
+      ?? items.find(i => ['scale', 'symptom', 'number'].includes(i.check.kind)) ?? items.find(i => i.check.kind !== 'task') ?? items[0];
+    const metric = trendMetrics.find(m => m.key === item.check.field) ?? trendMetrics[0];
+    const state = statuses[firstFlag].state;
+    return { region: firstFlag, check: item.check.id, metric: metric.key, steps: buildTour({ letter: target.letter, label: target.label,
+      state: state === 'flag' || state === 'reported' ? state : 'clear', check: item.check.title, checkState: item.flagged ? 'flag' : item.reported ? 'reported' : 'none', metric: metric.label }) };
+  }, [firstFlag, statuses]);
 
   function notify(message: string) {
     setToast(message);
@@ -125,13 +138,12 @@ export default function App() {
     setTutorialStep(0);
   }
   function prepareTutorial(step: number) {
-    go(tourSteps[step].page);
-    setModal(step === 2 ? 'profile' : null);
-    if (step === 3) { setRegion(null); setRequestedCheck(null); }
-    if (step === 4 || step === 5) {
-      setRegion('chest');
-      setRequestedCheck(step === 5 ? { id: 'heartRate', nonce: Date.now() } : null);
-    }
+    go(tour.steps[step].page);
+    setModal(null);
+    // Back re-creates each goal's starting point: the region shown, and its check closed until the tour asks for it.
+    if (step === 1) { setRegion(null); setRequestedCheck(null); }
+    if (step === 2) { setRegion(tour.region); setRequestedCheck(null); }
+    if (step === 3) { setRegion(tour.region); setRequestedCheck({ id: tour.check, nonce: Date.now() }); }
   }
   function openScan(next: 'scan-setup' | 'scan-legs') {
     const active = document.activeElement;
@@ -199,13 +211,15 @@ export default function App() {
     notify(simulated ? 'Movement saved to your records (not the demo).' : 'Movement and video saved on this device.');
   }
 
-  /** One scan, two uses: the thigh breadth joins today's record (the Legs check), and a setup scan also shapes the body. */
+  /** One scan, two uses: the thigh breadth joins today's record (the Legs check), and a setup scan also shapes the body. Every scan joins the history. */
   function saveScan(mode: ScanMode, scan: Scan, choice: { sex?: Profile['sex']; build?: Profile['build'] }) {
     closeScan();
     const cm = thighCm(scan, mission.profile.heightCm);
-    if (cm != null) record({ thighCm: cm }, false, { thighCm: { quality: scan.frames >= 8 && (scan.spread?.thighs ?? 1) <= .08 ? 'good' : 'poor', confidentFrames: scan.frames, spread: scan.spread?.thighs } });
-    // A setup scan is the source of truth for the body: its weight estimate replaces a typed mass.
-    if (mode === 'setup') setMission(old => withProfile(old, { scan, massKg: undefined, sex: choice.sex ?? old.profile.sex, build: choice.build ?? old.profile.build }));
+    // The reading carries the scan's capture time, which links it to the scan in the history.
+    if (cm != null) record({ thighCm: cm }, false, { thighCm: { measuredAt: scan.date, quality: scan.frames >= 8 && (scan.spread?.thighs ?? 1) <= .08 ? 'good' : 'poor', confidentFrames: scan.frames, spread: scan.spread?.thighs } });
+    const saved: Scan = { ...scan, id: crypto.randomUUID(), mode };
+    // A typed mass is kept: a scale reading beats the outline's heavier/lighter guess.
+    setMission(old => withProfile(old, { ...addScan(old.profile, saved), ...(mode === 'setup' ? { sex: choice.sex ?? old.profile.sex, build: choice.build ?? old.profile.build } : {}) }));
     notify(mode === 'setup' ? 'Body scan saved. The body now has your shape.' : simulated ? 'Leg outline saved to your records (not the demo).' : `Leg outline saved · ${cm} cm.`);
   }
 
@@ -215,9 +229,14 @@ export default function App() {
     const scan = mission.profile.scan;
     if (patch.heightCm && scan && dayKey(scan.date) === dayKey(new Date().toISOString())) {
       const cm = thighCm(scan, patch.heightCm);
-      if (cm != null) record({ thighCm: cm }, false);
+      if (cm != null) record({ thighCm: cm }, false, { thighCm: { measuredAt: scan.date } });
     }
     notify('Saved.');
+  }
+
+  function deleteScan(id: string) {
+    setMission(old => { const next = withoutScan(old.profile, old.checkIns, old.crewId, id); return { ...withProfile(old, next.profile), checkIns: next.checkIns }; });
+    notify('Scan deleted.');
   }
 
   function pickCrew(id: string) {
@@ -248,15 +267,14 @@ export default function App() {
     const next = { ...mission, packets: [...(mission.packets ?? []), { ...packet, crewId: mission.crewId }] };
     await saveMission(next);
     setMission(next);
-    setHandoffNote(null);
-    notify('Handoff saved on board. Not transmitted.');
+    notify('Report handed off. Saved on this device.');
   }
 
   async function saveCareUpdate(event: CareUpdate) {
     const packet = mission.packets?.find(p => p.id === event.packetId && p.crewId === event.crewId && p.source === event.source);
     if (!packet || event.crewId !== mission.crewId || event.source !== (simulated ? 'simulated' : 'recorded')) throw new Error('This reassessment belongs to a different crew member or data source.');
     const next = { ...mission, careUpdates: [...(mission.careUpdates ?? []), event] };
-    await saveMission(next); setMission(next); notify('Reassessment added to the original care record.');
+    await saveMission(next); setMission(next); notify('Reassessment added.');
   }
 
   async function clearPersonal() {
@@ -289,7 +307,7 @@ export default function App() {
         {simulated && <button className="demo-tag" onClick={() => go('mission')}>Demo data</button>}
         <span>SOL {String(sol).padStart(3, '0')}</span>
         {!online && <span className="offline"><WifiOff size={14}/> Offline</span>}
-        <CrewSwitch crew={mission.crew ?? [mission.profile]} active={mission.profile} guidedOpen={tutorialStep == null ? undefined : tutorialStep === 1} onSwitch={pickCrew} onAdd={addMember} onEdit={() => setModal('profile')}/>
+        <CrewSwitch crew={mission.crew ?? [mission.profile]} active={mission.profile} onSwitch={pickCrew} onAdd={addMember} onEdit={() => setModal('profile')}/>
       </span>
     </header>
 
@@ -305,33 +323,35 @@ export default function App() {
             {/* Says whose shape the figure has: fitted to this crew member's scan, or still the standard model. */}
             <span className="figure-source">{mission.profile.scan ? `Figure fitted to scan · ${formatDate(mission.profile.scan.date)}` : 'Standard figure · not scanned'}</span>
           </div>
-          <BodyView selected={selected} states={statuses as Record<string, { state: RegionState }>} onSelect={pickRegion} shape={shape}>
+          <BodyView selected={region} states={statuses as Record<string, { state: RegionState }>} onSelect={pickRegion} shape={shape}>
             <div className="seg stage-seg" role="group" aria-label="Body shown">
               <button aria-pressed={preflight} onClick={() => setPreflight(true)}>Preflight <span>{shape.preflightCm} cm</span></button>
               <button aria-pressed={!preflight} onClick={() => setPreflight(false)}>Sol {sol} <span>{physique(mission.profile, zeroGForSol(sol)).statureCm} cm</span></button>
             </div>
           </BodyView>
           <ul className="region-list" aria-label="Body regions">
-            {regions.map(r => <li key={r.id}><button data-tour={r.id} aria-pressed={selected === r.id} className={statuses[r.id].state} onClick={() => pickRegion(r.id as RegionId)}>
+            {regions.map(r => <li key={r.id}><button data-tour={r.id === tour.region ? 'spot' : undefined} aria-pressed={region === r.id} className={statuses[r.id].state} onClick={() => pickRegion(r.id as RegionId)}>
               <b>{r.letter}</b>{r.label}{(statuses[r.id].state === 'flag' || statuses[r.id].state === 'reported') && <span className="sr"> · {statuses[r.id].state === 'flag' ? 'trend' : 'reported'}</span>}
             </button></li>)}
           </ul>
           <p className="key" aria-hidden="true"><span><i className="k-flag"/>Trend</span><span><i className="k-rep"/>Reported</span><span><i className="k-done"/>Done today</span><span><i className="k-hatch"/>Not measured</span></p>
         </section>
         <div className="procedure-stack">
-        <DailyPanel mission={view} onStart={startRecommended} onEmergency={openEmergency}/>
-        {sharedHeadaches.length >= 2 && <div className="shared-cabin-prompt"><p><b>{sharedHeadaches.length} crew headache reports in 24 hours.</b> Review current cabin readings. {simulated && 'Simulated reports.'}</p><button className="btn" onClick={() => openRegion('cabin')}>Review cabin</button></div>}
-        <ReferencePanel key={mission.crewId} mission={view} onContext={recordingContext => setMission(old => withProfile(old, { recordingContext }))} onReference={ref => { setMission(old => ({ ...old, references: [...(old.references ?? []), ref] })); notify('Fixed phase reference retained. Earlier references preserved.'); }}/>
-        <ProcedureCard key={`${mission.crewId}-${selected}-${tutorialStep === 4 ? 'tour-check' : ''}`} region={selectedRegion as never} status={statuses[selected] as never} analysis={analysis as never} simulated={simulated} actions={view.actions.filter(a => a.simulated === simulated)} requestedCheck={tutorialStep === 4 ? null : requestedCheck} onEmergency={openEmergency}
-          cabinContent={selected === 'cabin' ? <CabinReview mission={mission} onSave={reading => { setMission(old => ({ ...old, cabinReadings: [...(old.cabinReadings ?? []), reading] })); notify('Cabin observation saved.'); }}/> : undefined}
+        {!selectedRegion ? <TodayPanel mission={view} summary={summary as unknown as DaySummary} sol={sol} headaches={sharedHeadaches.length} onStart={startRecommended} onEmergency={openEmergency} onCabin={() => openRegion('cabin')} onReport={() => go('report')}/> : <>
+        <button className="back-today" onClick={() => setRegion(null)}><ArrowLeft size={16} aria-hidden="true"/> Today</button>
+        <ProcedureCard key={`${mission.crewId}-${selectedRegion.id}-${tutorialStep === 2 ? 'tour-check' : ''}`} region={selectedRegion as never} status={statuses[selectedRegion.id] as never} analysis={analysis as never} simulated={simulated} actions={view.actions.filter(a => a.simulated === simulated)} requestedCheck={tutorialStep === 2 ? null : requestedCheck} tourCheck={tutorialStep == null ? undefined : tour.check} onEmergency={openEmergency}
+          cabinContent={selectedRegion.id === 'cabin' ? <CabinReview mission={mission} onSave={reading => { setMission(old => ({ ...old, cabinReadings: [...(old.cabinReadings ?? []), reading] })); notify('Cabin observation saved.'); }}/> : undefined}
           onSave={(field, value) => { record({ [field]: value }); notify('Saved.'); }}
           onAttention={() => setModal('attention')} onCamera={id => id === 'legs' ? openScan('scan-legs') : setModal('capture')} onMovement={() => setModal('movement')}
-          onHandoff={note => { setHandoffNote({ crewId: mission.crewId, simulated, text: note }); go('handoff'); }}
+          onHandoff={() => go('report')} nextRegion={nextRegion(statuses, selectedRegion.id) as never} onRegion={id => pickRegion(id)}
           onFollowUp={(a: FollowUp) => { setMission(old => ({ ...old, actions: [...old.actions, { ...a, crewId: old.crewId }] })); notify(`Follow-up set for ${formatDate(a.scheduledAt)}.`); }}/>
+        </>}
         </div>
       </div>}
-      {(page === 'trends' || (tutorialStep != null && tutorialOrigin.current.page === 'trends')) && <div hidden={page !== 'trends'}><TrendsView checkIns={view.checkIns} simulated={simulated} references={view.references}/></div>}
-      {(page === 'handoff' || (tutorialStep != null && tutorialOrigin.current.page === 'handoff')) && <div hidden={page !== 'handoff'}><HandoffView key={`${mission.crewId}-${simulated}-${handoffText}`} note={handoffText} mission={view} recordings={crewRecordings} sol={sol} delay={delay} setDelay={setDelay} onSavePacket={savePacket} onSaveCareUpdate={saveCareUpdate}
+      {(page === 'trends' || (tutorialStep != null && tutorialOrigin.current.page === 'trends')) && <div hidden={page !== 'trends'} className="trends-page">
+        <ReferencePanel key={mission.crewId} mission={view} onContext={recordingContext => setMission(old => withProfile(old, { recordingContext }))} onReference={ref => { setMission(old => ({ ...old, references: [...(old.references ?? []), ref] })); notify('Ghost set for this phase. Earlier ghosts are kept.'); }}/>
+        <TrendsView checkIns={view.checkIns} simulated={simulated} references={view.references} tourMetric={tutorialStep == null ? undefined : tour.metric}/></div>}
+      {(page === 'report' || (tutorialStep != null && tutorialOrigin.current.page === 'report')) && <div hidden={page !== 'report'}><ReportView key={`${mission.crewId}-${simulated}`} mission={view} summary={summary as never} recordings={crewRecordings} sol={sol} delay={delay} setDelay={setDelay} onSavePacket={savePacket} onSaveCareUpdate={saveCareUpdate}
         onEmergency={id => { setEmergencyId(id); setModal('emergency'); }}
         onDownloaded={id => setMission(old => ({ ...old, packets: (old.packets ?? []).map(p => p.id === id ? { ...p, status: 'downloaded', downloadedAt: new Date().toISOString() } : p) }))}
         onComplete={a => setMission(old => ({ ...old, actions: old.actions.map(x => x.id === a.id ? { ...x, status: 'complete' } : x) }))}/></div>}
@@ -342,9 +362,9 @@ export default function App() {
       <footer className="foot">Prototype · not a diagnosis · records stay on this device</footer>
     </main>
 
-    {tutorialStep != null && <Tutorial step={tutorialStep} onPrepare={prepareTutorial} onAdvance={() => setTutorialStep(step => step == null ? null : Math.min(step + 1, tourSteps.length - 1))} onBack={() => setTutorialStep(step => step == null ? null : Math.max(step - 1, 0))} onClose={closeTutorial} onEmergency={() => { closeTutorial(); openEmergency(); }}/>}
-    {modal === 'profile' && <Dialog title="Edit profile" modal={tutorialStep == null} onClose={() => setModal(null)}>
-      <CrewCard key={mission.crewId} profile={mission.profile} editName={naming === mission.crewId} onNamed={() => setNaming(null)} canRemove={(mission.crew?.length ?? 1) > 1} onRemove={removeMember} onProfile={saveProfile}
+    {tutorialStep != null && <Tutorial step={tutorialStep} steps={tour.steps} onPrepare={prepareTutorial} onAdvance={() => setTutorialStep(step => step == null ? null : Math.min(step + 1, tour.steps.length - 1))} onBack={() => setTutorialStep(step => step == null ? null : Math.max(step - 1, 0))} onClose={closeTutorial} onEmergency={() => { closeTutorial(); openEmergency(); }}/>}
+    {modal === 'profile' && <Dialog title="Edit profile" onClose={() => setModal(null)}>
+      <CrewCard key={mission.crewId} profile={mission.profile} checkIns={mission.checkIns} onDeleteScan={deleteScan} editName={naming === mission.crewId} onNamed={() => setNaming(null)} canRemove={(mission.crew?.length ?? 1) > 1} onRemove={removeMember} onProfile={saveProfile}
         onClose={() => setModal(null)} onScan={() => openScan('scan-setup')} onLegs={() => { setModal(null); openRegion('legs'); }}/>
     </Dialog>}
     {modal === 'attention' && <AttentionTask onClose={() => setModal(null)} onSave={saveAttention}/>}

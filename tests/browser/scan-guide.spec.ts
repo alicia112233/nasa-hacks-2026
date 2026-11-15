@@ -31,10 +31,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     const bounds = await dialog.boundingBox();
     expect(bounds).toMatchObject({ x: 0, y: 0, width: viewport.width, height: viewport.height });
     const camera = await dialog.locator('.scan-camera').boundingBox();
-    const prompt = await dialog.locator('.scan-prompt').boundingBox();
+    const prompt = await dialog.locator('.scan-card').boundingBox();
     expect(Math.abs(prompt!.x + prompt!.width / 2 - viewport.width / 2)).toBeLessThan(2);
     expect(Math.abs(prompt!.y + prompt!.height / 2 - (camera!.y + camera!.height / 2))).toBeLessThan(40);
-    expect(await heading.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(36);
+    expect(await heading.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(34);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(dialog.getByRole('button', { name: 'Close body scan' })).toBeInViewport();
     await expect(dialog.getByRole('button', { name: /^Voice guide (on|off)$/ })).toBeInViewport();

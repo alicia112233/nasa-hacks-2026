@@ -115,7 +115,7 @@ test('demo reports and movement views exclude personal recordings while personal
     open.onerror = () => reject(open.error);
   }));
   await page.reload();
-  await page.getByRole('link', { name: 'Handoff', exact: true }).click();
+  await page.getByRole('link', { name: 'Report', exact: true }).click();
   const downloadReport = async () => {
     const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Markdown', exact: true }).click()]);
     return readFile((await download.path())!, 'utf8');
@@ -128,12 +128,12 @@ test('demo reports and movement views exclude personal recordings while personal
   await page.getByRole('button', { name: /^E Arms/ }).click();
   await page.getByRole('button', { name: /Shoulder range/ }).click();
   await page.getByRole('button', { name: 'Compare movement', exact: true }).click();
-  await expect(page.getByRole('dialog').getByText('Synthetic movement example.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('Example movement, not a recording.', { exact: false })).toBeVisible();
   await expect(page.locator('.gaussian-stage')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await page.getByRole('link', { name: 'Mission', exact: true }).click();
   await page.getByRole('button', { name: 'My records', exact: true }).click();
-  await page.getByRole('link', { name: 'Handoff', exact: true }).click();
+  await page.getByRole('link', { name: 'Report', exact: true }).click();
   const personal = await downloadReport();
   expect(personal).toContain('Personal records on this device');
   expect(personal).toContain(recordingDate);

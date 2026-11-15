@@ -16,9 +16,9 @@ export function validateCarePlan(plan, now) {
   }
   const nextCheck = text(plan.nextCheck, 'Next check', 300);
   if (!Number.isFinite(Date.parse(plan.dueAt)) || Date.parse(plan.dueAt) <= Date.parse(now)) throw new Error('Choose a future reassessment time.');
-  if (!Array.isArray(plan.missingInformation) || !plan.missingInformation.length) throw new Error('Record what is still missing, or explicitly enter “None identified”.');
+  if (!Array.isArray(plan.missingInformation) || !plan.missingInformation.length) throw new Error('List what is still missing, or write “None”.');
   const missingInformation = plan.missingInformation.filter(v => typeof v === 'string' && v.trim()).map(v => text(v, 'Missing information', 500));
-  if (!missingInformation.length) throw new Error('Record what is still missing, or explicitly enter “None identified”.');
+  if (!missingInformation.length) throw new Error('List what is still missing, or write “None”.');
   if (missingInformation.length > 20) throw new Error('Use at most 20 information gaps.');
   return { procedure, nextCheck, dueAt: new Date(plan.dueAt).toISOString(), missingInformation };
 }
@@ -46,7 +46,7 @@ export function careState(packet, updates, now = new Date().toISOString()) {
   return { events, plan, due: !!plan && Date.parse(plan.dueAt) <= Date.parse(now) };
 }
 
-export const procedureLabel = p => !p || p.status === 'unknown' ? 'Procedure not recorded' : p.status === 'none' ? 'No procedure followed' : `${p.name} · version ${p.version} (crew-entered; approval not verified)`;
+export const procedureLabel = p => !p || p.status === 'unknown' ? 'Procedure not recorded' : p.status === 'none' ? 'No procedure followed' : `${p.name} · version ${p.version}`;
 
 /** @param {import('./types').MissionPacket} packet @param {import('./types').CareUpdate[]} updates */
 export function continuingCarePacket(packet, updates) {

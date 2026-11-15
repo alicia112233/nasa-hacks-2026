@@ -136,6 +136,5 @@ export default function Capture({ onClose, onSave, sol }: Props) {
     {status === 'recording' && <button className="btn primary" onClick={() => { if (timerRef.current) clearTimeout(timerRef.current); setStatus('saving'); recorder.current?.stop(); }}><Square size={14} fill="currentColor"/> Stop and save</button>}
     {status === 'saving' && <button disabled className="btn primary">Saving…</button>}
     {status === 'saved' && <button className="btn primary" onClick={onClose}>Done</button>}
-    <p className="muted">Runs on this device. No audio. Angles are estimates, not a clinical measure.</p>
   </Dialog>;
 }

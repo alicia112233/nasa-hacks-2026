@@ -100,12 +100,12 @@ export default function MovementViewer(props: Props) {
   const [poseOpen, setPoseOpen] = useState(false);
   if (!props.simulated) return <div className="movement-viewer">
     <MovementEvidence recordings={props.recordings ?? []} references={props.references ?? []} onRecord={props.onRecord}/>
-    <details className="pose-replay" onToggle={e => setPoseOpen(e.currentTarget.open)}><summary>Estimated pose replay</summary><p className="muted">Pose tracking is an estimate. The original crew video above is the primary evidence. No synthetic ghost animation represents a reference recording.</p>{poseOpen && <PoseMovementViewer {...props} hasBaseline={false}/>}</details>
+    <details className="pose-replay" onToggle={e => setPoseOpen(e.currentTarget.open)}><summary>Estimated pose replay</summary><p className="muted">Pose tracking is an estimate. Trust the video above.</p>{poseOpen && <PoseMovementViewer {...props} hasBaseline={false}/>}</details>
   </div>;
   return <div className="movement-viewer">
-    <p className="comparison-note">Synthetic movement example. Record a personal movement and open My records to compare your own video. This illustration is not measurement evidence about the crew member.</p>
+    <p className="comparison-note">Example movement, not a recording. Record your own to compare.</p>
     <PoseMovementViewer {...props}/>
-    <details className="technical-demo" onToggle={e => setTechnical(e.currentTarget.open)}><summary>Technical demo · public 4DGS model</summary><p className="muted">Public D-NeRF model; no measurement evidence about this crew member.</p>
+    <details className="technical-demo" onToggle={e => setTechnical(e.currentTarget.open)}><summary>Technical demo · public 4DGS model</summary><p className="muted">Public demo model, not crew data.</p>
       {technical && <Suspense fallback={<section className="panel reconstruction-loading" role="status">Preparing the Gaussian splat viewer…</section>}><GaussianSequenceViewer active={props.active ?? true}/></Suspense>}
     </details>
   </div>;

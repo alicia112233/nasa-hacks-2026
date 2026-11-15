@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const routes = ['body', 'trends', 'handoff', 'mission'];
+const routes = ['body', 'trends', 'report', 'mission'];
 const viewports = [
   { width: 1440, height: 900 }, { width: 1366, height: 768 },
   { width: 1024, height: 600 }, { width: 800, height: 600 },
@@ -34,10 +34,11 @@ for (const viewport of viewports) {
   });
 }
 
-test('the procedure card and body index share the 1024 × 600 viewport', async ({ page }) => {
+test('Today and the body index share the 1024 × 600 viewport', async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 600 });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Head', level: 2 })).toBeInViewport();
+  await expect(page.getByRole('heading', { name: 'Today', level: 2 })).toBeInViewport();
+  await expect(page.getByRole('button', { name: /^Physical:/ })).toBeInViewport();
   await expect(page.getByRole('button', { name: /^A Head/ })).toBeInViewport();
   await expect(page.getByRole('button', { name: /^I Cabin/ })).toBeInViewport();
   await page.screenshot({ path: 'test-results/body-1024x600.png' });
@@ -94,7 +95,7 @@ for (const width of [1440, 390]) {
 
 test('keyboard reaches every region, contains dialog focus and restores it', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Head', level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Today', level: 2 })).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
   await page.keyboard.press('Enter');

@@ -6,7 +6,7 @@ test('the top bar names who is shown on every page, and switching crew switches 
   const who = page.locator('.crew-switch-btn');
   await expect(who).toContainText('Alex Morgan');
   await expect(page.getByText(/MIN ONE WAY/)).toHaveCount(0);
-  for (const name of ['Trends', 'Handoff', 'Mission']) {
+  for (const name of ['Trends', 'Report', 'Mission']) {
     await page.getByRole('link', { name }).click();
     await expect(who).toContainText('Alex Morgan');
   }
@@ -22,10 +22,13 @@ test('the top bar names who is shown on every page, and switching crew switches 
   await expect(who).toHaveAttribute('aria-expanded', 'false');
   await expect(who).toBeFocused();
 
-  // Jordan's demo history has the leg-outline trend, so the body opens on Legs, and his trends are his own.
+  // Switching member opens their Today; Jordan's leg-outline trend shows on his Physical ring, and Legs holds it.
   await who.click();
   await page.getByRole('list', { name: 'Crew' }).getByRole('button', { name: /Jordan Lee/ }).click();
   await expect(who).toContainText('Jordan Lee');
+  await expect(page.getByRole('heading', { name: 'Today', level: 2 })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Physical:/ })).toContainText('Leg outline');
+  await page.getByRole('button', { name: /^H Legs/ }).click();
   await expect(page.getByRole('heading', { name: 'Legs', level: 2 })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Thigh breadth 6% below your ghost' })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Body shown' }).getByRole('button', { name: 'Preflight 181 cm' })).toBeVisible();

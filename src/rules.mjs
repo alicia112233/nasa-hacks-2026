@@ -26,14 +26,14 @@ export function analyze(checkIns, simulated, references = []) {
     // Compare every sample's conditions and require independent measurements after the fixed snapshot.
     const baseEnd = bases.map(r => measuredAt(r, key)).sort().at(-1) ?? '';
     const latestValues = attempts.filter(r => isNumber(r[key]) && measuredAt(r, key) > baseEnd).slice(-3);
-    const issue = !ref ? 'No explicitly established reference. Earlier records are shown for context only.' : !base ? 'This metric is missing from the reference.' : comparisonIssue(last, base, key) ?? latestValues.map(r => comparisonIssue(r, base, key)).find(Boolean) ?? null;
+    const issue = !ref ? 'No ghost set yet. Earlier readings are shown for context.' : !base ? 'Your ghost has no reading for this.' : comparisonIssue(last, base, key) ?? latestValues.map(r => comparisonIssue(r, base, key)).find(Boolean) ?? null;
     const validBases = bases.filter(r => !comparisonIssue(r, base, key));
     const validRecent = latestValues.filter(r => !comparisonIssue(r, base, key));
     const comparable = !issue && validBases.length >= 3 && latestValues.length === 3 && validRecent.length === 3;
     return [key, { referenceId: ref?.id ?? null, phase: ref?.phase ?? 'unknown', referenceCount: bases.length, recentCount: latestValues.length,
       baseline: median((ref && validBases.length ? validBases : bases).map(r => r[key])), current: median(latestValues.map(r => r[key])), lastMeasuredAt: last ? measuredAt(last, key) : null,
       state: !last ? 'missing' : issue ? 'unreliable' : comparable ? 'comparable' : 'insufficient',
-      reason: !last ? 'No measurement has been recorded.' : issue ?? (comparable ? 'Three recent readings under matching conditions against a fixed reference.' : 'Need three reference and three later readings under matching conditions.'), comparable }];
+      reason: !last ? 'Not measured yet.' : issue ?? (comparable ? 'Your last 3 readings, taken under the same conditions as your ghost.' : 'Needs 3 ghost readings and 3 newer ones under the same conditions.'), comparable }];
   }));
   const baseline = Object.fromEntries(keys.map(k => [k, comparisons[k].baseline]));
   const current = Object.fromEntries(keys.map(k => [k, comparisons[k].current]));

@@ -363,7 +363,7 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
   const clipCaption = result ? `Clip · ${clip ? `${Math.round(clip.seconds)} s · ` : ''}${result.frames} of ${Math.max(seen.current, result.frames)} frames used` : '';
   const buildSource = () => {
     const d = result?.detected;
-    return buildChosen || !d || d.build !== build ? 'Set by you' : d.sure.build ? 'Estimated from scan' : 'Best guess. Check it.';
+    return buildChosen || !d || d.build !== build ? '' : d.sure.build ? 'From scan' : 'Best guess · check it';
   };
   const retake = () => { setResult(null); dropClip(); void enableCamera(); };
 
@@ -373,17 +373,18 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
       <button className="btn" aria-pressed={!voice.muted} onClick={voice.toggle}>{voice.muted ? <VolumeX size={20} aria-hidden="true"/> : <Volume2 size={20} aria-hidden="true"/>}Voice guide {voice.muted ? 'off' : 'on'}</button>
       <button className="btn" disabled={voice.muted} onClick={voice.repeat}><RotateCcw size={18} aria-hidden="true"/>{voice.problem === 'blocked' ? 'Enable voice guide' : 'Repeat instruction'}</button>
       {document.fullscreenEnabled && <button className="btn scan-fullscreen" onClick={() => void toggleFullscreen()}>{fullscreen ? <Minimize size={18} aria-hidden="true"/> : <Maximize size={18} aria-hidden="true"/>}{fullscreen ? 'Exit full screen' : 'Full screen'}</button>}
-      <span className="scan-volume-note">{voice.muted ? 'Follow the on-screen guide.' : 'Turn up your device volume before stepping back.'}</span>
       {voice.problem && !voice.muted && <p className="scan-audio-note" role="status">{voice.problem === 'blocked' ? 'Tap Enable voice guide before stepping back.' : 'Audio could not play. Try Repeat instruction or follow the on-screen guide.'}</p>}
       {fullscreenError && <p className="scan-audio-note" role="status">{fullscreenError}</p>}
     </div>
     {status !== 'done' ? <div className={`camera-preview scan-camera ${live ? '' : 'empty'}`}>
       <video ref={video} muted playsInline aria-label="Live body scan camera"/><canvas ref={canvas} width={640} height={480}/>
       <div className="scan-guidance">
-        <div className="scan-prompt" role="status" aria-live="polite" aria-atomic="true"><h3>{guide.title}</h3><p>{guide.detail}</p></div>
-        {guide.count != null && <output className="scan-count" aria-label="Seconds remaining" aria-live="off">{guide.count}<span>s</span></output>}
+        {/* The countdown sits beside the instruction like a card's letter tab, outside the live region so it isn't read every second. */}
+        <div className="scan-card">
+          {guide.count != null && <output className="scan-count" aria-label="Seconds remaining" aria-live="off">{guide.count}</output>}
+          <div className="scan-prompt" role="status" aria-live="polite" aria-atomic="true"><h3>{guide.title}</h3><p>{guide.detail}</p><small>Feet in view · Arms a little out · Hold still</small></div>
+        </div>
       </div>
-      <p className="scan-position-reminder">Feet in view · Arms a little out · Hold still</p>
     </div> : <div className="scan-complete" role="status"><h3>{guide.title}</h3><p>{guide.detail}</p></div>}
     {error && <p className="error scan-error" role="alert"><AlertCircle size={16}/> {error}</p>}
 
@@ -399,10 +400,9 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
             </figure>
           </div>
           <div className="scan-picks">
-            <p id="scan-model-note">Your avatar model is your choice. The scan fits its proportions.</p>
             <div className="scan-pick">
               <span id="pick-body">Avatar model</span>
-              <div><div className="seg" role="group" aria-labelledby="pick-body" aria-describedby="scan-model-note">{(['female', 'male'] as const).map(v => <button key={v} aria-pressed={sex === v} onClick={() => chooseModel(v)}>{LABEL[v]}</button>)}</div><small role="status">{sex ? 'Kept for rescans' : 'Choose a model before saving'}</small></div>
+              <div><div className="seg" role="group" aria-labelledby="pick-body">{(['female', 'male'] as const).map(v => <button key={v} aria-pressed={sex === v} onClick={() => chooseModel(v)}>{LABEL[v]}</button>)}</div><small role="status">{sex ? '' : 'Choose one to save'}</small></div>
             </div>
             <div className="scan-pick">
               <span id="pick-build">Build</span>
@@ -410,7 +410,7 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
             </div>
           </div>
           <dl className="how-why scan-notes">
-            <div><dt>Figure</dt><dd>The app’s 3D model reshaped toward you, not a 3D copy of you. A gap between the two marks is what it could not follow.</dd></div>
+            <div><dt>Figure</dt><dd>Our model reshaped toward you, not a copy of you. A gap between the two marks is what it couldn’t follow.</dd></div>
           </dl>
         </div>
         {/* The numbers, then what they are measured against and how far to trust them. */}
@@ -429,9 +429,9 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
             </dl>
           </div>
           <dl className="how-why scan-notes">
-            <div><dt>Baseline</dt><dd>{!sex && 'Preview until you choose a model. '}0 is the standard {LABEL[model].toLowerCase()} figure: the app’s 3D model at average build and weight. Not a population norm.</dd></div>
-            <div><dt>Accuracy</dt><dd>One front view, so an estimate. Loose clothing reads wider. {agree} Tested on {calibration.validation.heldOutBodies} rendered bodies, not on people.</dd></div>
-            {cm != null && <div><dt>Legs</dt><dd>Thigh {cm} cm is saved as a leg measurement. Establish a fixed phase reference after three good readings.</dd></div>}
+            <div><dt>Baseline</dt><dd>0 is our standard {LABEL[model].toLowerCase()} figure at average build, not a population average.</dd></div>
+            <div><dt>Accuracy</dt><dd>An estimate from one front view; loose clothing reads wider. {agree} Tested on {calibration.validation.heldOutBodies} rendered bodies, not people.</dd></div>
+            {cm != null && <div><dt>Legs</dt><dd>Thigh {cm} cm is saved to H Legs.</dd></div>}
           </dl>
         </div>
       </div>
@@ -443,14 +443,13 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
         <div><dt>Thigh</dt>{legChange != null ? <Bar you={legChange} spread={result.spread?.thighs} scale={SCALE.legs}/> : <dd className="scan-bar none" aria-hidden="true"/>}<dd className="scan-value">{cm != null ? `${cm} cm` : '—'}</dd></div>
       </dl>
       <dl className="how-why scan-notes">
-        <div><dt>Baseline</dt><dd>{legChange != null ? `Retained phase reference, ${ghostCm!.toFixed(1)} cm. Today is ${percent(legChange)}; compare only under matching conditions.` : 'No comparable phase reference yet. This outline is saved as a measurement, not automatically made normal.'}</dd></div>
-        <div><dt>Accuracy</dt><dd>A front-view breadth with your height as the ruler, not a tape measure. {agree} Wear the same fit each time: loose trousers read wider.</dd></div>
-        <div><dt>Zero g</dt><dd>Fluid shifts can reduce leg volume. A narrower silhouette alone cannot establish muscle loss.</dd></div>
+        <div><dt>Ghost</dt><dd>{legChange != null ? `${ghostCm!.toFixed(1)} cm. Today is ${percent(legChange)}.` : 'None yet. This outline is saved as a reading.'}</dd></div>
+        <div><dt>Accuracy</dt><dd>An estimate from one front view, using your height for scale. {agree} Wear the same clothes each time.</dd></div>
+        <div><dt>Zero g</dt><dd>Fluid shifts also thin the legs, so a narrower outline alone doesn’t mean muscle loss.</dd></div>
       </dl>
     </>}
 
     {status === 'intro' && !needsHeight && <button className="btn primary" onClick={() => void enableCamera()}><Camera size={16}/> Try again</button>}
-    <p className="muted scan-privacy">Runs on this device. {status === 'done' ? 'The clip is for this review only and is erased when you close.' : 'A short clip is recorded for you to review, then erased when you close.'} Only body ratios are kept.</p>
     {status === 'done' && result && <div className="scan-actions">
       <button className="btn primary" disabled={mode === 'setup' && !sex} onClick={() => onSave(result, mode === 'setup' ? { sex, build } : {})}>{mode === 'setup' ? 'Use scan' : 'Save'}</button>
       <button className="btn ghost" onClick={retake}>Retake</button>

@@ -9,7 +9,6 @@ interface Props {
   onSwitch: (id: string) => void;
   onEdit: () => void;
   onAdd: () => void;
-  guidedOpen?: boolean;
 }
 
 /**
@@ -17,9 +16,8 @@ interface Props {
  * member), Edit profile and Add crew member. A disclosure, not a menu: Tab moves through it, Escape or leaving closes it.
  * Initials stand in for a face: GhostPilot keeps no photos.
  */
-export default function CrewSwitch({ crew, active, onSwitch, onEdit, onAdd, guidedOpen }: Props) {
-  const [localOpen, setOpen] = useState(false);
-  const open = guidedOpen ?? localOpen;
+export default function CrewSwitch({ crew, active, onSwitch, onEdit, onAdd }: Props) {
+  const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
@@ -39,7 +37,7 @@ export default function CrewSwitch({ crew, active, onSwitch, onEdit, onAdd, guid
   const pick = (action: () => void) => { setOpen(false); action(); trigger.current?.focus(); };
 
   return <div className="crew-switch" ref={root}>
-    <button ref={trigger} data-tour="crew" className="crew-switch-btn" aria-expanded={open} aria-controls="crew-menu" onClick={() => { if (guidedOpen == null) setOpen(o => !o); }}>
+    <button ref={trigger} className="crew-switch-btn" aria-expanded={open} aria-controls="crew-menu" onClick={() => setOpen(o => !o)}>
       <b aria-hidden="true">{active.initials || '—'}</b>
       <span className="crew-switch-name">{active.name}</span>
       <span className="sr">, crew member: switch or edit</span>
@@ -55,7 +53,7 @@ export default function CrewSwitch({ crew, active, onSwitch, onEdit, onAdd, guid
           </button>
         </li>)}
       </ul>
-      <button data-tour="profile" className="crew-menu-action" onClick={() => pick(onEdit)}><Pencil size={16} aria-hidden="true"/> Edit profile</button>
+      <button className="crew-menu-action" onClick={() => pick(onEdit)}><Pencil size={16} aria-hidden="true"/> Edit profile</button>
       <button className="crew-menu-action" onClick={() => pick(onAdd)}><UserPlus size={16} aria-hidden="true"/> Add crew member</button>
     </div>}
   </div>;

@@ -21,12 +21,11 @@ test('the scan keeps the profile model, refits a chosen model, and tracks the le
   // Alex's female model wins even though the synthetic camera fixture uses the male mesh.
   const model = dialog.getByRole('group', { name: 'Avatar model' });
   await expect(model.getByRole('button', { name: 'Female', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(dialog.getByText('Your avatar model is your choice. The scan fits its proportions.')).toBeVisible();
   await model.getByRole('button', { name: 'Male', exact: true }).click();
   await expect(model.getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
   // Five breadths against one fixed baseline, the standard male figure, which is the body on camera.
-  await expect(dialog.getByText('0 is the standard male figure')).toBeVisible();
-  await expect(dialog.getByText(/\d+ frames agree within ±\d+%\. Tested on 8 rendered bodies, not on people\./)).toBeVisible();
+  await expect(dialog.getByText('0 is our standard male figure')).toBeVisible();
+  await expect(dialog.getByText(/\d+ frames agree within ±\d+%\. Tested on 8 rendered bodies, not people\./)).toBeVisible();
   const values = (await dialog.locator('.scan-value').allTextContents()).map(t => Number(t.split('%')[0].replace('−', '-')));
   expect(values).toHaveLength(5);
   for (const v of values.slice(0, 4)) expect(Math.abs(v)).toBeLessThanOrEqual(4);
@@ -46,7 +45,7 @@ test('the scan keeps the profile model, refits a chosen model, and tracks the le
   await dialog.getByLabel('Clip position').fill('1');
   await expect.poll(() => clip.evaluate((v: HTMLVideoElement) => v.paused && Math.abs(v.currentTime - 1) < 0.2)).toBe(true);
   await expect(dialog.locator('.figure-canvas canvas')).toBeVisible();
-  await expect(dialog.getByText(/Thigh \d+(\.\d)? cm is saved as a leg measurement/)).toBeVisible();
+  await expect(dialog.getByText(/Thigh \d+(\.\d)? cm is saved to H Legs/)).toBeVisible();
   const axe = await new AxeBuilder({ page }).include('.dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
   expect(axe.violations.map(v => v.id)).toEqual([]);
   await dialog.getByRole('button', { name: 'Use scan' }).click();
@@ -56,7 +55,7 @@ test('the scan keeps the profile model, refits a chosen model, and tracks the le
   await page.locator('.crew-switch-btn').click();
   await page.getByRole('button', { name: 'Edit profile' }).click();
   await expect(page.getByRole('group', { name: 'Avatar model' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText('From the scan')).toBeVisible();
+  await expect(page.getByLabel('Mass')).toBeVisible();
 
   // Height is the one number a camera can't see. It sets the 0g height.
   await page.getByLabel('Height').fill('172');
@@ -71,15 +70,21 @@ test('the scan keeps the profile model, refits a chosen model, and tracks the le
   dialog = page.getByRole('dialog', { name: 'Leg outline · 5 s' });
   await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeVisible({ timeout: 90000 });
   await expect(dialog.locator('.scan-value')).toHaveText(/^\d+(\.\d)? cm$/);
-  await expect(dialog.getByText(/No comparable phase reference yet/)).toBeVisible();
+  await expect(dialog.getByText(/None yet\. This outline is saved as a reading\./)).toBeVisible();
   await expect.poll(() => dialog.getByLabel('Recorded scan clip').evaluate((v: HTMLVideoElement) => v.videoWidth > 0)).toBe(true);
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Leg outline saved to your records' })).toBeVisible();
 
   await page.locator('.crew-switch-btn').click();
   await page.getByRole('button', { name: 'Edit profile' }).click();
-  await page.getByRole('button', { name: 'Remove', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Edit profile' }).getByRole('button', { name: 'Done', exact: true }).click();
+  // Both scans are in the history; deleting the body scan asks first, and with only a leg outline left the figure goes back to standard.
+  const profile = page.getByRole('dialog', { name: 'Edit profile' });
+  await expect(profile.getByRole('region', { name: 'Scan history' }).locator('tbody tr')).toHaveCount(2);
+  await profile.getByRole('row').filter({ hasText: 'Shapes figure' }).getByRole('button', { name: /^Delete scan from/ }).click();
+  await expect(profile.getByRole('group', { name: 'Confirm scan deletion' })).toContainText('The figure goes back to the standard one.');
+  await profile.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(profile.getByRole('region', { name: 'Scan history' }).locator('tbody tr')).toHaveCount(1);
+  await profile.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Scan me' })).toBeVisible();
   await expect(page.getByText('Standard figure · not scanned')).toBeVisible();
   expect(errors).toEqual([]);
@@ -98,7 +103,7 @@ test('a new crew member chooses a model before saving, and Female survives retak
   await expect(save).toBeVisible({ timeout: 90000 });
   await expect(save).toBeDisabled();
   await expect(models.getByRole('button', { pressed: true })).toHaveCount(0);
-  await expect(dialog.getByText('Choose a model before saving', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Choose one to save', { exact: true })).toBeVisible();
   await models.getByRole('button', { name: 'Female', exact: true }).click();
   await expect(save).toBeEnabled();
   await dialog.getByRole('group', { name: 'Build', exact: true }).getByRole('button', { name: 'Slight', exact: true }).click();
