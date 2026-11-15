@@ -180,6 +180,20 @@ test('held-out Blender bodies: body shape from height, mass and the scan, never 
   assert.equal(physique({ scan: { shoulders: NaN } }).scan, null);
 });
 
+test('avatar choice overrides silhouette fit in both directions and keeps model-specific weight estimates', async () => {
+  const { holdout } = JSON.parse(await readFile(new URL('./fixtures/scan-holdout.json', import.meta.url), 'utf8'));
+  for (const [name, h] of Object.entries(holdout)) {
+    const chosen = h.sex === 'female' ? 'male' : 'female';
+    const fit = detectShape({ heightCm: 170, sex: chosen }, h.scan);
+    assert.equal(fit.sex, chosen, `${name}: chosen model must win`);
+    assert.equal(fit.sure.sex, false, 'a model choice is not a camera classification');
+    assert.equal(fit.weight, fit.weights[`${chosen}/${fit.build}`]);
+    assert.equal(Object.keys(fit.weights).length, 6, 'all model/build weights remain available for corrections');
+    const avatar = physique({ heightCm: 170, sex: chosen, build: fit.build, scan: { ...h.scan, detected: fit } });
+    assert.equal(avatar.weights.female, chosen === 'female' ? 1 : 0);
+  }
+});
+
 test('the scan sees fluid shift; the Legs rule flags an outline change, not a diagnosis', async () => {
   const { fluid } = JSON.parse(await readFile(new URL('./fixtures/scan-holdout.json', import.meta.url), 'utf8'));
   near(fluid.fluidThighChange, fluid.expectedFluidThighChange, 0.015, 'fluid shift thigh change');

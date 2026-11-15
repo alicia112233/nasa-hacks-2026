@@ -393,7 +393,12 @@ li.instrument .box { background: var(--hatch), var(--stock); }
 .tutorial-entry:hover { text-decoration: underline; text-underline-offset: 4px; }
 .tour-mask { position: fixed; z-index: 40; background: rgba(17, 17, 17, .65); }
 .tour-cover { inset: 0; }
-.tour-spotlight { position: fixed; z-index: 41; border: 3px solid var(--amber); outline: 2px solid var(--ink); pointer-events: none; }
+.tour-spotlight { position: fixed; z-index: 41; border: 3px solid var(--amber); outline: 2px solid var(--ink); pointer-events: none; animation: tour-target-pulse 1.6s ease-out infinite; }
+/* Pulse outside the steady outline so the click target stays clear throughout. */
+@keyframes tour-target-pulse {
+  0% { box-shadow: 0 0 0 0 var(--amber); }
+  75%, 100% { box-shadow: 0 0 0 10px transparent; }
+}
 .tour-coach { position: fixed; z-index: 45; width: min(380px, calc(100vw - 24px)); max-height: min(470px, calc(100dvh - 100px)); overflow: auto; background: var(--stock); border: var(--rule); box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
 .tour-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 4px 16px; background: var(--ink); color: var(--stock); }
 .tour-head h2 { font: 700 22px var(--cond); text-transform: uppercase; letter-spacing: .04em; }

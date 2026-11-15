@@ -49,6 +49,7 @@ Your past self is the reference, not a population norm or a score. The body map 
 - The body model is authored in Blender (installed locally, version 5.2) and shipped as a static GLB.
 - Static Vite + React + TypeScript + Three.js app. No backend, accounts, or paid services.
 - A first-use interactive tutorial requires nine clicks on the real crew, profile, body-region, check, Trends and Handoff controls. Only the current goal advances the tour; keyboard activation works too. Back restores prerequisites, and Skip, Close and Emergency remain available. It can be replayed from every page, works offline, writes no practice readings and preserves an existing handoff draft.
+- Avatar models are chosen by the crew member. A scan must preserve that choice through retakes, saves and rescans, fit proportions within it, and never present Female/Male as a camera classification. New members choose a model before saving.
 - Body and leg scans fill the window with large centered positioning instructions. Optional bundled speech, a countdown and a completion cue support use at camera distance; mute/replay controls remain on screen. Audio stays offline and the camera never requests microphone access.
 
 ## Brand Commitments

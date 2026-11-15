@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 // The fake webcam is a Blender render of the reference body (male, average build, 172 cm) standing 2.6 m away.
-test('the crew card scan shapes the body from the camera alone, then the same scan tracks the legs', async ({ page }) => {
+test('the scan keeps the profile model, refits a chosen model, and tracks the legs', async ({ page }) => {
   test.setTimeout(120000);
   const errors: string[] = [];
   const spoken: string[] = [];
@@ -18,7 +18,12 @@ test('the crew card scan shapes the body from the camera alone, then the same sc
   await expect(dialog.getByRole('button', { name: 'Use scan' })).toBeVisible({ timeout: 90000 });
   await expect(dialog.getByRole('heading', { name: 'Scan complete', exact: true })).toBeVisible();
   await expect.poll(() => spoken).toContain('complete.wav');
-  await expect(dialog.getByRole('group', { name: 'Body' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  // Alex's female model wins even though the synthetic camera fixture uses the male mesh.
+  const model = dialog.getByRole('group', { name: 'Avatar model' });
+  await expect(model.getByRole('button', { name: 'Female', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(dialog.getByText('Your avatar model is your choice. The scan fits its proportions.')).toBeVisible();
+  await model.getByRole('button', { name: 'Male', exact: true }).click();
+  await expect(model.getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
   // Five breadths against one fixed baseline, the standard male figure, which is the body on camera.
   await expect(dialog.getByText('0 is the standard male figure')).toBeVisible();
   await expect(dialog.getByText(/\d+ frames agree within ±\d+%\. Tested on 8 rendered bodies, not on people\./)).toBeVisible();
@@ -50,7 +55,7 @@ test('the crew card scan shapes the body from the camera alone, then the same sc
   await expect(page.getByText(/^Figure fitted to scan · /)).toBeVisible();
   await page.locator('.crew-switch-btn').click();
   await page.getByRole('button', { name: 'Edit profile' }).click();
-  await expect(page.getByRole('group', { name: 'Body' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('group', { name: 'Avatar model' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('From the scan')).toBeVisible();
 
   // Height is the one number a camera can't see. It sets the 0g height.
@@ -78,4 +83,38 @@ test('the crew card scan shapes the body from the camera alone, then the same sc
   await expect(page.getByRole('button', { name: 'Scan me' })).toBeVisible();
   await expect(page.getByText('Standard figure · not scanned')).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('a new crew member chooses a model before saving, and Female survives retakes, reloads and rescans', async ({ page }) => {
+  test.setTimeout(180000);
+  await page.goto('/');
+  await page.locator('.crew-switch-btn').click();
+  await page.getByRole('button', { name: 'Add crew member', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Edit profile', exact: true }).getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByRole('button', { name: 'Scan me', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Body scan · 5 s', exact: true });
+  const save = dialog.getByRole('button', { name: 'Use scan', exact: true });
+  const models = dialog.getByRole('group', { name: 'Avatar model', exact: true });
+  await expect(save).toBeVisible({ timeout: 90000 });
+  await expect(save).toBeDisabled();
+  await expect(models.getByRole('button', { pressed: true })).toHaveCount(0);
+  await expect(dialog.getByText('Choose a model before saving', { exact: true })).toBeVisible();
+  await models.getByRole('button', { name: 'Female', exact: true }).click();
+  await expect(save).toBeEnabled();
+  await dialog.getByRole('group', { name: 'Build', exact: true }).getByRole('button', { name: 'Slight', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Retake', exact: true }).click();
+  await expect(save).toBeVisible({ timeout: 90000 });
+  await expect(models.getByRole('button', { name: 'Female', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(dialog.getByText('Your figure · Female · Slight', { exact: true })).toBeVisible();
+  await save.click();
+  await page.reload();
+  await page.locator('.crew-switch-btn').click();
+  await page.getByRole('button', { name: 'Edit profile', exact: true }).click();
+  const profile = page.getByRole('dialog', { name: 'Edit profile', exact: true });
+  await expect(profile.getByRole('group', { name: 'Avatar model', exact: true }).getByRole('button', { name: 'Female', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await profile.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByRole('button', { name: 'Rescan', exact: true }).click();
+  await expect(save).toBeVisible({ timeout: 90000 });
+  await expect(models.getByRole('button', { name: 'Female', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await dialog.getByRole('button', { name: 'Close body scan', exact: true }).click();
 });

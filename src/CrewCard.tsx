@@ -53,7 +53,7 @@ export default function CrewCard({ profile, onProfile, onLegs, onScan, onClose, 
   const height = inRange(profile.heightCm ?? NaN, LIMITS.heightCm) ? profile.heightCm! : null;
   const cm = scan ? thighCm(scan, height ?? undefined) : null;
   const zeroG = height ? physique(profile, zeroGForSol(99)).statureCm : null;
-  const fromScan = (field: 'sex' | 'build') => scan?.detected && scan.detected[field] === profile[field] ? <small>{scan.detected.sure[field] ? 'From scan' : 'Scan’s best guess'}</small> : null;
+  const fromScan = () => scan?.detected && scan.detected.build === profile.build ? <small>{scan.detected.sure.build ? 'Estimated from scan' : 'Scan’s best guess'}</small> : null;
   const byHand = scan ? {} : { setByHand: true };
 
   return <article className="crew-profile" aria-labelledby="profile-title">
@@ -70,16 +70,16 @@ export default function CrewCard({ profile, onProfile, onLegs, onScan, onClose, 
           <dt>Scan</dt>
           <dd>{scan
             ? <>{formatDate(scan.date)}{cm != null && <> · thigh {cm} cm, tracked in <button className="link" onClick={onLegs}>H Legs</button></>} · <button className="link" onClick={() => onProfile({ scan: undefined })}>Remove</button></>
-            : <span className="muted-ink">Not scanned. Reads shape, build and weight.</span>}
+            : <span className="muted-ink">Not scanned. Fits proportions to your avatar model.</span>}
             <button className="link" onClick={onScan}>{scan ? 'Rescan' : 'Scan me'}</button></dd>
         </div>
         <div>
-          <dt id="crew-body">Body</dt>
-          <dd><span className="seg" role="group" aria-labelledby="crew-body">{(['female', 'male'] as const).map(v => <button key={v} aria-pressed={profile.sex === v} onClick={() => onProfile({ sex: v, ...byHand })}>{LABEL[v]}</button>)}</span>{fromScan('sex')}</dd>
+          <dt id="crew-body">Avatar model</dt>
+          <dd><span className="seg" role="group" aria-labelledby="crew-body">{(['female', 'male'] as const).map(v => <button key={v} aria-pressed={profile.sex === v} onClick={() => onProfile({ sex: v, ...byHand })}>{LABEL[v]}</button>)}</span><small>Your choice · kept on rescans</small></dd>
         </div>
         <div>
           <dt id="crew-build">Build</dt>
-          <dd><span className="seg" role="group" aria-labelledby="crew-build">{(BUILDS as NonNullable<Profile['build']>[]).map(v => <button key={v} aria-pressed={(profile.build ?? 'average') === v} onClick={() => onProfile({ build: v, ...byHand })}>{LABEL[v]}</button>)}</span>{fromScan('build')}</dd>
+          <dd><span className="seg" role="group" aria-labelledby="crew-build">{(BUILDS as NonNullable<Profile['build']>[]).map(v => <button key={v} aria-pressed={(profile.build ?? 'average') === v} onClick={() => onProfile({ build: v, ...byHand })}>{LABEL[v]}</button>)}</span>{fromScan()}</dd>
         </div>
         <div>
           <dt>Height</dt>

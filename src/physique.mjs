@@ -9,7 +9,7 @@
  *    average-weight body, ±50% relative BMI is a full morph (MakeHuman's weight macro spans 50% to 150% of average
  *    body weight). This is an approximation for a picture, not a body-composition measurement;
  *  - build picks the muscular or slight shape;
- *  - a body scan (src/scan.mjs) suggests sex and build (detectShape), and sets the shoulder, waist and hip
+ *  - a body scan (src/scan.mjs) fits build within the chosen avatar model (detectShape), and sets the shoulder, waist and hip
  *    morphs from how the measured proportions differ from the body the rest of the profile predicts;
  *  - zero-g applies NASA HIDH Table 4.3-4: +3% stature from spinal elongation, and the fluid shift that thins
  *    the legs and fills the face, both within the first days of weightlessness.
@@ -85,8 +85,9 @@ export const WEIGHTS = [-0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1];
 /**
  * Which body would explain a scan best: every sex and build (and, without a stated mass, every weight level) is
  * tried, and the shoulder, waist and hip morphs absorb the rest. A guess is only "sure" when it beats the best
- * alternative clearly; otherwise the crew member sets it. This reads body proportions, not gender identity.
- * @param {Parameters<typeof profileWeights>[0]} profile mass is used when stated; sex and build are ignored
+ * alternative clearly; otherwise the crew member sets it. A supplied sex fixes the avatar model: it is never
+ * overridden by the silhouette. Trying both models without a choice is retained for synthetic calibration only.
+ * @param {Parameters<typeof profileWeights>[0]} profile mass and avatar model are used when stated; build is fitted
  * @param {Record<string, any>} scan
  * @param {object} [cal] scan calibration (defaults to src/body-calibration.mjs)
  * @returns {{ sex: 'female' | 'male', build: 'slight' | 'average' | 'muscular', weight: number | null, weights: Record<string, number>,
@@ -102,9 +103,10 @@ export function detectShape(profile, scan, cal = undefined) {
     fits.push({ sex, build, weight: weight ?? null, ...fitScan(scan, profileWeights({ ...profile, sex, build }, weight).weights, cal) });
   }
   fits.sort((a, b) => a.cost - b.cost);
-  const best = fits[0];
+  const modelChosen = profile.sex === 'female' || profile.sex === 'male';
+  const best = modelChosen ? fits.find(f => f.sex === profile.sex) : fits[0];
   const next = pred => Math.min(...fits.filter(pred).map(f => f.cost)) - best.cost;
-  const margin = { sex: next(f => f.sex !== best.sex), build: next(f => f.sex === best.sex && f.build !== best.build) };
+  const margin = { sex: modelChosen ? 0 : next(f => f.sex !== best.sex), build: next(f => f.sex === best.sex && f.build !== best.build) };
   // fits is sorted, so the first of each sex and build is its best weight.
   const weights = {};
   for (const f of fits) if (f.weight != null) weights[`${f.sex}/${f.build}`] ??= f.weight;

@@ -162,8 +162,8 @@ test('the profile popup saves edits and preserves the current page and region', 
   await expect(who).toContainText('SR');
 
   // Body facts edit in one list, with no Save buttons.
-  await page.getByRole('group', { name: 'Body' }).getByRole('button', { name: 'Male', exact: true }).click();
-  await expect(page.getByRole('group', { name: 'Body' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('group', { name: 'Avatar model' }).getByRole('button', { name: 'Male', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Avatar model' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Height').fill('188');
   await page.getByLabel('Height').press('Enter');
   await expect(page.getByText('194 cm in zero g')).toBeVisible();

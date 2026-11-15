@@ -12,7 +12,7 @@ import { BUILDS, LIMITS, detectShape, physique } from './physique.mjs';
 import type { BodyScan as Scan, Profile } from './types';
 
 /**
- * setup (Mission → Crew): suggests body shape and build, fits shoulders, waist and hips, and starts the leg ghost.
+ * setup: fits the chosen avatar model, estimates build, fits shoulders, waist and hips, and starts the leg ghost.
  * legs (Body → H Legs): thigh breadth against the crew member's ghost.
  * Both record the seconds they measured, lines included, so the result can be checked against the footage.
  * The clip lives in memory and is dropped on retake or close.
@@ -130,8 +130,11 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
   const [result, setResult] = useState<Scan | null>(null);
   /** undefined: still being put together; null: this browser can't record. */
   const [clip, setClip] = useState<Clip | null | undefined>(undefined);
-  const [sex, setSex] = useState<NonNullable<Profile['sex']>>('female');
+  const [sex, setSex] = useState<Profile['sex']>(profile.sex);
   const [build, setBuild] = useState<NonNullable<Profile['build']>>('average');
+  const [buildChosen, setBuildChosen] = useState(false);
+  // An unselected model is only a labelled preview; saving requires an explicit choice.
+  const model = sex ?? 'female';
   const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement);
   const [fullscreenError, setFullscreenError] = useState('');
   const ownsFullscreen = useRef(false);
@@ -140,8 +143,20 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
   const needsHeight = mode === 'legs' && !hasHeight;
   const guide = scanGuidance({ status, issue, remaining, needsHeight, error: !!error });
   const voice = useScanAudio(guide.id, guide.repeat);
-  // The setup scan reads weight itself, so a typed mass is left out of its guess (saving the scan clears it).
-  const scanned = { ...profile, massKg: undefined };
+  function fitModel(scan: Scan, bodyModel: NonNullable<Profile['sex']>): NonNullable<Scan['detected']> {
+    // Fit proportions within the chosen model. A silhouette must never replace that choice.
+    const fit = detectShape({ ...profile, massKg: undefined, sex: bodyModel }, scan);
+    return { sex: bodyModel, build: fit.build as NonNullable<Profile['build']>, weight: fit.weight, weights: fit.weights, sure: fit.sure };
+  }
+
+  function chooseModel(bodyModel: NonNullable<Profile['sex']>) {
+    setSex(bodyModel);
+    if (result) {
+      const detected = fitModel(result, bodyModel);
+      setResult({ ...result, detected });
+      if (!buildChosen) setBuild(detected.build);
+    }
+  }
 
   useEffect(() => {
     const changed = () => setFullscreen(!!document.fullscreenElement);
@@ -329,11 +344,9 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
     stopCamera();
     const scan: Scan = { date: new Date().toISOString(), ...summary };
     if (mode === 'setup') {
-      const guess = detectShape(scanned, scan);
-      const detected = { sex: guess.sex as NonNullable<Profile['sex']>, build: guess.build as NonNullable<Profile['build']>, weight: guess.weight, weights: guess.weights, sure: guess.sure };
+      const detected = fitModel(scan, model);
       scan.detected = detected;
-      setSex(detected.sex);
-      setBuild(detected.build);
+      if (!buildChosen) setBuild(detected.build);
     }
     setResult(scan);
     setStatus('done');
@@ -341,16 +354,16 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
 
   const cm = result ? thighCm(result, profile.heightCm) : null;
   // The figure this scan gives, and both of them against the standard figure.
-  const fitted = useMemo(() => (result && mode === 'setup' ? physique({ ...profile, massKg: undefined, sex, build, scan: result }) : null), [result, mode, profile, sex, build]);
+  const fitted = useMemo(() => (result && mode === 'setup' ? physique({ ...profile, massKg: undefined, sex: model, build, scan: result }) : null), [result, mode, profile, model, build]);
   const compare = useMemo(() => (result && fitted ? compareScan(result, fitted.weights) : null), [result, fitted]);
   const live = status === 'ready' || status === 'scanning';
   const legChange = cm != null && ghostCm ? cm / ghostCm - 1 : null;
   const spread = scanSpread(result);
   const agree = result && spread != null ? `${result.frames} frames agree within ${within(spread)}.` : '';
   const clipCaption = result ? `Clip · ${clip ? `${Math.round(clip.seconds)} s · ` : ''}${result.frames} of ${Math.max(seen.current, result.frames)} frames used` : '';
-  const guessed = (field: 'sex' | 'build', value: string) => {
+  const buildSource = () => {
     const d = result?.detected;
-    return !d || d[field] !== value ? 'Set by you' : d.sure[field] ? 'From scan' : 'Best guess. Check it.';
+    return buildChosen || !d || d.build !== build ? 'Set by you' : d.sure.build ? 'Estimated from scan' : 'Best guess. Check it.';
   };
   const retake = () => { setResult(null); dropClip(); void enableCamera(); };
 
@@ -382,17 +395,18 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
             <ClipReview clip={clip} centre={centre.current} portrait caption={clipCaption}/>
             <figure className="scan-shot">
               <FigurePreview weights={fitted.weights}/>
-              <figcaption>Your figure · {LABEL[sex]} · {LABEL[build]}</figcaption>
+              <figcaption>{sex ? `Your figure · ${LABEL[sex]} · ${LABEL[build]}` : 'Avatar preview · choose a model below'}</figcaption>
             </figure>
           </div>
           <div className="scan-picks">
+            <p id="scan-model-note">Your avatar model is your choice. The scan fits its proportions.</p>
             <div className="scan-pick">
-              <span id="pick-body">Body</span>
-              <div><div className="seg" role="group" aria-labelledby="pick-body">{(['female', 'male'] as const).map(v => <button key={v} aria-pressed={sex === v} onClick={() => setSex(v)}>{LABEL[v]}</button>)}</div><small>{guessed('sex', sex)}</small></div>
+              <span id="pick-body">Avatar model</span>
+              <div><div className="seg" role="group" aria-labelledby="pick-body" aria-describedby="scan-model-note">{(['female', 'male'] as const).map(v => <button key={v} aria-pressed={sex === v} onClick={() => chooseModel(v)}>{LABEL[v]}</button>)}</div><small role="status">{sex ? 'Kept for rescans' : 'Choose a model before saving'}</small></div>
             </div>
             <div className="scan-pick">
               <span id="pick-build">Build</span>
-              <div><div className="seg" role="group" aria-labelledby="pick-build">{(BUILDS as NonNullable<Profile['build']>[]).map(v => <button key={v} aria-pressed={build === v} onClick={() => setBuild(v)}>{LABEL[v]}</button>)}</div><small>{guessed('build', build)}</small></div>
+              <div><div className="seg" role="group" aria-labelledby="pick-build">{(BUILDS as NonNullable<Profile['build']>[]).map(v => <button key={v} aria-pressed={build === v} onClick={() => { setBuild(v); setBuildChosen(true); }}>{LABEL[v]}</button>)}</div><small>{buildSource()}</small></div>
             </div>
           </div>
           <dl className="how-why scan-notes">
@@ -406,7 +420,7 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
               <span className="scan-key"><i className="mark-you"/>You<i className="mark-figure"/>Figure</span>
               <span className="scan-ends"><span>Narrower</span><span>0</span><span>Wider</span></span>
             </p>
-            <dl className="scan-result" aria-label={`Breadths against the standard ${LABEL[sex].toLowerCase()} figure`}>
+            <dl className="scan-result" aria-label={`Breadths against the standard ${LABEL[model].toLowerCase()} figure${sex ? '' : ' (preview)'}`}>
               {MEASURES.map((m: string) => <div key={m}>
                 <dt>{LABEL[m]}</dt>
                 <Bar you={compare[m].you} figure={compare[m].figure} spread={result.spread?.[m]} scale={SCALE.setup}/>
@@ -415,7 +429,7 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
             </dl>
           </div>
           <dl className="how-why scan-notes">
-            <div><dt>Baseline</dt><dd>0 is the standard {LABEL[sex].toLowerCase()} figure: the app’s 3D model at average build and weight. Not a population norm.</dd></div>
+            <div><dt>Baseline</dt><dd>{!sex && 'Preview until you choose a model. '}0 is the standard {LABEL[model].toLowerCase()} figure: the app’s 3D model at average build and weight. Not a population norm.</dd></div>
             <div><dt>Accuracy</dt><dd>One front view, so an estimate. Loose clothing reads wider. {agree} Tested on {calibration.validation.heldOutBodies} rendered bodies, not on people.</dd></div>
             {cm != null && <div><dt>Legs</dt><dd>Thigh {cm} cm is saved as a leg measurement. Establish a fixed phase reference after three good readings.</dd></div>}
           </dl>
@@ -438,7 +452,7 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
     {status === 'intro' && !needsHeight && <button className="btn primary" onClick={() => void enableCamera()}><Camera size={16}/> Try again</button>}
     <p className="muted scan-privacy">Runs on this device. {status === 'done' ? 'The clip is for this review only and is erased when you close.' : 'A short clip is recorded for you to review, then erased when you close.'} Only body ratios are kept.</p>
     {status === 'done' && result && <div className="scan-actions">
-      <button className="btn primary" onClick={() => onSave(result, mode === 'setup' ? { sex, build } : {})}>{mode === 'setup' ? 'Use scan' : 'Save'}</button>
+      <button className="btn primary" disabled={mode === 'setup' && !sex} onClick={() => onSave(result, mode === 'setup' ? { sex, build } : {})}>{mode === 'setup' ? 'Use scan' : 'Save'}</button>
       <button className="btn ghost" onClick={retake}>Retake</button>
     </div>}
     </div>

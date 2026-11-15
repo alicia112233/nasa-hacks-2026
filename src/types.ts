@@ -110,6 +110,7 @@ export interface Profile {
   /** Stable id for the crew roster. */
   id?: string;
   name: string; initials: string; mission: string; duration: number; startDate?: string;
+  /** Chosen avatar model, never inferred as the crew member's sex or gender. */
   sex?: 'female' | 'male'; heightCm?: number; massKg?: number; build?: 'slight' | 'average' | 'muscular';
   scan?: BodyScan;
   /** Body shape set by hand (no camera). The crew card counts its first step done only after a scan or this. */
@@ -123,7 +124,7 @@ export interface BodyScan {
   thighOfHeight: number; armAngle: number; frames: number;
   /** Frame-to-frame disagreement on each breadth, as a fraction of it. Absent on scans saved before it was kept. */
   spread?: Record<string, number>;
-  /** What the scan suggested, and whether it was sure; the crew member confirms or changes it. weights: the weight estimate per "sex/build". */
+  /** Avatar fit (legacy scans may contain a model guess). New scans fix sex to the chosen model; sure.sex is false. weights: fit weight per "sex/build". */
   detected?: { sex: 'female' | 'male'; build: 'slight' | 'average' | 'muscular'; weight?: number | null; weights?: Record<string, number>; sure: { sex: boolean; build: boolean } };
 }
 

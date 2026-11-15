@@ -54,7 +54,7 @@ One 5-second scan, used twice: once to shape the body, then repeatedly as the Le
 
 A scan keeps the median of at least 8 usable frames over 5 seconds (up to 15). A frame is refused when the head or ankles are out of view, an elbow or wrist touches the torso outline, the torso leans more than 12°, or the arms are outside 15–45° from the torso line. The outline's height in pixels, with the crew member's stated height as the ruler, turns thigh breadth into centimetres. Only ratios, the arm angle and the frame count are stored. No image or video is kept, and clearing personal records removes the scan.
 
-**Setup scan: body shape, build and weight (`detectShape` in `src/physique.mjs`).** It runs from Scan me above the body: the camera starts at once, and the scan starts itself once the whole body has been in view for about a second. Nothing is typed first. Every combination of sex (female/male MakeHuman shape), build (slight/average/muscular) and nine weight levels is tried; a stated mass, if there is one, fixes the weight instead. Height is asked next, because it is the one thing a camera can't measure. The shoulder, waist and hip morphs absorb what's left, by least squares over all five measures, with a ±0.4 prior that keeps them small. The combination with the lowest misfit wins. A guess counts as sure only when it beats the best alternative by 4 squared standard deviations. The scan screen shows both as choices, pre-selected, labelled "From scan" or "Not sure", and the crew member confirms or changes them. This reads body proportions, not gender identity.
+**Setup scan: chosen avatar model and fitted proportions (`detectShape` in `src/physique.mjs`).** Scan me starts the camera immediately, then collects usable frames automatically. Female/Male is an avatar-model choice, preserved from the profile through retakes, saves and rescans. A new member with no model sees a labelled provisional preview and must choose before saving. The camera never selects a sex or gender. The fitter estimates build and visual weight within the chosen model, with shoulder, waist and hip morphs absorbing the remaining differences. Changing the model refits it; changing build uses the corresponding fitted weight. Build estimates remain editable and are labelled uncertain when alternatives fit similarly. Height is entered separately as the ruler. Trying both models without a choice is retained only for the synthetic calibration experiments documented below.
 
 **Legs check.** Body → H Legs → Leg outline runs the same scan and saves thigh breadth (cm) to today's record. It then behaves like every other check: a ghost from the earliest records, a flag at 5% or more below it (illustrative), a Trends row and handoff lines, and links to NASA's muscle-fitness and cardiovascular risks. The card notes that the zero-g fluid shift alone thins legs up to 6% in the first days (HIDH Table 4.3-4), the change the Preflight / Sol toggle shows.
 
@@ -70,7 +70,7 @@ A scan keeps the median of at least 8 usable frames over 5 seconds (up to 15). A
 - At arm angles near 22°, heavier bodies' arms meet the chest, which inflated the arm reading until the inner half was capped.
 - The fit weights were chosen on the held-out bodies: measurement scatter taken as 2.5× the render scatter (real scans are noisier), and a ±0.4 morph prior. That traded some morph accuracy for never being confidently wrong.
 
-**Validation on bodies left out of the calibration** (`tests/fixtures/scan-holdout.json`, checked by `tests/scan.test.mjs`). Profiles are 170 cm, with the mass that matches each body's weight; the scan never sees the true sex or build.
+**Historical unconstrained fitter validation on bodies left out of the calibration** (`tests/fixtures/scan-holdout.json`, checked by `tests/scan.test.mjs`). Profiles are 170 cm, with the mass that matches each body's weight; the scan never sees the true sex or build.
 
 | Held-out body | Guessed (? = not sure) | Morphs expected → recovered (shoulders, waist, hips) |
 | --- | --- | --- |
@@ -90,7 +90,7 @@ A scan keeps the median of at least 8 usable frames over 5 seconds (up to 15). A
 - **Morphs:** shoulder, waist and hip morphs recovered to within 0.35. Recovered values lean toward zero, by design of the prior.
 - **Legs:** the reference body with HIDH's fluid shift reads −5.5% thigh breadth (the model applies −6%). Thigh breadth for one body repeats to ±0.16 cm (15.3 cm mean) across camera positions and arm angles.
 - **Cropped frames:** all 75 frames with the feet cropped were refused.
-- **End to end:** `tests/browser/scan-video.spec.ts` feeds a rendered reference body to Chrome as a fake webcam and runs both scans in the app, in video tracking mode. The setup scan picks the male shape with proportions within ±4%, fills the Crew form, then the Legs check saves thigh breadth. An axe check covers the result screen.
+- **End to end:** `tests/browser/scan-video.spec.ts` feeds a rendered reference body to Chrome as a fake webcam and runs both scans in video tracking mode. The scan preserves the profile model despite a different mesh in the fake camera. After an explicit switch to the fixture model, proportions are within 4% of the standard mesh; the Legs check then saves thigh breadth. A regression check covers a new member choosing Female, retaking, saving, reloading and rescanning without an automatic model change. An axe check covers the result screen.
 
 **Limits:**
 
@@ -105,7 +105,7 @@ A scan keeps the median of at least 8 usable frames over 5 seconds (up to 15). A
 Yes, in steps. The recommended path keeps everything on the device:
 
 1. **Profile (done).** Typed measurements drive morphs in the browser. No per-person Blender run is needed, which suits an offline spacecraft tablet.
-2. **On-device body scan (done).** A 5-second front-facing scan with the bundled pose model suggests body shape and build, drives the shoulder, waist and hip morphs, and becomes the Legs check, as described above. Nothing leaves the device.
+2. **On-device body scan (done).** A 5-second front-facing scan with the bundled pose model fits proportions within the chosen avatar and estimates build, drives the shoulder, waist and hip morphs, and becomes the Legs check, as described above. Nothing leaves the device.
 3. **Tape measurements (optional, not built).** Chest, waist and hip girths map directly onto MakeHuman's measurement targets.
 
 Cloud image-to-3D services were considered and rejected for crew use. Examples are the Higgsfield MCP server's image-to-3D jobs, Hyper3D Rodin and Hunyuan3D (both reachable from the Blender MCP add-on), and Meshy and Tripo. They need internet and credits, and they upload a person's photo to a third party. Their output is a textured mesh, not one with known measurements, and the topology cannot be split into the app's anatomical regions or morphed consistently. Research body models such as SMPL-X fit people well from images, but their licences restrict redistribution in a public app, and the fitting needs a GPU.
