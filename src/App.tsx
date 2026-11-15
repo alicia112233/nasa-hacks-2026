@@ -9,7 +9,7 @@ import { defaultContext } from './references.mjs';
 import { crewHeadaches } from './daily.mjs';
 import BodyView, { type RegionState } from './BodyView';
 import { physique, zeroGForSol } from './physique.mjs';
-import { solOn } from './body.mjs';
+import { readingMeta, solOn } from './body.mjs';
 import { thighCm } from './scan.mjs';
 import ProcedureCard from './ProcedureCard';
 import CrewCard from './CrewCard';
@@ -68,7 +68,7 @@ export default function App() {
   const analysis = useMemo(() => analyze(view.checkIns, simulated, view.references), [view.checkIns, simulated, view.references]);
   // Camera checks always save to personal records, so the leg scan compares with the personal ghost.
   const personalGhostCm = useMemo(() => { const a = analyze(view.checkIns, false, view.references); return a.comparisons.thighCm.comparable ? a.baseline.thighCm : null; }, [view.checkIns, view.references]);
-  const statuses = useMemo(() => regionStatuses(view.checkIns, simulated, undefined, view.references), [view.checkIns, simulated, view.references]);
+  const statuses = useMemo(() => regionStatuses(view.checkIns, simulated, undefined, view.references, { startDate: mission.profile.startDate }), [view.checkIns, simulated, view.references, mission.profile.startDate]);
   const sharedHeadaches = crewHeadaches(mission.checkIns, simulated);
   // Sol is the mission day: day 1 is the mission start in the crew member's profile.
   const sol = mission.profile.startDate ? solOn(mission.profile.startDate) : Math.max(1, ...view.checkIns.map(c => c.sol));
@@ -178,13 +178,28 @@ export default function App() {
   function record(values: Partial<CheckIn>, source = simulated, quality: Record<string, Partial<MeasurementContext>> = {}) {
     setMission(old => {
       const now = new Date().toISOString();
-      const measurements = Object.fromEntries(Object.keys(values).filter(k => k !== 'measurements').map(k => [k, { ...(old.profile.recordingContext ?? defaultContext), measuredAt: now, quality: 'good', ...quality[k] }])) as Record<string, MeasurementContext>;
+      const fields = Object.keys(values).filter(k => typeof values[k as keyof CheckIn] === 'number');
+      const measurements = Object.fromEntries(fields.map(k => [k, { ...(old.profile.recordingContext ?? defaultContext), ...readingMeta(k), measuredAt: now, quality: 'good', ...quality[k] }])) as Record<string, MeasurementContext>;
+      const readingAt = fields.length ? measurements[fields[0]].measuredAt : now;
+      const due = Object.values(regionStatuses(scoped(old).checkIns, source, readingAt, old.references, { startDate: old.profile.startDate })).flatMap(s => s.items.filter(i => i.due).map(i => i.check.id));
       const checkRuns = (old.checkRuns ?? []).map(run => run.crewId === old.crewId && run.simulated === source && !run.completedAt && !run.abandonedAt && typeof values[run.field as keyof CheckIn] === 'number' && measurements[run.field]?.quality === 'good' ? { ...run, completedAt: now } : run);
-      const index = old.checkIns.findIndex(c => c.simulated === source && c.crewId === old.crewId && dayKey(c.date) === dayKey(now));
-      if (index >= 0) return { ...old, checkRuns, checkIns: old.checkIns.map((c, i) => i === index ? { ...c, ...values, measurements: { ...c.measurements, ...measurements } } : c) };
-      const entry: CheckIn = { id: crypto.randomUUID(), crewId: old.crewId, date: now, sol, simulated: source, reactionMs: null, missed: 0, signals: 0, symptoms: [], notes: '', ...values, measurements };
+      const index = old.checkIns.findIndex(c => c.simulated === source && c.crewId === old.crewId && dayKey(c.date) === dayKey(readingAt));
+      if (index >= 0) return { ...old, checkRuns, checkIns: old.checkIns.map((c, i) => i === index ? { ...c, ...values, measurements: { ...c.measurements, ...measurements }, planned: [...new Set([...(c.planned ?? []), ...due])], skipped: (values.skipped ?? c.skipped ?? []).filter(id => fieldsForCheck(id).every(f => !fields.includes(f))) } : c) };
+      const readingSol = old.profile.startDate ? solOn(old.profile.startDate, Date.parse(readingAt)) : sol;
+      const entry: CheckIn = { id: crypto.randomUUID(), crewId: old.crewId, date: readingAt, sol: readingSol, simulated: source, reactionMs: null, missed: 0, signals: 0, symptoms: [], notes: '', ...values, measurements, planned: due };
       return { ...old, checkRuns, checkIns: [...old.checkIns, entry] };
     });
+  }
+
+  function fieldsForCheck(id: string) {
+    const c = regions.flatMap(r => r.checks).find(c => c.id === id);
+    return [c?.field, c?.field2].filter((f): f is string => typeof f === 'string');
+  }
+
+  function skipCheck(id: string) {
+    const today = view.checkIns.find(c => c.simulated === simulated && dayKey(c.date) === dayKey(new Date().toISOString()));
+    record({ skipped: [...new Set([...(today?.skipped ?? []), id])] });
+    notify('Set aside today. The missing measurement stays in the report.');
   }
 
   function saveAttention(result: AttentionResult) {
@@ -328,7 +343,7 @@ export default function App() {
         <button className="back-today" onClick={() => setRegion(null)}><ArrowLeft size={16} aria-hidden="true"/> Today</button>
         <ProcedureCard key={`${mission.crewId}-${selectedRegion.id}-${tutorialStep === 2 ? 'tour-check' : ''}`} region={selectedRegion as never} status={statuses[selectedRegion.id] as never} analysis={analysis as never} requestedCheck={tutorialStep === 2 ? null : requestedCheck} tourCheck={tutorialStep == null ? undefined : tour.check}
           cabinContent={selectedRegion.id === 'cabin' ? <CabinReview mission={mission} onSave={reading => { setMission(old => ({ ...old, cabinReadings: [...(old.cabinReadings ?? []), reading] })); notify('Cabin observation saved.'); }}/> : undefined}
-          onSave={(field, value) => { record({ [field]: value }); notify('Saved.'); }}
+          onSave={(values, metadata) => { record(values, simulated, metadata); notify('Saved.'); }} onSkip={skipCheck}
           onAttention={() => setModal('attention')} onCamera={id => id === 'legs' ? openScan() : setModal('capture')} onMovement={() => setModal('movement')}
           onHandoff={() => go('report')} nextRegion={nextRegion(statuses, selectedRegion.id) as never} onRegion={id => pickRegion(id)}/>
         </>}

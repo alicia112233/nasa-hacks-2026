@@ -309,6 +309,15 @@ li.instrument .box { background: var(--hatch), var(--stock); }
 .number { display: flex; gap: 10px; align-items: center; }
 .number label { display: flex; align-items: center; gap: 8px; font: 700 16px var(--cond); text-transform: uppercase; }
 .number input { width: 130px; font-size: 20px; font-variant-numeric: tabular-nums; }
+.reading-form { display: grid; gap: 12px; }
+.reading-form .context-fields { margin-top: 0; }
+.reading-form input { min-width: 0; font-variant-numeric: tabular-nums; }
+.step .time small { display: block; margin-top: 3px; font-size: 12px; white-space: normal; }
+.routine-plan { border-top: 1px solid var(--stock-3); padding-top: 12px; }
+.routine-plan p, .routine-plan ul { margin-top: 10px; }
+.routine-plan ul { list-style: none; padding: 0; }
+.routine-plan li { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; border-bottom: 1px solid var(--stock-3); }
+.routine-plan li span:last-child { color: var(--muted); text-align: right; }
 .card-foot { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
 .risks { font-size: 13px; color: var(--muted); max-width: 60ch; }
 .risks a { white-space: nowrap; }

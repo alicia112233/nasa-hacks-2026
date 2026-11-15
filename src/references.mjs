@@ -1,7 +1,7 @@
 export const phases = { preflight: 'Preflight', adaptation: 'Early adaptation', cruise: 'In-flight cruise', surface: 'Surface operations', return: 'Return / recovery', unknown: 'Not recorded' };
 /** @type {import('./types').RecordingContext} */
 export const defaultContext = { phase: 'unknown', cameraSetup: '', posture: '', lighting: '', clothing: '', activity: '' };
-export const metricKeys = ['reactionMs', 'sleep', 'energy', 'leftRange', 'rightRange', 'thighCm', 'mood', 'heartRate', 'exerciseMin', 'appetite', 'workload', 'team'];
+export const metricKeys = ['reactionMs', 'sleep', 'sleepHours', 'energy', 'leftRange', 'rightRange', 'thighCm', 'mood', 'heartRate', 'temperatureC', 'bpSys', 'bpDia', 'exerciseMin', 'appetite', 'workload', 'team'];
 export const cameraKeys = ['leftRange', 'rightRange', 'thighCm'];
 export const isNumber = v => typeof v === 'number' && Number.isFinite(v);
 export const measuredAt = (record, key) => record.measurements?.[key]?.measuredAt ?? record.date;

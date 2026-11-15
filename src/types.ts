@@ -33,6 +33,17 @@ export interface CheckIn {
   /** Front-view thigh breadth from the body scan, with the crew member's height as the ruler. */
   thighCm?: number;
   headache?: number;
+  /** Hours asleep in the last sleep period. */
+  sleepHours?: number;
+  /** Body temperature from a thermometer, °C. */
+  temperatureC?: number;
+  /** Blood pressure from a cuff, mmHg. */
+  bpSys?: number;
+  bpDia?: number;
+  /** Checks set aside for the day, such as blood pressure with no cuff to hand. */
+  skipped?: string[];
+  /** Checks retained in this day's routine, including concerns that clear after a repeat. */
+  planned?: string[];
   /** Per-metric timestamps and conditions survive partial updates to a daily entry. */
   measurements?: Record<string, MeasurementContext>;
 }
@@ -49,6 +60,9 @@ export interface RecordingContext {
 export interface MeasurementContext extends RecordingContext {
   measuredAt: string;
   quality: 'good' | 'poor' | 'unknown';
+  /** The reading's unit (bpm, °C, mmHg, h…) and how it was taken (wrist pulse, oral thermometer, automatic cuff…). */
+  unit?: string;
+  method?: string;
   confidentFrames?: number;
   spread?: number;
   recordingId?: string;
@@ -194,3 +208,14 @@ export type Page = 'body' | 'trends' | 'report' | 'risks' | 'sources';
 export type RegionId = 'head' | 'eyes' | 'chest' | 'abdomen' | 'arms' | 'hands' | 'pelvis' | 'legs' | 'cabin';
 export type FlagKind = 'movement' | 'attention' | 'wellbeing';
 export type HazardId = 'isolation' | 'gravity' | 'environment' | 'distance' | 'radiation';
+
+export type Level = 'watch' | 'tell' | 'now';
+/** One thing that needs attention, from the shared assessment (src/assess.mjs). Every page shows these same words. */
+export interface Concern {
+  checkId: string; field: string; region: RegionId; title: string;
+  /** Has a trend against the ghost among its findings. */
+  trend: boolean;
+  level: Level; label: string; reason: string;
+  steps: { text: string; action?: string; checkId: string }[];
+  measuredAt: string | null;
+}

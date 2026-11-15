@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { regionForMesh, regions } from './body.mjs';
 import type { RegionId } from './types';
 
-export type RegionState = 'flag' | 'reported' | 'done' | 'due' | 'none' | 'instrument';
+export type RegionState = 'flag' | 'reported' | 'done' | 'due' | 'clear' | 'none' | 'instrument';
 export interface BodyShape { weights: Record<string, number>; scale: number }
 interface Props { selected: RegionId | null; states: Record<string, { state: RegionState }>; onSelect: (id: RegionId) => void; shape: BodyShape; children?: ReactNode }
 

@@ -7,6 +7,39 @@ export function median(values) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
+/**
+ * When a measure has moved far enough from the ghost to be an alert, the same everywhere (Body, Today, Trends, Report).
+ * by: pct (percent of the ghost), points (1–5 ratings: "down 1 point" reads clearer than a percent), abs (in the unit).
+ * Thresholds are illustrative, not validated clinical limits.
+ */
+const RATING = { worse: 'down', by: 'points', at: 1 };
+export const TREND_RULES = {
+  reactionMs: { worse: 'up', by: 'pct', at: 15 },
+  leftRange: { worse: 'down', by: 'pct', at: 8 },
+  thighCm: { worse: 'down', by: 'pct', at: 5 },
+  exerciseMin: { worse: 'down', by: 'pct', at: 25 },
+  heartRate: { worse: 'up', by: 'abs', at: 10, unit: 'bpm' },
+  sleepHours: { worse: 'down', by: 'abs', at: 1, unit: 'h' },
+  sleep: RATING, mood: RATING, energy: RATING, appetite: RATING, workload: RATING, team: RATING,
+};
+/** How measures without an alert rule show their change. */
+const CHANGE = { rightRange: { by: 'pct' }, temperatureC: { by: 'abs', unit: '°C' }, bpSys: { by: 'abs', unit: 'mmHg' }, bpDia: { by: 'abs', unit: 'mmHg' } };
+const trim = v => String(Math.round(v * 10) / 10);
+/**
+ * The change from the ghost to the last 3, as a number in the rule's terms and as text: "+22%", "−1 pt", "+12 bpm".
+ * @param {string} key @param {number | null} current @param {number | null} baseline
+ */
+export function changeOf(key, current, baseline) {
+  const rule = TREND_RULES[key] ?? CHANGE[key] ?? { by: 'pct' };
+  if (current == null || baseline == null) return null;
+  const amount = rule.by === 'pct' ? (baseline ? Math.round((current - baseline) / baseline * 100) : null) : current - baseline;
+  if (amount == null) return null;
+  const sign = amount > 0 ? '+' : amount < 0 ? '−' : '±';
+  const size = trim(Math.abs(amount));
+  const text = rule.by === 'pct' ? `${sign}${size}%` : rule.by === 'points' ? `${sign}${size} pt` : `${sign}${size} ${rule.unit}`;
+  return { amount, text, by: rule.by };
+}
+
 export function analyze(checkIns, simulated, references = []) {
   const records = checkIns.filter(c => c.simulated === simulated).sort((a, b) => a.date.localeCompare(b.date));
   // Legacy records retain a fixed first-three reference. Their missing conditions prevent a trend claim.
@@ -50,15 +83,17 @@ export function analyze(checkIns, simulated, references = []) {
     baseline: comparisons[key].referenceCount,
     recent: comparisons[key].recentCount,
   }]));
-  const comparable = key => comparisons[key].comparable;
+  // One rule table decides every trend. A changed outline is a prompt to review, never evidence of muscle loss.
+  const trends = Object.fromEntries(keys.map(key => {
+    const rule = TREND_RULES[key];
+    const change = changeOf(key, current[key], baseline[key]);
+    const worse = !!rule && comparisons[key].comparable && change != null && (rule.worse === 'up' ? change.amount >= rule.at : change.amount <= -rule.at);
+    return [key, { change, worse }];
+  }));
   return {
-    baseline, current, recent, baselineRecords, records, enough, quality, comparisons,
+    baseline, current, recent, baselineRecords, records, enough, quality, comparisons, trends,
     attentionDelta, movementDelta, legDelta,
-    attentionFlag: enough && comparable('reactionMs') && attentionDelta != null && attentionDelta >= 15,
-    movementFlag: enough && comparable('leftRange') && movementDelta != null && movementDelta <= -8,
-    wellbeingFlag: enough && comparable('sleep') && current.sleep != null && baseline.sleep != null && current.sleep <= baseline.sleep - 1,
-    // A changed outline is a prompt to review, never evidence of muscle loss. Fluid shifts also change leg volume.
-    legFlag: enough && comparable('thighCm') && legDelta != null && legDelta <= -5,
+    attentionFlag: trends.reactionMs.worse, movementFlag: trends.leftRange.worse, wellbeingFlag: trends.sleep.worse, legFlag: trends.thighCm.worse,
   };
 }
 

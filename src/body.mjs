@@ -1,8 +1,8 @@
 // Body index: NASA's five hazards and 17 Human Research Program risks, mapped to body
 // regions and the checks a crew member can run. Links verified 2026-11-14.
-import { analyze } from './rules.mjs';
-import { measuredAt } from './references.mjs';
-import { lowRating, outOfRange } from './guidance.mjs';
+import { assess } from './assess.mjs';
+import { cameraKeys, measuredAt } from './references.mjs';
+import { planState, cadenceLabel, UNWELL } from './plan.mjs';
 
 export const hazards = [
   { id: 'radiation', label: 'Radiation', color: '#8e2a8b', url: 'https://www.nasa.gov/hrp/hazard-space-radiation/' },
@@ -38,12 +38,15 @@ export const risksUrl = 'https://www.nasa.gov/hrp/risks/';
 const SCALE = ['Very low', 'Low', 'Okay', 'Good', 'Great'];
 const SYMPTOM = ['None', 'Mild', 'Strong'];
 /**
- * kind: task (timed attention task) · scale (1–5) · symptom (0–2) · number · camera · instrument · data
- * field: the CheckIn property a result writes; instrument and data checks write nothing.
+ * kind: task (timed attention task) · scale (1–5) · symptom (0–2) · number · bp (two numbers) · camera · instrument · data
+ * field: the CheckIn property a result writes (field2: the second, for blood pressure); instrument and data checks write nothing.
+ * seconds: recording time. prep: preparation first (rest or camera set-up), shown apart, so "20 s" never hides 5 min of rest.
+ * methods: how a structured reading can be taken; the first is the default. Every reading keeps its unit, time and method.
  */
 export const checks = [
   { id: 'attention', region: 'head', title: 'Attention', seconds: 60, kind: 'task', field: 'reactionMs', unit: 'ms', risks: ['behavioral', 'sleep', 'support'] },
   { id: 'sleep', region: 'head', title: 'Sleep quality', seconds: 5, kind: 'scale', field: 'sleep', options: SCALE, risks: ['sleep'] },
+  { id: 'sleepHours', region: 'head', title: 'Sleep duration', seconds: 10, kind: 'number', field: 'sleepHours', unit: 'h', min: 0, max: 16, step: 0.25, decimals: 2, methods: ['Estimate', 'Sleep watch'], timeLabel: 'Woke at', risks: ['sleep'] },
   { id: 'mood', region: 'head', title: 'Mood', seconds: 5, kind: 'scale', field: 'mood', options: SCALE, risks: ['behavioral'] },
   { id: 'energy', region: 'head', title: 'Energy', seconds: 5, kind: 'scale', field: 'energy', options: SCALE, risks: ['behavioral', 'sleep'] },
   { id: 'dizziness', region: 'head', title: 'Dizziness or poor balance', seconds: 5, kind: 'symptom', field: 'dizziness', options: SYMPTOM, risks: ['sensorimotor'] },
@@ -52,21 +55,22 @@ export const checks = [
   { id: 'team', region: 'head', title: 'Crew working well together', seconds: 5, kind: 'scale', field: 'team', options: SCALE, risks: ['teamwork'] },
   { id: 'vision', region: 'eyes', title: 'Blurred or changed vision', seconds: 30, kind: 'symptom', field: 'vision', options: SYMPTOM, risks: ['sans'] },
   { id: 'oct', region: 'eyes', title: 'Eye imaging (OCT)', kind: 'instrument', needs: 'Needs OCT imager', risks: ['sans'] },
-  { id: 'heartRate', region: 'chest', title: 'Resting heart rate', seconds: 20, kind: 'number', field: 'heartRate', unit: 'bpm', min: 30, max: 220, risks: ['cardiovascular'] },
+  { id: 'heartRate', region: 'chest', title: 'Resting heart rate', seconds: 30, prep: 300, prepLabel: 'Rest', kind: 'number', field: 'heartRate', unit: 'bpm', min: 30, max: 220, methods: ['Wrist pulse', 'Heart-rate monitor'], risks: ['cardiovascular'] },
+  { id: 'temperature', region: 'chest', title: 'Body temperature', seconds: 60, kind: 'number', field: 'temperatureC', unit: '°C', min: 34, max: 42, step: 0.1, decimals: 1, methods: ['Oral', 'Ear', 'Forehead'], risks: ['immune', 'microbes'] },
   { id: 'breath', region: 'chest', title: 'Short of breath', seconds: 5, kind: 'symptom', field: 'breath', options: SYMPTOM, risks: ['hypoxia', 'cardiovascular'] },
   { id: 'joint', region: 'chest', title: 'Joint pain after a spacewalk', seconds: 5, kind: 'symptom', field: 'joint', options: SYMPTOM, skip: 'No spacewalk', risks: ['dcs', 'eva'] },
-  { id: 'bp', region: 'chest', title: 'Blood pressure', kind: 'instrument', needs: 'Needs cuff', risks: ['cardiovascular'] },
+  { id: 'bp', region: 'chest', title: 'Blood pressure', seconds: 60, prep: 300, prepLabel: 'Rest', kind: 'bp', field: 'bpSys', field2: 'bpDia', unit: 'mmHg', min: 60, max: 260, min2: 30, max2: 160, methods: ['Automatic cuff', 'Manual cuff'], skip: 'No cuff today', risks: ['cardiovascular'] },
   { id: 'appetite', region: 'abdomen', title: 'Appetite and meals', seconds: 5, kind: 'scale', field: 'appetite', options: SCALE, risks: ['nutrition'] },
   { id: 'gut', region: 'abdomen', title: 'Stomach upset', seconds: 5, kind: 'symptom', field: 'gut', options: SYMPTOM, risks: ['microbes'] },
   { id: 'mass', region: 'abdomen', title: 'Body mass', kind: 'instrument', needs: 'Needs mass device', risks: ['nutrition'] },
-  { id: 'shoulder', region: 'arms', title: 'Shoulder range', seconds: 12, kind: 'camera', field: 'leftRange', unit: '°', risks: ['fitness', 'eva'] },
+  { id: 'shoulder', region: 'arms', title: 'Shoulder range', seconds: 12, prep: 30, prepLabel: 'Set up', kind: 'camera', field: 'leftRange', unit: '°', risks: ['fitness', 'eva'] },
   { id: 'skin', region: 'hands', title: 'Rash or cold sore', seconds: 5, kind: 'symptom', field: 'skin', options: SYMPTOM, risks: ['immune', 'microbes'] },
   { id: 'grip', region: 'hands', title: 'Fingertip or grip pain', seconds: 5, kind: 'symptom', field: 'grip', options: SYMPTOM, risks: ['eva'] },
   { id: 'immuneAssay', region: 'hands', title: 'Blood and saliva markers', kind: 'instrument', needs: 'Needs lab sample', risks: ['immune'] },
   { id: 'back', region: 'pelvis', title: 'Back pain', seconds: 5, kind: 'symptom', field: 'back', options: SYMPTOM, risks: ['fitness', 'loads'] },
   { id: 'landing', region: 'pelvis', title: 'Landing load check', kind: 'instrument', needs: 'At landing', risks: ['loads'] },
   { id: 'exercise', region: 'legs', title: 'Exercise today', seconds: 10, kind: 'number', field: 'exerciseMin', unit: 'min', min: 0, max: 300, risks: ['fitness', 'bone'] },
-  { id: 'legs', region: 'legs', title: 'Thigh breadth', seconds: 5, kind: 'camera', field: 'thighCm', unit: 'cm', risks: ['fitness', 'cardiovascular'] },
+  { id: 'legs', region: 'legs', title: 'Thigh breadth', seconds: 5, prep: 20, prepLabel: 'Set up', kind: 'camera', field: 'thighCm', unit: 'cm', risks: ['fitness', 'cardiovascular'] },
   { id: 'dxa', region: 'legs', title: 'Bone density (DXA)', kind: 'instrument', needs: 'Needs scanner', risks: ['bone'] },
   { id: 'dose', region: 'cabin', title: 'Radiation dose', kind: 'data', series: 'dose', needs: 'Needs personal dosimeter', risks: ['cancer'] },
   { id: 'air', region: 'cabin', title: 'Cabin CO₂ and climate', kind: 'data', series: 'air', risks: ['hypoxia', 'microbes'] },
@@ -103,34 +107,84 @@ export function coverage() {
 
 export const dayKey = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date(date));
 const isNum = v => typeof v === 'number' && Number.isFinite(v);
+const DAY = 86400000;
+/** Every field a check writes. */
+const FIELDS = [...new Set(checks.flatMap(c => [c.field, c.field2]).filter(Boolean)), 'rightRange'];
 
-/** Status of each region for the selected data source, as of its latest entry. */
-export function regionStatuses(checkIns, simulated, now = new Date().toISOString(), references = []) {
-  const analysis = analyze(checkIns, simulated, references);
+/** The records as they stood before a day began: anything measured on or after it is left out. */
+function beforeDay(checkIns, day) {
+  return checkIns.map(r => {
+    const copy = { ...r };
+    copy.measurements = { ...r.measurements };
+    for (const f of FIELDS) if (dayKey(measuredAt(r, f)) >= day) { delete copy[f]; delete copy.measurements[f]; }
+    if (dayKey(r.date) >= day) { delete copy.skipped; delete copy.planned; }
+    return copy;
+  });
+}
+
+const DEFAULT_METHOD = { task: 'Docking task', scale: 'Self-rating', symptom: 'Self-report', camera: 'Camera', number: 'Entered by crew' };
+/** The unit and method a reading of this field keeps. @param {string} field */
+export function readingMeta(field) {
+  if (cameraKeys.includes(field) && field === 'rightRange') return { unit: '°', method: 'Camera' };
+  const c = checks.find(x => x.field === field || x.field2 === field);
+  if (!c) return {};
+  return { unit: c.unit ?? (c.kind === 'scale' ? '1–5' : c.kind === 'symptom' ? '0–2' : undefined), method: c.id === 'vision' ? 'Letter chart' : c.methods?.[0] ?? DEFAULT_METHOD[c.kind] };
+}
+
+/**
+ * Status of each region, as of now. Alerts come from the shared assessment (src/assess.mjs), so every page agrees.
+ * Each check is in today's routine when the mission plan (src/plan.mjs) makes it due, an alert asks for a recheck, its
+ * last recording was too unclear, or a symptom calls for temperature. Membership is decided from the day's start, so a
+ * check that is done, or clears its alert, stays in today's count as done.
+ */
+export function regionStatuses(checkIns, simulated, now = new Date().toISOString(), references = [], { startDate } = {}) {
+  const { analysis, concerns } = assess(checkIns, simulated, references, now);
+  const today = dayKey(now), nowMs = Date.parse(now);
+  const atStart = assess(beforeDay(checkIns, today), simulated, references, new Date(nowMs - 1).toISOString());
   const records = analysis.records;
   const latest = records.at(-1);
+  const sol = startDate ? solOn(startDate, nowMs) : latest ? latest.sol + Math.round((Date.parse(today) - Date.parse(dayKey(latest.date))) / DAY) : 1;
+  const dayOfSol = s => dayKey(new Date(nowMs - (sol - s) * DAY));
   const forField = field => records.filter(c => isNum(c[field]) || c.measurements?.[field]).sort((a, b) => measuredAt(a, field).localeCompare(measuredAt(b, field)));
-  const valueToday = field => { const c = forField(field).at(-1); return c && dayKey(measuredAt(c, field)) === dayKey(now) && isNum(c[field]) ? c[field] : null; };
-  const lastValue = field => { const c = forField(field).at(-1); return c && isNum(c[field]) ? c[field] : null; };
-  const trend = { reactionMs: analysis.attentionFlag, sleep: analysis.wellbeingFlag, leftRange: analysis.movementFlag, thighCm: analysis.legFlag };
+  const skipped = new Set(records.filter(r => dayKey(r.date) === today).flatMap(r => r.skipped ?? []));
+  const retained = new Set(records.filter(r => dayKey(r.date) === today).flatMap(r => r.planned ?? []));
+  const recentSymptom = list => list.some(c => UNWELL.includes(c.field) && c.measuredAt && nowMs - Date.parse(c.measuredAt) <= DAY && c.measuredAt <= now);
+  const unwell = recentSymptom(concerns) || recentSymptom(atStart.concerns);
+  const unclear = (comparisons, check, record) => check.kind === 'camera' && !!record && (record.measurements?.[check.field]?.quality === 'poor' || comparisons[check.field]?.state === 'unreliable');
   return Object.fromEntries(regions.map(region => {
     const items = region.checks.map(check => {
-      const value = check.field ? valueToday(check.field) : null;
-      const ever = check.field ? records.some(c => isNum(c[check.field])) : false;
-      const flagged = !!trend[check.field];
-      const last = check.field ? lastValue(check.field) : null;
-      const reported = (check.kind === 'symptom' && last != null && last > 0) || outOfRange(check, last) || lowRating(check, last);
-      const lastRecord = check.field ? forField(check.field).at(-1) : null;
-      return { check, value, last, done: value != null, ever, flagged, reported, lastMeasuredAt: lastRecord ? measuredAt(lastRecord, check.field) : null, comparison: analysis.comparisons[check.field] };
+      const list = check.field ? forField(check.field) : [];
+      const lastRecord = list.at(-1);
+      const last = lastRecord && isNum(lastRecord[check.field]) ? lastRecord[check.field] : null;
+      const paired = !check.field2 || (isNum(lastRecord?.[check.field2]) && measuredAt(lastRecord, check.field2) === measuredAt(lastRecord, check.field));
+      const doneToday = !!lastRecord && last != null && paired && dayKey(measuredAt(lastRecord, check.field)) === today && lastRecord.measurements?.[check.field]?.quality !== 'poor';
+      const lastBefore = list.filter(r => isNum(r[check.field]) && dayKey(measuredAt(r, check.field)) < today).at(-1);
+      const concern = concerns.find(c => c.checkId === check.id) ?? null;
+      const startConcern = atStart.concerns.find(c => c.checkId === check.id);
+      const before = lastBefore ? lastRecord === lastBefore ? lastRecord : lastBefore : null;
+      const repeat = unclear(analysis.comparisons, check, lastRecord) || unclear(atStart.analysis.comparisons, check, before);
+      const plan = !check.field ? null : (concern || startConcern) ? { why: 'followup' } : repeat ? { why: 'repeat' }
+        : planState({ id: check.id, sol, lastBeforeToday: lastBefore ? dayKey(measuredAt(lastBefore, check.field)) : null, dayOfSol, alert: false, unwell }) ?? (retained.has(check.id) ? { why: 'due' } : null);
+      const isSkipped = skipped.has(check.id);
+      return { check, value: doneToday ? last : null, value2: doneToday && check.field2 ? lastRecord[check.field2] ?? null : null,
+        last, last2: check.field2 && lastRecord ? lastRecord[check.field2] ?? null : null, done: doneToday,
+        ever: check.field ? records.some(c => isNum(c[check.field])) : false,
+        concern, flagged: !!concern?.trend, reported: !!concern && !concern.trend,
+        due: !!plan && !isSkipped, needsRepeat: unclear(analysis.comparisons, check, lastRecord), why: plan?.why ?? null, since: plan?.since ?? null, skipped: isSkipped, cadence: cadenceLabel(check.id),
+        method: lastRecord?.measurements?.[check.field]?.method ?? null,
+        lastMeasuredAt: lastRecord ? measuredAt(lastRecord, check.field) : null, comparison: analysis.comparisons[check.field] };
     });
     const self = items.filter(i => i.check.field);
-    const state = items.some(i => i.flagged || i.reported) ? 'flag'
-      : self.length && self.every(i => i.done) ? 'done' : self.some(i => i.ever) ? 'due' : self.length ? 'none' : 'instrument';
+    const due = self.filter(i => i.due);
+    const state = items.some(i => i.concern) ? 'flag'
+      : due.length && due.every(i => i.done) ? 'done' : !self.some(i => i.ever) ? (self.length ? 'none' : 'instrument') : due.some(i => !i.done) ? 'due' : 'clear';
     return [region.id, { state, items, latestDate: latest?.date ?? null }];
   }));
 }
 
 export const totalSeconds = list => list.reduce((sum, c) => sum + (c.seconds ?? 0), 0);
+/** Preparation before the recordings: one seated rest serves every check that needs it; camera set-ups add up. */
+export const prepSeconds = list => Math.max(0, ...list.filter(c => c.prepLabel === 'Rest').map(c => c.prep)) + list.filter(c => c.prep && c.prepLabel !== 'Rest').reduce((sum, c) => sum + c.prep, 0);
 
 /** NASA risks that are about the mind: behaviour, teamwork, sleep and workload. Every other self-check is physical. */
 export const MIND_RISKS = ['behavioral', 'teamwork', 'sleep', 'support'];
@@ -140,7 +194,8 @@ export const domainOf = check => (check.risks.every(r => MIND_RISKS.includes(r))
 /** A neutral name for each check, for lists and next steps: "breathing", not "short of breath". */
 const TOPICS = { dizziness: 'Balance', headache: 'Headache', vision: 'Vision', heartRate: 'Heart rate', breath: 'Breathing', joint: 'Joints after a spacewalk',
   appetite: 'Appetite', gut: 'Stomach', shoulder: 'Shoulder range', skin: 'Skin', grip: 'Fingertips and grip', back: 'Back', exercise: 'Exercise', legs: 'Thigh breadth',
-  attention: 'Attention', sleep: 'Sleep', mood: 'Mood', energy: 'Energy', workload: 'Workload', team: 'Teamwork' };
+  attention: 'Attention', sleep: 'Sleep', sleepHours: 'Sleep hours', mood: 'Mood', energy: 'Energy', workload: 'Workload', team: 'Teamwork',
+  temperature: 'Temperature', bp: 'Blood pressure' };
 /** @param {{ id: string, title: string }} check */
 export const topicOf = check => TOPICS[check.id] ?? check.title;
 

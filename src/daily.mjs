@@ -1,6 +1,5 @@
-import { checks, dayKey, topicOf } from './body.mjs';
-import { measuredAt, isNumber } from './references.mjs';
-import { analyze } from './rules.mjs';
+import { regionStatuses, topicOf } from './body.mjs';
+import { measuredAt } from './references.mjs';
 
 /** A prompt for review, not a causal inference or environmental alarm. One report per crew member. */
 export function crewHeadaches(checkIns, simulated, now = Date.now()) {
@@ -13,29 +12,25 @@ export function crewHeadaches(checkIns, simulated, now = Date.now()) {
 }
 
 /**
- * @param {{ checkIns: import('./types').CheckIn[], simulated: boolean, references?: import('./types').GhostReference[], camera?: boolean, seconds?: number, now?: number }} options
+ * @param {{ checkIns: import('./types').CheckIn[], simulated: boolean, references?: import('./types').GhostReference[], camera?: boolean, seconds?: number, now?: number, startDate?: string }} options
  * @returns {{ checkId: string, field: string, region: string, title: string, seconds: number, priority: number, reason: string }[]}
  */
-export function recommendChecks({ checkIns, simulated, references = [], camera = true, seconds = 120, now = Date.now() }) {
-  const a = analyze(checkIns, simulated, references);
+export function recommendChecks({ checkIns, simulated, references = [], camera = true, seconds = 120, now = Date.now(), startDate }) {
+  const statuses = regionStatuses(checkIns, simulated, new Date(now).toISOString(), references, { startDate });
   const recommendations = [];
-  for (const check of checks.filter(c => c.field && c.seconds <= seconds && (camera || c.kind !== 'camera'))) {
-    const attempts = a.records.filter(r => isNumber(r[check.field]) || r.measurements?.[check.field]).sort((x, y) => measuredAt(x, check.field).localeCompare(measuredAt(y, check.field)));
-    const last = attempts.at(-1), meta = last?.measurements?.[check.field], comparison = a.comparisons[check.field];
-    const today = last && dayKey(measuredAt(last, check.field)) === dayKey(new Date(now).toISOString());
-    const severe = last && check.kind === 'symptom' && last[check.field] === 2;
-    if (severe && ['breath', 'joint', 'vision'].includes(check.field) && now - Date.parse(measuredAt(last, check.field)) <= 86400000) {
-      recommendations.push({ checkId: check.id, field: check.field, region: check.region, title: `Strong ${topicOf(check).toLowerCase()} reported`, seconds: 0, priority: 100, reason: 'Tell a crewmate and the medical lead now.' }); continue;
+  for (const item of Object.values(statuses).flatMap(s => s.items)) {
+    const check = item.check;
+    if (!check.field) continue;
+    if (item.concern?.level === 'now') {
+      recommendations.push({ checkId: check.id, field: check.field, region: check.region, title: check.kind === 'symptom' ? `Strong ${topicOf(check).toLowerCase()} reported` : check.title, seconds: 0, prep: 0, priority: 100, emergency: true, reason: 'Tell a crewmate and the medical lead now. Follow the mission procedure.' }); continue;
     }
-    const poor = meta?.quality === 'poor';
-    // Unreliable now only means a poor recording or a changed camera setup: both are fixed by repeating.
-    const unreliable = check.kind === 'camera' && comparison?.state === 'unreliable' && !!last;
-    if (today && !poor && !unreliable) continue;
-    const hours = last ? Math.max(0, (now - Date.parse(measuredAt(last, check.field))) / 3600000) : null;
-    const ago = hours == null ? '' : hours >= 48 ? `${Math.floor(hours / 24)} days` : `${Math.floor(hours)} h`;
-    const reason = poor ? `Last recording too unclear${meta?.confidentFrames != null ? ` (${meta.confidentFrames} confident frames)` : ''}. Record it again.`
-      : unreliable ? comparison.reason : !last ? 'Not measured yet.' : `Last checked ${ago} ago.`;
-    recommendations.push({ checkId: check.id, field: check.field, region: check.region, title: `${poor || unreliable ? 'Repeat' : 'Check'} ${topicOf(check).toLowerCase()}`, seconds: check.seconds, priority: poor ? 80 : unreliable ? 70 : last && hours > 72 ? 60 : !last ? 50 : 40, emergency: false, reason });
+    if (!item.due || (item.done && !item.needsRepeat) || check.seconds > seconds || (!camera && check.kind === 'camera')) continue;
+    const record = checkIns.filter(r => r.simulated === simulated && r.measurements?.[check.field]).sort((a, b) => measuredAt(a, check.field).localeCompare(measuredAt(b, check.field))).at(-1);
+    const frames = record?.measurements?.[check.field]?.confidentFrames;
+    const reason = item.why === 'repeat' ? `Last recording too unclear or conditions differ${frames != null ? ` (${frames} confident frames)` : ''}. Record it again.`
+      : item.concern ? item.concern.reason : item.why === 'unwell' ? 'A symptom calls for a temperature reading.' : item.why === 'overdue' ? `Overdue since Sol ${item.since}.` : `${item.cadence} · due today.`;
+    recommendations.push({ checkId: check.id, field: check.field, region: check.region, title: `${item.why === 'repeat' ? 'Repeat' : 'Check'} ${topicOf(check).toLowerCase()}`, seconds: check.seconds, prep: check.prep ?? 0,
+      priority: item.why === 'repeat' ? 80 : item.concern ? (item.concern.level === 'tell' ? 75 : 70) : item.why === 'unwell' ? 65 : item.why === 'overdue' ? 60 : 40, emergency: false, reason });
   }
   return recommendations.sort((x, y) => y.priority - x.priority || x.seconds - y.seconds || x.checkId.localeCompare(y.checkId));
 }

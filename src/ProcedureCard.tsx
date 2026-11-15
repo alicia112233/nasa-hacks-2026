@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowRight, ArrowUpRight, Camera, Check, ChevronDown, Move3d, Play, ScanLine } from 'lucide-react';
-import { hazards, risks, totalSeconds } from './body.mjs';
+import { hazards, risks, totalSeconds, prepSeconds } from './body.mjs';
 import { formatDate } from './data';
-import { HOW, LEVELS, WHY, nextSteps, resultLine } from './guidance.mjs';
+import { HOW, LEVELS, WHY, nextSteps, resultLine, trimTo } from './guidance.mjs';
 import NasaData from './NasaData';
 import VisionTest from './VisionTest';
-import type { CheckIn, RegionId } from './types';
+import ReadingForm, { type ReadingCheck } from './ReadingForm';
+import type { CheckIn, Concern, MeasurementContext, RegionId } from './types';
 
-type Check = { id: string; title: string; kind: string; field?: string; seconds?: number; unit?: string; options?: string[]; skip?: string; needs?: string; series?: 'dose' | 'air'; min?: number; max?: number; risks: string[] };
-type Item = { check: Check; value: number | null; last: number | null; done: boolean; flagged: boolean; reported: boolean; lastMeasuredAt?: string; comparison?: { state: string; reason: string; comparable: boolean } };
+type Check = ReadingCheck & { kind: string; decimals?: number; seconds?: number; prep?: number; prepLabel?: string; options?: string[]; needs?: string; series?: 'dose' | 'air'; risks: string[] };
+type Item = { check: Check; value: number | null; value2?: number | null; last: number | null; done: boolean; due: boolean; skipped: boolean; cadence: string; concern: Concern | null; flagged: boolean; reported: boolean; lastMeasuredAt?: string; method?: string; comparison?: { state: string; reason: string; comparable: boolean } };
 interface Props {
   region: { id: RegionId; letter: string; label: string; checks: Check[]; risks: string[]; hazards: string[] };
   status: { state: string; items: Item[] };
   analysis: { baselineRecords: CheckIn[]; recent: CheckIn[]; current: Record<string, number | null>; baseline: Record<string, number | null>; attentionDelta: number | null; movementDelta: number | null; legDelta: number | null };
-  onSave: (field: string, value: number) => void;
+  onSave: (values: Partial<CheckIn>, metadata?: Record<string, Partial<MeasurementContext>>) => void;
+  onSkip: (checkId: string) => void;
   onAttention: () => void;
   /** Open a camera check: 'shoulder' records movement, 'legs' runs the body scan. */
   onCamera: (checkId: string) => void;
@@ -31,13 +33,12 @@ interface Props {
 
 const fmt = (s: number) => s >= 60 ? `${Math.floor(s / 60)} MIN${s % 60 ? ` ${s % 60} S` : ''}` : `${s} S`;
 
-export default function ProcedureCard({ region, status, analysis, onSave, onAttention, onCamera, onMovement, onHandoff, requestedCheck, tourCheck, cabinContent, nextRegion, onRegion }: Props) {
+export default function ProcedureCard({ region, status, analysis, onSave, onSkip, onAttention, onCamera, onMovement, onHandoff, requestedCheck, tourCheck, cabinContent, nextRegion, onRegion }: Props) {
   const [open, setOpen] = useState<string | null>(null);
-  const [draft, setDraft] = useState('');
   const items = status.items;
   const ghost = analysis.baseline;
   // Actionable checks write a value; instrument and NASA-data rows stay outside the count.
-  const actionable = items.filter(i => i.check.field);
+  const actionable = items.filter(i => i.due);
   const pending = actionable.filter(i => !i.done);
   const doneCount = actionable.length - pending.length;
   const next = pending[0];
@@ -46,7 +47,7 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
   const reported = items.filter(i => i.reported);
   const regionHazards = hazards.filter(h => region.hazards.includes(h.id));
   const regionRisks = risks.filter(r => region.risks.includes(r.id));
-  useEffect(() => { setOpen(null); setDraft(''); }, [region.id]);
+  useEffect(() => { setOpen(null); }, [region.id]);
   useEffect(() => { if (requestedCheck && region.checks.some(c => c.id === requestedCheck.id)) setOpen(requestedCheck.id); }, [requestedCheck, region]);
 
   function begin() {
@@ -57,12 +58,12 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
     else setOpen(next.id);
   }
   function save(check: Check, value: number) {
-    onSave(check.field!, value);
+    onSave({ [check.field!]: value });
     const after = pending.find(i => i.check.id !== check.id && (i.check.kind === 'scale' || i.check.kind === 'symptom' || i.check.kind === 'number'));
     setOpen(after ? after.check.id : null);
-    setDraft('');
   }
   function note(i: Item) {
+    if (i.concern) return i.concern.reason;
     const c = i.check;
     if (c.field === 'reactionMs') return `Response ${analysis.attentionDelta}% slower than your ghost.`;
     if (c.field === 'leftRange') return `Left shoulder range ${Math.abs(analysis.movementDelta ?? 0)}% below your ghost.`;
@@ -96,22 +97,21 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
           <span aria-live="polite"><b>{doneCount}</b> of {actionable.length} complete</span>
           <span className="progress-line">
             <span className="ticks" aria-hidden="true">{actionable.map(i => <i key={i.check.id} className={i.done ? 'done' : i === next ? 'next' : ''}/>)}</span>
-            <small>{pending.length ? `${fmt(totalSeconds(pending.map(i => i.check)))} left` : 'Done today'}</small>
+            <small>{pending.length ? `${fmt(totalSeconds(pending.map(i => i.check)))} recording${prepSeconds(pending.map(i => i.check)) ? ` + ${fmt(prepSeconds(pending.map(i => i.check)))} preparation` : ''}` : 'Routine done today'}</small>
           </span>
-        </div> : <span className="card-time">Reference</span>}
+        </div> : <span className="card-time">{items.some(i => i.check.field) ? 'Nothing due today' : 'Reference'}</span>}
       </header>
 
       {(flagged.length > 0 || reported.length > 0) && <div className="note flag" role="status">
-        {/* Every alert is red: off your ghost reads ALERT; a symptom or vital says how urgent it is. Act now outranks both. */}
-        <b>{guide?.level === 'now' ? LEVELS.now : flagged.length ? 'Alert' : guide ? LEVELS[guide.level] : 'Alert'}</b>
+        <b>{guide?.level === 'now' ? LEVELS.now : items.find(i => i.concern?.level === guide?.level)?.concern?.label ?? 'Alert'}</b>
         <div>
-          <p>{flagged.length ? flagged.map(note).join(' ') : `Last report: ${reported.map(i => i.check.options ? `${i.check.title.toLowerCase()} (${i.check.options[i.check.kind === 'scale' ? (i.last ?? 1) - 1 : i.last ?? 0].toLowerCase()})` : `${i.check.title.toLowerCase()} ${i.last} ${i.check.unit ?? ''}`.trim()).join(', ')}.`}</p>
+          <p>{items.filter(i => i.concern).map(note).join(' ')}</p>
           {/* What to do, in order. */}
           {guide && <ol className="next-steps" aria-label="What to do">
             {guide.steps.map(step => <li key={step.text}>
               <span>{step.text}</span>
               {step.action === 'retake' && <button className="link" onClick={() => retake(step.checkId)}>Retake</button>}
-              {step.action === 'handoff' && !complete && <button className={guide.level === 'now' ? 'btn' : 'link'} onClick={onHandoff}>Hand off</button>}
+              {step.action === 'handoff' && <button className={guide.level === 'now' ? 'btn' : 'link'} onClick={onHandoff}>Hand off</button>}
             </li>)}
           </ol>}
         </div>
@@ -124,10 +124,10 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
           const c = item.check;
           const isOpen = open === c.id;
           const g = c.field && item.comparison?.comparable ? ghost[c.field] : null;
-          const valueText = item.value == null ? '' : c.options ? c.options[c.kind === 'scale' ? item.value - 1 : item.value] : `${item.value} ${c.unit ?? ''}`;
+          const valueText = item.value == null ? '' : c.options ? c.options[c.kind === 'scale' ? item.value - 1 : item.value] : `${item.value}${c.field2 ? `/${item.value2 ?? '—'}` : ''} ${c.unit ?? ''}`;
           const instrument = c.kind === 'instrument';
           const isNext = item === next;
-          const result = item.done && item.value != null ? resultLine(c, item.value, g) : null;
+          const result = item.done && item.value != null ? resultLine(c, item.value, g, item.value2) : null;
           if (c.field) number++;
           // NASA's archived ISS record for the space around the crew: shown open, not as a check to tick.
           if (c.kind === 'data') return <li key={c.id} className="data-row">
@@ -142,14 +142,14 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
             }}>
               <span className="n">{c.field ? number : ''}</span>
               <span className="t">{c.title}{result ? <small className={result.level === 'watch' ? 'off' : ''}>{result.text}</small>
-                : g != null && <small>Ghost {c.kind === 'symptom' ? c.options![Math.round(g)] : `${c.unit === 'cm' ? g.toFixed(1) : Math.round(g)}${c.kind === 'scale' ? '/5' : c.unit ? ` ${c.unit}` : ''}`}</small>}</span>
-              <span className="time">{isNext && <em className="next-tag">Next</em>}{instrument ? c.needs : fmt(c.seconds!)}</span>
+                : g != null && <small>Ghost {c.kind === 'symptom' ? c.options![Math.round(g)] : `${c.decimals ? trimTo(g, c.decimals) : c.unit === 'cm' ? g.toFixed(1) : Math.round(g)}${c.kind === 'scale' ? '/5' : c.unit ? ` ${c.unit}` : ''}`}</small>}</span>
+              <span className="time">{isNext && <em className="next-tag">Next</em>}{instrument ? c.needs : <>{fmt(c.seconds!)}{c.prep ? <small>{fmt(c.prep)} {c.prepLabel?.toLowerCase()} first</small> : null}<small>{item.skipped ? 'Set aside today' : item.due ? 'Due today' : item.cadence}</small></>}</span>
               {<span className={`box ${item.done ? 'done' : ''} ${item.flagged ? 'flag' : ''}`} role="img" aria-label={item.done ? `Done: ${valueText}` : instrument ? 'Not measured onboard' : 'Not done today'}>
                 {item.done && <Check size={16} strokeWidth={3}/>}
               </span>}
               {(instrument || c.kind === 'camera') && <ChevronDown className="chev" size={16} aria-hidden="true"/>}
             </button>
-            {c.field && <div className="measurement-context"><span>{item.lastMeasuredAt ? `Last measured ${formatDate(item.lastMeasuredAt, { hour: '2-digit', minute: '2-digit' })}` : 'Never measured'}</span>{item.comparison && item.lastMeasuredAt && item.comparison.state === 'unreliable' && <p>{item.comparison.state === 'unreliable' ? 'Comparison unreliable. ' : ''}{item.comparison.reason}</p>}</div>}
+            {c.field && <div className="measurement-context"><span>{item.lastMeasuredAt ? `Last measured ${formatDate(item.lastMeasuredAt, { hour: '2-digit', minute: '2-digit' })}${item.method ? ` · ${item.method}` : ''}` : 'Never measured'}</span>{item.comparison && item.lastMeasuredAt && item.comparison.state === 'unreliable' && <p>Comparison unreliable. {item.comparison.reason}</p>}</div>}
             {isOpen && <div className="step-body">
               {HOW[c.id] && <dl className="how-why">
                 <div><dt>How</dt><dd>{HOW[c.id]}</dd></div>
@@ -160,10 +160,9 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
                 {c.skip && <button onClick={() => save(c, 0)}>{c.skip}</button>}
                 {c.options!.map((label, i) => { const v = c.kind === 'scale' ? i + 1 : i; return <button key={label} aria-pressed={item.value === v} onClick={() => save(c, v)}>{c.kind === 'scale' && <b>{v}</b>}{label}</button>; })}
               </div>}
-              {c.kind === 'number' && <form className="number" onSubmit={e => { e.preventDefault(); const v = Number(draft); if (Number.isFinite(v) && v >= c.min! && v <= c.max!) save(c, Math.round(v)); }}>
-                <label><span className="sr">{c.title}</span><input autoFocus type="number" inputMode="numeric" min={c.min} max={c.max} required value={draft} placeholder={item.value != null ? String(item.value) : ''} onChange={e => setDraft(e.target.value)}/><span>{c.unit}</span></label>
-                <button className="btn">Save</button>
-              </form>}
+              {(c.kind === 'number' || c.kind === 'bp') && <ReadingForm key={c.id} check={c}
+                onSave={(values, metadata) => { onSave(values, metadata); setOpen(pending.find(i => i.check.id !== c.id)?.check.id ?? null); }}
+                onSkip={() => { onSkip(c.id); setOpen(null); }} />}
               {c.id === 'shoulder' && <div className="row-actions">
                 <p>{item.value != null ? `Today ${item.value}°` : 'Not recorded today.'}{g != null && ` Ghost ${Math.round(g)}°.`} Same camera spot each time.</p>
                 <button className="btn" onClick={() => onCamera('shoulder')}><Camera size={16}/> Record 12 s</button>

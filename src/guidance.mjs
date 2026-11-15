@@ -14,6 +14,9 @@ export const HOW = {
   headache: 'Headache now? Choose none, mild or strong. Note onset and location for handoff.',
   attention: 'Sit still. Tap the moment the docking light turns green. 60 s.',
   sleep: 'Rate your last sleep period, from 1 (very low) to 5 (great).',
+  sleepHours: 'Hours actually asleep last sleep period, from your watch or a best guess.',
+  temperature: 'Use your thermometer’s instructions; enter its reading, method and measurement time.',
+  bp: 'Sit 5 min, arm resting at heart height, then take the cuff reading.',
   mood: 'Rate how you feel right now.',
   energy: 'Rate your energy right now.',
   dizziness: 'Hold still with eyes open for 10 s. Any spinning or unsteadiness?',
@@ -37,6 +40,9 @@ export const HOW = {
 export const WHY = {
   attention: 'Fatigue and poor sleep slow reactions before you notice them.',
   sleep: 'Sleep loss is common in flight and affects every task.',
+  sleepHours: 'Crews often sleep under 6 hours in flight; hours show it plainly.',
+  temperature: 'A fever can be the first sign of infection; immunity shifts in flight.',
+  bp: 'Fluid shifts and deconditioning change blood pressure in flight.',
   mood: 'Isolation and confinement can wear mood down gradually.',
   energy: 'Low energy can be an early sign of poor sleep or illness.',
   dizziness: 'Weightlessness changes how your balance system works.',
@@ -60,8 +66,40 @@ export const WHY = {
 export const LEVELS = { watch: 'Watch', tell: 'Tell surgeon', now: 'Act now' };
 /** General adult resting heart rate, 60–100 bpm (American Heart Association); under 50 is treated as low. */
 export const RESTING_HR = [60, 100];
-/** A vital sign clearly outside its range: today this is resting heart rate over 100 or under 50 bpm. */
-export const outOfRange = (check, value) => check.field === 'heartRate' && typeof value === 'number' && (value > RESTING_HR[1] || value < 50);
+/**
+ * A reading clearly outside its range, with its urgency, a word for it and a few words of what to do. General adult
+ * ranges: resting heart rate 50–100 bpm (AHA); temperature 38 °C and over is a fever; blood pressure from the AHA
+ * categories (130/80 raised, 140/90 high, 180/120 very high, under 90/60 low); sleep under 6 hours is short.
+ * @returns {null | { level: 'watch' | 'tell' | 'now', word: string, tip: string }}
+ */
+export function vitalFinding(check, value, dia) {
+  if (typeof value !== 'number') return null;
+  const d = typeof dia === 'number' ? dia : null;
+  switch (check.field) {
+    case 'heartRate':
+      if (value > RESTING_HR[1]) return { level: 'tell', word: 'high at rest', tip: 'rest 5 min, recheck' };
+      if (value < 50) return { level: 'tell', word: 'low', tip: 'recheck; dizzy? hand it off' };
+      return null;
+    case 'temperatureC':
+      if (value >= 38) return { level: 'tell', word: 'fever', tip: 'rest, drink, tell the surgeon' };
+      if (value >= 37.5) return { level: 'watch', word: 'slightly raised', tip: 'recheck in 4 h' };
+      if (value < 35) return { level: 'tell', word: 'low', tip: 'warm up, recheck' };
+      return null;
+    case 'bpSys':
+      if (value >= 180 || (d ?? 0) >= 120) return { level: 'now', word: 'very high', tip: 'recheck now; tell the surgeon' };
+      if (value >= 140 || (d ?? 0) >= 90) return { level: 'tell', word: 'high', tip: 'rest 5 min, recheck' };
+      if (value >= 130 || (d ?? 0) >= 80) return { level: 'watch', word: 'raised', tip: 'recheck tomorrow' };
+      if (value < 90 || (d != null && d < 60)) return { level: 'watch', word: 'low', tip: 'drink, stand up slowly' };
+      return null;
+    case 'sleepHours':
+      if (value < 5) return { level: 'tell', word: 'very short', tip: 'protect your next sleep' };
+      if (value < 6) return { level: 'watch', word: 'short', tip: 'protect your next sleep' };
+      return null;
+    default: return null;
+  }
+}
+/** A vital sign clearly outside its range. */
+export const outOfRange = (check, value, dia) => !!vitalFinding(check, value, dia);
 /** A 1–5 rating of 1 (very low) or 2 (low). */
 export const lowRating = (check, value) => check.kind === 'scale' && typeof value === 'number' && value <= 2;
 /** Steps for a low rating: 2 low, 1 very low. */
@@ -91,11 +129,20 @@ const TIP = {
   headache: 'note when it started', dizziness: 'move slowly, hold a rail', vision: 'tell the surgeon', breath: 'rest, check cabin CO₂', joint: 'tell the surgeon',
   gut: 'keep fluids up', skin: 'keep it clean and dry', grip: 'note the glove and task', back: 'stretch gently',
 };
-/** Steps for an out-of-range vital, by value. */
+/** Steps for an out-of-range vital, by value; the level comes from vitalFinding. */
 const VITAL = {
   heartRate: v => v > RESTING_HR[1]
-    ? { level: 'tell', steps: [{ text: 'Rest 5 min, then take it again.', action: 'retake' }, { text: 'Still over 100 at rest? Hand it off.', action: 'handoff' }] }
-    : { level: 'tell', steps: [{ text: 'Sit still 5 min, then take it again.', action: 'retake' }, { text: 'Dizzy or faint? Hand it off now.', action: 'handoff' }] },
+    ? [{ text: 'Rest 5 min, then take it again.', action: 'retake' }, { text: 'Still over 100 at rest? Hand it off.', action: 'handoff' }]
+    : [{ text: 'Sit still 5 min, then take it again.', action: 'retake' }, { text: 'Dizzy or faint? Hand it off now.', action: 'handoff' }],
+  temperatureC: v => v >= 37.5
+    ? [{ text: 'Rest and drink fluids.' }, { text: 'Take it again in 4 hours.', action: 'retake' }, { text: '38 °C or more? Hand it off with your symptoms.', action: 'handoff' }]
+    : [{ text: 'Warm up and take it again in 15 min.', action: 'retake' }, { text: 'Still under 35 °C? Hand it off.', action: 'handoff' }],
+  bpSys: (v, d) => v >= 180 || (d ?? 0) >= 120
+    ? [{ text: 'Tell the medical lead now and follow the mission procedure.', action: 'handoff' }, { text: 'Repeat the cuff reading as the procedure directs.', action: 'retake' }]
+    : v >= 130 || (d ?? 0) >= 80
+      ? [{ text: 'Sit quietly 5 min and take it again.', action: 'retake' }, { text: 'Headache, chest pain or blurred vision? Tell the surgeon now.', action: 'handoff' }, { text: 'Still high tomorrow? Hand it off.', action: 'handoff' }]
+      : [{ text: 'Drink water and stand up slowly.' }, { text: 'Dizzy or faint? Hand it off.', action: 'handoff' }],
+  sleepHours: v => LOW.sleep[v < 5 ? 1 : 0].steps,
 };
 const RANK = { watch: 0, tell: 1, now: 2 };
 
@@ -117,7 +164,27 @@ const TREND = {
     { text: 'Check today’s exercise against your plan.' },
     { text: 'Rescan in 3 days, same spot and stance.', action: 'followup' },
     { text: 'Still falling? Hand it off.', action: 'handoff' }] },
+  heartRate: { level: 'watch', steps: [
+    { text: 'Take it again after 5 min rest, at the same time of day.', action: 'retake' },
+    { text: 'Check sleep, fluids and stress.' },
+    { text: 'Still rising in 3 days? Hand it off.', action: 'followup' }] },
+  exerciseMin: { level: 'watch', steps: [
+    { text: 'Book today’s sessions on the treadmill, cycle and resistance device.' },
+    { text: 'No room in the schedule? Tell the crew lead.' },
+    { text: 'Below plan for a week? Hand it off.', action: 'followup' }] },
 };
+// A rating that slips a point from the ghost, or sleep hours that drop, take the low-rating steps.
+for (const k of ['mood', 'energy', 'appetite', 'workload', 'team']) TREND[k] = LOW[k][0];
+TREND.sleepHours = LOW.sleep[0];
+
+/** The plan for each kind of finding, so the shared assessment and the region card give the same steps. */
+export const trendPlan = field => TREND[field] ?? null;
+export const symptomPlan = (field, value) => (SYMPTOM[field] && value > 0 ? SYMPTOM[field][Math.min(value, 2) - 1] : null);
+export const lowPlan = (field, value) => (LOW[field] ? LOW[field][value === 1 ? 1 : 0] : null);
+export function vitalPlan(check, value, dia) {
+  const f = vitalFinding(check, value, dia);
+  return f && VITAL[check.field] ? { level: f.level, steps: VITAL[check.field](value, dia) } : null;
+}
 
 /** Steps for a reported symptom, by severity: 1 mild, 2 strong. */
 const SYMPTOM = {
@@ -159,10 +226,12 @@ const SYMPTOM = {
 export function nextSteps(items) {
   const plans = [];
   for (const i of items) {
+    // A shared-assessment alert already carries its level and steps.
+    if (i.concern) { plans.push({ level: i.concern.level, steps: i.concern.steps, checkId: i.check.id }); continue; }
     if (i.flagged && TREND[i.check.field]) plans.push({ ...TREND[i.check.field], checkId: i.check.id });
-    else if (i.reported && SYMPTOM[i.check.field] && i.last > 0) plans.push({ ...SYMPTOM[i.check.field][Math.min(i.last, 2) - 1], checkId: i.check.id });
-    else if (i.reported && VITAL[i.check.field] && i.last != null) plans.push({ ...VITAL[i.check.field](i.last), checkId: i.check.id });
-    else if (i.reported && LOW[i.check.field] && lowRating(i.check, i.last)) plans.push({ ...LOW[i.check.field][i.last === 1 ? 1 : 0], checkId: i.check.id });
+    else if (i.reported && symptomPlan(i.check.field, i.last)) plans.push({ ...symptomPlan(i.check.field, i.last), checkId: i.check.id });
+    else if (i.reported && vitalPlan(i.check, i.last, i.last2)) plans.push({ ...vitalPlan(i.check, i.last, i.last2), checkId: i.check.id });
+    else if (i.reported && LOW[i.check.field] && lowRating(i.check, i.last)) plans.push({ ...lowPlan(i.check.field, i.last), checkId: i.check.id });
   }
   if (!plans.length) return null;
   plans.sort((a, b) => RANK[b.level] - RANK[a.level]);
@@ -176,14 +245,17 @@ export function nextSteps(items) {
  * clearly off for its kind.
  * @returns {{ text: string, level: 'ok' | 'watch' }}
  */
-export function resultLine(check, value, ghost) {
+export function resultLine(check, value, ghost, dia) {
   const unit = check.unit === '°' ? '°' : check.unit ? ` ${check.unit}` : '';
-  const show = v => (check.unit === 'cm' ? v.toFixed(1) : Math.round(v));
+  const show = v => (check.decimals ? trimTo(v, check.decimals) : check.unit === 'cm' ? v.toFixed(1) : Math.round(v));
   if (check.options) {
     const off = (check.kind === 'symptom' && value > 0) || lowRating(check, value);
     return { text: `Today ${check.options[check.kind === 'scale' ? value - 1 : value].toLowerCase()}${off && TIP[check.field] ? ` · ${TIP[check.field]}` : ''}`, level: off ? 'watch' : 'ok' };
   }
-  if (check.field === 'heartRate' && value > RESTING_HR[1]) return { text: `Today ${value} bpm · high at rest: rest 5 min, recheck`, level: 'watch' };
-  if (check.field === 'heartRate' && value < 50) return { text: `Today ${value} bpm · low: recheck; dizzy? hand it off`, level: 'watch' };
-  return { text: `Today ${show(value)}${unit}${ghost != null ? ` · ghost ${show(ghost)}${unit}` : ''}`, level: 'ok' };
+  const reading = check.field2 ? `${Math.round(value)}/${dia ?? '—'}` : show(value);
+  const finding = vitalFinding(check, value, dia);
+  if (finding) return { text: `Today ${reading}${unit} · ${finding.word}: ${finding.tip}`, level: 'watch' };
+  return { text: `Today ${reading}${unit}${ghost != null && !check.field2 ? ` · ghost ${show(ghost)}${unit}` : ''}`, level: 'ok' };
 }
+/** A value to at most this many decimals, without trailing zeros. */
+export const trimTo = (v, d) => String(Math.round(v * 10 ** d) / 10 ** d);

@@ -8,9 +8,9 @@ import { checks } from './body.mjs';
 import type { CareUpdate, CheckIn, MissionPacket } from './types';
 
 const measuredValue = (m: CareUpdate['measurements'][number]) => {
-  const check = checks.find(c => c.field === m.field);
+  const check = checks.find(c => c.field === m.field || c.field2 === m.field);
   const value = check?.options ? check.options[check.kind === 'scale' ? m.value - 1 : m.value] : `${m.value}${check?.unit ? ` ${check.unit}` : ''}`;
-  return `${check?.title ?? m.field}: ${value}`;
+  return `${check?.title ?? m.field}${check?.field2 ? m.field === check.field2 ? ' (diastolic)' : ' (systolic)' : ''}: ${value}`;
 };
 
 export default function CareThread({ packet, updates, checkIns, onSave, onDownloaded }: { packet: MissionPacket; updates: CareUpdate[]; checkIns: CheckIn[]; onSave: (event: CareUpdate) => Promise<void>; onDownloaded: (id: string) => void }) {

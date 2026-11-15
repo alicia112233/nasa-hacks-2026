@@ -1,14 +1,19 @@
 import type { CheckIn, GhostReference, MissionState, Profile, Recording, RecordingContext } from './types';
+import { readingMeta } from './body.mjs';
 
 /** Sample crew ids, stable so tests and reloads find the same people. */
 export const DEMO_CREW = { alex: 'crew-alex', jordan: 'crew-jordan', mei: 'crew-mei', diego: 'crew-diego' };
-/** Bumped when the sample crew grows, so a device that already has the crew gets the new members once. */
-export const SAMPLE_VERSION = 2;
+/**
+ * Bumped when the sample crew changes, so a device that already has the crew catches up once: new members arrive, and
+ * from version 3 the members it has get their generated history again (sleep hours, temperature, blood pressure).
+ * Readings entered on the device are kept.
+ */
+export const SAMPLE_VERSION = 3;
 
 type Series = Record<string, number | number[]>;
-const NUMERIC = ['reactionMs', 'sleep', 'mood', 'energy', 'heartRate', 'leftRange', 'rightRange', 'workload', 'team', 'appetite', 'exerciseMin', 'thighCm',
+const NUMERIC = ['reactionMs', 'sleep', 'sleepHours', 'temperatureC', 'bpSys', 'bpDia', 'mood', 'energy', 'heartRate', 'leftRange', 'rightRange', 'workload', 'team', 'appetite', 'exerciseMin', 'thighCm',
   'dizziness', 'headache', 'vision', 'breath', 'joint', 'gut', 'skin', 'grip', 'back'];
-const STEADY: Series = { dizziness: 0, headache: 0, vision: 0, breath: 0, joint: 0, gut: 0, skin: 0, grip: 0, back: 0 };
+const STEADY: Series = { sleepHours: 7.5, temperatureC: 36.8, bpSys: 118, bpDia: 76, dizziness: 0, headache: 0, vision: 0, breath: 0, joint: 0, gut: 0, skin: 0, grip: 0, back: 0 };
 
 /**
  * Four crew members, each with 14 sols of history for every measure, recorded under the same conditions and with a
@@ -35,7 +40,7 @@ export function createDemo(): MissionState {
       const date = i < 14 ? day(i) : new Date(Date.now() - 5 * 60000).toISOString();
       const values = Object.fromEntries(Object.entries({ ...STEADY, ...series }).map(([k, v]) => [k, Array.isArray(v) ? v[Math.min(i, v.length - 1)] : v]));
       const entry = { id: `${prefix}-${i}`, crewId: p.id, date, sol: 28 + i, simulated: false, missed: 0, signals: 12, symptoms: [], notes: '', ...values, ...extra(i) } as unknown as CheckIn;
-      entry.measurements = Object.fromEntries(NUMERIC.filter(k => typeof (entry as unknown as Record<string, unknown>)[k] === 'number').map(k => [k, { ...context, measuredAt: date, quality: 'good' as const, ...(['leftRange', 'rightRange', 'thighCm'].includes(k) ? { confidentFrames: 40 } : {}) }]));
+      entry.measurements = Object.fromEntries(NUMERIC.filter(k => typeof (entry as unknown as Record<string, unknown>)[k] === 'number').map(k => [k, { ...context, ...readingMeta(k), measuredAt: date, quality: 'good' as const, ...(['leftRange', 'rightRange', 'thighCm'].includes(k) ? { confidentFrames: 40 } : {}) }]));
       return entry;
     });
   const late = (base: number, after: number) => Array.from({ length: 14 }, (_, i) => (i > 10 ? after : base));
@@ -43,8 +48,9 @@ export function createDemo(): MissionState {
   const checkIns = [
     ...history(alex, 'demo', {
       reactionMs: [309, 319, 311, 305, 321, 314, 308, 315, 318, 311, 312, 351, 369, 382], sleep: [4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 4, 3, 3, 2],
+      sleepHours: [7.5, 7.25, 7.5, 7.75, 7.5, 7.5, 7.25, 7.5, 7.5, 7.75, 7.5, 6.5, 6, 5.5],
       mood: late(4, 3), energy: late(4, 2), heartRate: late(64, 68), leftRange: [151, 152, 153, 150, 154, 152, 151, 153, 150, 152, 151, 139, 134, 130], rightRange: late(153, 151),
-      workload: late(4, 2), team: 4, appetite: late(4, 3), exerciseMin: late(75, 35), thighCm: [15.9, 15.8, 15.9, 15.8, 15.8, 15.9, 15.8, 15.8, 15.7, 15.8, 15.8, 15.6, 15.5, 15.5],
+      workload: 4, team: 4, appetite: 4, exerciseMin: [75, 80, 75, 70, 75, 80, 75, 75, 70, 75, 80, 70, 65, 70], thighCm: [15.9, 15.8, 15.9, 15.8, 15.8, 15.9, 15.8, 15.8, 15.7, 15.8, 15.8, 15.6, 15.5, 15.5],
       vision: Array.from({ length: 14 }, (_, i) => (i > 11 ? 1 : 0)), back: Array.from({ length: 14 }, (_, i) => (i > 12 ? 1 : 0)),
     }, 14, i => ({ missed: i > 10 ? 1 : 0, symptoms: i > 11 ? ['Fatigue', 'Shoulder discomfort'] : [], notes: i > 11 ? 'Slight stiffness during shoulder mobility.' : '' })),
     ...history(jordan, 'demo-j', {
@@ -94,9 +100,15 @@ export function addSamples(state: MissionState, force = false): MissionState {
   const have = new Set((state.crew ?? [state.profile]).map(c => c.id));
   const missing = sample.crew!.filter(p => !have.has(p.id));
   const ids = new Set(missing.map(p => p.id));
+  // Older sample history lacks the newer measures: regenerate it for the sample members this device still has.
+  const refresh = (state.sampleVersion ?? 0) < 3 ? new Set(sample.crew!.filter(p => have.has(p.id)).map(p => p.id)) : new Set<string>();
+  const generated = (id: string) => id.startsWith('demo');
+  const kept = state.checkIns.filter(c => !(refresh.has(c.crewId!) && generated(c.id)));
+  const keptRefs = (state.references ?? []).filter(r => !(refresh.has(r.crewId!) && generated(r.id)));
+  const fresh = (id?: string) => ids.has(id!) || refresh.has(id!);
   return { ...state, sampleVersion: SAMPLE_VERSION, crew: [...(state.crew ?? [state.profile]), ...missing],
-    checkIns: [...state.checkIns, ...sample.checkIns.filter(c => ids.has(c.crewId!))],
-    references: [...(state.references ?? []), ...(sample.references ?? []).filter(r => ids.has(r.crewId!))],
+    checkIns: [...kept, ...sample.checkIns.filter(c => fresh(c.crewId))],
+    references: [...keptRefs, ...(sample.references ?? []).filter(r => fresh(r.crewId))],
     cabinReadings: state.cabinReadings?.length ? state.cabinReadings : sample.cabinReadings };
 }
 

@@ -41,9 +41,12 @@ Your past self is the reference, not a population norm or a score. The body map 
 
 ## Capabilities and Constraints
 
+- The daily target comes from the illustrative mission plan (`src/plan.mjs`): scheduled checks, overdue measurements, repeats and concerns. All other checks remain accessible from the body. Completion rings count this routine and retain unresolved alerts at 100%.
+- Sleep hours, temperature and paired blood pressure are structured inputs with units, original measurement time and method. Missing equipment is a report gap. Preparation time is separate from capture time. Shared assessment (`src/assess.mjs`) supplies consistent concerns and urgency across every page; rating changes use points.
+
 - Checks today: a 60-second docking-signal attention task; self-reports of sleep quality, mood, energy, and symptoms; manual heart rate; a camera shoulder range-of-motion check (MediaPipe Pose, local, video stored on the device).
 - Adding: short self-checks for risks where self-report is meaningful (vision change, read off a shrinking letter chart one eye at a time; dizziness/coordination, pain, appetite/nutrition, skin/rash, teamwork). Risks that need instruments or labs (bone density, radiation dose, immune assays, decompression) are labeled "needs instrument".
-- Trend rules are deterministic prototype thresholds (15% response time, 8% shoulder range, a 1-point sleep drop), not clinically validated.
+- Trend rules are deterministic prototype thresholds in one table (`src/rules.mjs`): 15% response time, 8% shoulder range, 5% thigh breadth, 25% exercise, heart rate up 10 bpm, sleep down 1 hour, any 1–5 rating down 1 point. Not clinically validated.
 - One stream of records: the sample crew (four members with synthetic history) and members the crew add work the same way. With no ghost set, a member's earliest readings are the ghost, so comparisons work from the first week.
 - The trained 4DGS model (a public D-NeRF "Mutant" humanoid) is kept as a secondary technical view inside the movement check. It supplies no crew data.
 - The body model is authored in Blender (installed locally, version 5.2) and shipped as a static GLB.

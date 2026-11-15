@@ -25,6 +25,7 @@ test('checks explain how and why, results say what they mean, and off readings g
   await page.getByRole('spinbutton').fill('108');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('button', { name: /Resting heart rate/ })).toContainText('high at rest: rest 5 min, recheck');
+  await page.locator('.steps').getByRole('button', { name: /Short of breath/ }).click();
   await page.getByRole('group', { name: 'Short of breath' }).getByRole('button', { name: /Strong/ }).click();
   const urgent = page.getByRole('status').filter({ hasText: 'short of breath (strong)' });
   await expect(urgent).toContainText('Act now');

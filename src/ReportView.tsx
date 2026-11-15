@@ -8,15 +8,15 @@ import CareThread from './CareThread';
 import { validateCarePlan } from './continuing-care.mjs';
 import { dayKey, regionStatuses, topicOf } from './body.mjs';
 import { daySummary } from './today.mjs';
-import { analyze } from './rules.mjs';
+import { assess } from './assess.mjs';
 import { compactExport } from './export.mjs';
-import type { CarePlan, CareUpdate, MissionPacket, MissionState, Recording } from './types';
+import type { CarePlan, CareUpdate, Concern, MissionPacket, MissionState, Recording } from './types';
 
-type Row = { region: { id: string; letter: string; label: string }; check: { id: string; title: string; needs?: string }; state: 'done' | 'off' | 'todo'; item: { flagged: boolean }; result: { text: string } | null };
+type Row = { region: { id: string; letter: string; label: string }; check: { id: string; title: string; needs?: string }; routine: boolean; state: 'done' | 'off' | 'todo'; item: { flagged: boolean; concern: Concern | null; method?: string; lastMeasuredAt?: string }; result: { text: string } | null };
 type Summary = {
   rows: Row[]; done: number; total: number;
   physical: { done: number; total: number }; mental: { done: number; total: number };
-  attention: { region: { letter: string; label: string }; check: { id: string; title: string }; label: string; urgent: boolean; step: string | null }[];
+  attention: { region: { letter: string; label: string }; check: { id: string; title: string }; label: string; reason: string; urgent: boolean; step: string | null }[];
   notMeasured: { region: { letter: string; label: string }; check: { id: string; title: string; needs?: string } }[];
 };
 
@@ -31,12 +31,12 @@ interface Props {
 const topics = (rows: Row[]) => rows.map(r => topicOf(r.check).toLowerCase()).join(', ');
 /** The follow-up plan a handoff carries, filled in from the day: what was not measured, and tomorrow's check. */
 function dayPlan(summary: Summary): CarePlan {
-  const notDone = summary.rows.filter(r => r.state === 'todo');
+  const notDone = summary.rows.filter(r => r.routine && r.state === 'todo');
   const missing = [...summary.notMeasured.map(n => `${n.check.title}: ${(n.check.needs ?? 'needs equipment').replace(/^Needs /, 'needs ')}`), ...(notDone.length ? [`Not checked today: ${topics(notDone)}`] : [])];
   return { procedure: { status: 'unknown', name: '', version: '' }, nextCheck: 'Tomorrow’s daily check', dueAt: new Date(Date.now() + 86400000).toISOString(), missingInformation: missing.length ? missing : ['None identified'] };
 }
 const result = (row: Row) => row.result ? row.result.text.replace(/^Today /, '') : '';
-const status = (row: Row) => row.state === 'off' ? 'Alert' : '';
+const status = (row: Row) => row.item.concern?.label ?? '';
 /** Noon on a day key, in the app's mission timezone, so every check that day falls on it. */
 const noonOf = (day: string) => `${day}T12:00:00+08:00`;
 
@@ -58,14 +58,15 @@ export default function ReportView({ mission, recordings, sol, summary, delay, s
   const shown: Summary = useMemo(() => {
     if (isToday) return summary;
     const upTo = mission.checkIns.filter(c => dayKey(c.date) <= day);
-    return daySummary(regionStatuses(upTo, simulated, noonOf(day), mission.references), analyze(upTo, simulated, mission.references).baseline) as unknown as Summary;
+    const end = `${day}T23:59:59.999+08:00`;
+    return daySummary(regionStatuses(upTo, simulated, end, mission.references, { startDate: mission.profile.startDate }), assess(upTo, simulated, mission.references, end).analysis.baseline) as unknown as Summary;
   }, [isToday, summary, mission.checkIns, mission.references, simulated, day]);
   const packets = (mission.packets ?? []).filter(p => p.source === (simulated ? 'simulated' : 'recorded'));
   const handedOff = packets.filter(p => dayKey(p.createdAt) === day).at(-1);
   const snapshot = lensSnapshot(mission.checkIns, simulated, undefined, mission.references);
   const doneRows = shown.rows.filter(r => r.state !== 'todo');
   const regions = [...new Map(doneRows.map(r => [r.region.letter, r.region])).values()];
-  const notDone = shown.rows.filter(r => r.state === 'todo');
+  const notDone = shown.rows.filter(r => r.routine && r.state === 'todo');
   const headline = `${summary.done} of ${summary.total} checks done${summary.attention.length ? ` · ${summary.attention.length} alert${summary.attention.length === 1 ? '' : 's'}` : ''}`;
 
   async function handOff() {
@@ -75,8 +76,9 @@ export default function ReportView({ mission, recordings, sol, summary, delay, s
       const carePlan = validateCarePlan(plan, now);
       const packet = createMissionPacket({ snapshot, profile: mission.profile, actions: mission.actions, context: note.trim() || headline, oneWayMinutes: delay, blackoutDrill: blackout, id: crypto.randomUUID(), createdAt: now }) as MissionPacket;
       packet.carePlan = carePlan;
-      packet.analysis.bodyIndex = regionSummary(mission.checkIns, simulated, mission.references);
+      packet.analysis.bodyIndex = regionSummary(mission.checkIns, simulated, mission.references, mission.profile.startDate);
       packet.analysis.comparisons = snapshot.analysis.comparisons;
+      packet.analysis.concerns = assess(mission.checkIns, simulated, mission.references).concerns;
       packet.analysis.referenceSnapshots = structuredClone((mission.references ?? []).filter(r => r.simulated === simulated));
       packet.analysis.cabinReadings = (mission.cabinReadings ?? []).filter(r => r.source === (simulated ? 'simulated' : 'manual'));
       await onSavePacket(packet);
@@ -107,7 +109,7 @@ export default function ReportView({ mission, recordings, sol, summary, delay, s
         <h3 id="report-attention">Needs attention</h3>
         {shown.attention.length ? <ul className="report-attention">{shown.attention.map(a => <li key={`${a.region.letter}-${a.check.id}`}>
           <b className="report-label flag">{a.label}</b>
-          <span><strong>{a.check.title}</strong> · {a.region.letter} {a.region.label}{a.step && <><br/>{a.step}</>}</span>
+          <span><strong>{a.check.title}</strong> · {a.region.letter} {a.region.label}<br/>{a.reason}{a.step && <><br/>{a.step}</>}</span>
         </li>)}</ul> : <p className="muted">Nothing off.</p>}
       </section>
 
@@ -118,7 +120,7 @@ export default function ReportView({ mission, recordings, sol, summary, delay, s
           {regions.map(region => <tbody key={region.letter}>
             <tr className="report-region"><th scope="rowgroup" colSpan={3}>{region.letter} {region.label}</th></tr>
             {doneRows.filter(r => r.region.letter === region.letter).map(r => <tr key={r.check.id} className={r.state}>
-              <th scope="row">{r.check.title}</th><td>{result(r)}</td><td>{status(r) && <b className="report-label flag">{status(r)}</b>}</td>
+              <th scope="row">{r.check.title}</th><td>{result(r)}{r.item.lastMeasuredAt && <small className="metric-last">{formatDate(r.item.lastMeasuredAt, { hour: '2-digit', minute: '2-digit' })}{r.item.method ? ` · ${r.item.method}` : ''}</small>}</td><td>{status(r) && <b className="report-label flag">{status(r)}</b>}</td>
             </tr>)}
           </tbody>)}
         </table> : <p className="muted">No checks done{isToday ? ' yet today' : ' that day'}.</p>}

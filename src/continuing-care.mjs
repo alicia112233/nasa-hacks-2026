@@ -33,7 +33,7 @@ export function createCareUpdate({ id, packet, updates = [], observation, change
   const earlier = updates.filter(u => u.packetId === packet.id && u.crewId === packet.crewId && u.source === packet.source);
   const cutoff = earlier.at(-1)?.recordedAt ?? packet.createdAt;
   if (!Number.isFinite(Date.parse(now)) || Date.parse(now) <= Date.parse(cutoff)) throw new Error('A reassessment timestamp must follow the original record and earlier updates.');
-  const fields = [...new Set(checks.filter(c => c.field).map(c => c.field))];
+  const fields = [...new Set(checks.flatMap(c => [c.field, c.field2]).filter(Boolean))];
   const measurements = checkIns.filter(c => c.crewId === packet.crewId && c.simulated === (packet.source === 'simulated')).flatMap(c => fields.filter(field => typeof c[field] === 'number' && Number.isFinite(c[field]) && Date.parse(measuredAt(c, field)) > Date.parse(cutoff) && Date.parse(measuredAt(c, field)) <= Date.parse(now)).map(field => ({ checkInId: c.id, field, value: c[field], measuredAt: measuredAt(c, field), conditions: structuredClone(c.measurements?.[field]) })));
   return { id, packetId: packet.id, crewId: packet.crewId, source: packet.source, recordedAt: now, observation: text(observation, 'Reassessment observation'), change,
     plan: validateCarePlan(plan, now), measurements };

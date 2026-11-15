@@ -15,7 +15,7 @@ test('a sleep-only check-in keeps attention and shoulder comparisons consistent 
   await expect(attention).toContainText('+18%');
   const shoulder = page.getByRole('row', { name: /^L shoulder/ });
   await expect(shoulder).toContainText('134°');
-  await expect(shoulder).toContainText('-12%');
+  await expect(shoulder).toContainText('−12%');
 });
 
 test('a handoff note never follows a crew switch into another member’s saved report', async ({ page }) => {
