@@ -11,7 +11,7 @@ interface Props { selected: RegionId | null; states: Record<string, { state: Reg
 
 const INK = new THREE.Color('#111111');
 const fill = (state: RegionState, selected: boolean) => new THREE.Color(
-  selected ? '#e0a100' : state === 'flag' ? '#e9a3ab' : state === 'reported' ? '#f1d27e' : state === 'done' ? '#d7d1bf' : '#ece7da');
+  selected ? '#e0a100' : state === 'flag' ? '#e9a3ab' : state === 'reported' ? '#f1d27e' : state === 'done' || state === 'clear' ? '#c5d4b9' : '#ece7da');
 const hatched = (state: RegionState) => state === 'none' || state === 'instrument';
 
 // Three printed tones: shadow, mid, paper. Gives the body the flat look of a manual illustration.

@@ -213,8 +213,11 @@ export default function App() {
     const rec: Recording = { ...capture, crewId: mission.crewId, conditions: { ...(mission.profile.recordingContext ?? defaultContext), measuredAt: capture.date, quality: capture.leftRange == null ? 'poor' : 'good', confidentFrames: capture.confidentFrames?.left, recordingId: capture.id } };
     await saveRecording(rec);
     setRecordings(old => [...old, rec]);
-    record({ leftRange: rec.leftRange ?? undefined, rightRange: rec.rightRange ?? undefined }, false, { leftRange: { quality: rec.leftRange == null ? 'poor' : 'good', confidentFrames: rec.confidentFrames?.left, recordingId: rec.id }, rightRange: { quality: rec.rightRange == null ? 'poor' : 'good', confidentFrames: rec.confidentFrames?.right, recordingId: rec.id } });
-    notify('Movement and video saved.');
+    const values: Partial<CheckIn> = {}, quality: Record<string, Partial<MeasurementContext>> = {};
+    if (rec.leftRange != null) { values.leftRange = rec.leftRange; quality.leftRange = { quality: 'good', confidentFrames: rec.confidentFrames?.left, recordingId: rec.id }; }
+    if (rec.rightRange != null) { values.rightRange = rec.rightRange; quality.rightRange = { quality: 'good', confidentFrames: rec.confidentFrames?.right, recordingId: rec.id }; }
+    if (Object.keys(values).length) record(values, false, quality);
+    notify(rec.leftRange != null ? `Shoulder range saved · ${rec.leftRange}°.` : 'Video saved, but no shoulder angle. Keep hips, shoulders and elbows in view.');
   }
 
   /** One scan, two uses: it shapes the body, and its thigh breadth joins today's record (the Legs check). Every scan joins the history. */
@@ -333,10 +336,10 @@ export default function App() {
           </BodyView>
           <ul className="region-list" aria-label="Body regions">
             {regions.map(r => <li key={r.id}><button data-tour={r.id === tour.region ? 'spot' : undefined} aria-pressed={region === r.id} className={statuses[r.id].state} onClick={() => pickRegion(r.id as RegionId)}>
-              <b>{r.letter}</b>{r.label}{statuses[r.id].state === 'flag' && <span className="sr"> · alert</span>}
+              <b>{r.letter}</b>{r.label}{statuses[r.id].state === 'flag' ? <span className="sr"> · alert</span> : ['done', 'clear'].includes(statuses[r.id].state) ? <span className="sr"> · done for today</span> : null}
             </button></li>)}
           </ul>
-          <p className="key" aria-hidden="true"><span><i className="k-flag"/>Alert</span><span><i className="k-done"/>Done today</span><span><i className="k-hatch"/>Not measured</span></p>
+          <p className="key" aria-hidden="true"><span><i className="k-flag"/>Alert</span><span><i className="k-done"/>Done for today</span><span><i className="k-todo"/>To do</span><span><i className="k-hatch"/>Not measured</span></p>
         </section>
         <div className="procedure-stack">
         {!selectedRegion ? <TodayPanel mission={view} summary={summary as unknown as DaySummary} sol={sol} headaches={sharedHeadaches.length} onStart={startRecommended} onCabin={() => openRegion('cabin')} onReport={() => go('report')}/> : <>
@@ -369,7 +372,7 @@ export default function App() {
       <BodyScan profile={mission.profile} ghostCm={personalGhostCm} onClose={closeScan} onSave={saveScan}/>
     </Suspense>}
     {modal === 'movement' && <Dialog title="Movement" wide onClose={() => setModal(null)}>
-      {!analysis.comparisons.leftRange.comparable && <p className="comparison-note">Comparison unavailable. {analysis.comparisons.leftRange.reason}</p>}
+      {!analysis.comparisons.leftRange.comparable && <p className="comparison-note">No % change against your ghost yet. {analysis.comparisons.leftRange.reason} The videos below compare now.</p>}
       <Suspense fallback={<p role="status">Loading…</p>}>
         <MovementViewer active recordings={crewRecordings} references={view.references} onRecord={() => setModal('capture')} onEvidence={() => setModal(null)} simulated={!latestRecording} sol={latestRecording?.sol ?? sol}
           frames={latestRecording?.frames} leftRange={latestRecording?.leftRange ?? analysis.current.leftRange ?? 0} baselineRange={analysis.baseline.leftRange ?? 0} hasBaseline={analysis.comparisons.leftRange.comparable}/>

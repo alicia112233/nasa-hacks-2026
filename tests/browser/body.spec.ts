@@ -103,8 +103,11 @@ test('shoulder capture uses the local model with a fake camera and keeps the vid
   await expect(page.getByRole('button', { name: 'Record', exact: true })).toBeVisible({ timeout: 60000 });
   await page.getByRole('button', { name: 'Record', exact: true }).click();
   await page.getByRole('button', { name: 'Stop and save' }).click();
-  await expect(page.getByRole('dialog').getByText('Saved.', { exact: true })).toBeVisible();
+  // The fake camera shows no person: the video is kept, the dialog says there is no angle, and nothing is ticked.
+  await expect(page.getByRole('dialog').getByText('No shoulder angle', { exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Record again' })).toBeVisible();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(page.locator('.steps li').filter({ hasText: 'Shoulder range' }).locator('.box')).toHaveAttribute('aria-label', 'Not done today');
   const stored = await page.evaluate(() => new Promise<number>(resolve => { const r = indexedDB.open('ghostpilot-mission'); r.onsuccess = () => { const q = r.result.transaction('recordings').objectStore('recordings').count(); q.onsuccess = () => resolve(q.result); }; }));
   expect(stored).toBe(1);
 });

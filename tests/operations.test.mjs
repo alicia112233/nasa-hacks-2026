@@ -30,7 +30,7 @@ test('poor frames cannot produce a trend; with no ghost set, the earliest readin
   assert.equal(auto.comparable, true);
   assert.equal(auto.referenceCount, 11);
   // Too few readings for an earlier and a newer three: not comparable yet, and it says so.
-  assert.match(analyze(legacy.slice(0, 4), false).comparisons.reactionMs.reason, /Needs 3 earlier and 3 newer readings/);
+  assert.match(analyze(legacy.slice(0, 4), false).comparisons.reactionMs.reason, /Needs readings on 6 days/);
 });
 
 test('adding a phase reference preserves preflight and rejects replacement; snapshots resist gradual deterioration', () => {

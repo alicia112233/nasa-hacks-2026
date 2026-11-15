@@ -28,7 +28,7 @@ export const HOW = {
   joint: 'Check shoulders, elbows and knees for aching after a spacewalk; else tap No spacewalk.',
   appetite: 'Rate your appetite and how much of today’s meals you ate.',
   gut: 'Any nausea, cramps or loose stools today?',
-  shoulder: 'Face the camera, raise both arms slowly, lower, repeat.',
+  shoulder: 'Hips to elbows in view. Raise both arms slowly, lower, repeat.',
   skin: 'Check hands, face and lips for rash or cold sores.',
   grip: 'Press each fingertip. Any pain or numbness after glove work?',
   back: 'Any back pain at rest, or when you bend or twist?',

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-15T14:09:47.032644+00:00",
+  "generatedAt": "2026-11-15T14:45:57.235109+00:00",
   "title": "Design System: GhostPilot",
   "extensions": {
     "colorMeta": {
@@ -458,9 +458,9 @@
       "name": "Region Tag",
       "kind": "custom",
       "refersTo": "region-tag",
-      "description": "Lettered 26px square joined to the body by a leader line: ink by default, red for any alert, amber fill when selected.",
-      "html": "<div class=\"ds-tags\"><span class=\"ds-tag\">A</span><span class=\"ds-tag ds-tag-alert\">B</span><span class=\"ds-tag ds-tag-on\">C</span></div>",
-      "css": ".ds-tags { display: flex; gap: 10px; } .ds-tag { display: grid; place-items: center; width: 26px; height: 26px; background: var(--ink, #111); color: var(--stock, #f4f1e8); font: 700 14px 'Barlow Condensed', 'Arial Narrow', sans-serif; } .ds-tag-alert { background: var(--red, #c8102e); color: #fff; } .ds-tag-on { background: var(--amber, #e0a100); color: var(--ink, #111); } .ds-tag:focus-visible { outline: 3px solid var(--amber, #e0a100); outline-offset: 2px; }"
+      "description": "Lettered 26px square joined to the body by a leader line: ink while a check is still to do, red for any alert, Complete Green when done for today, amber fill when selected.",
+      "html": "<div class=\"ds-tags\"><span class=\"ds-tag\">A</span><span class=\"ds-tag ds-tag-alert\">B</span><span class=\"ds-tag ds-tag-done\">C</span><span class=\"ds-tag ds-tag-on\">D</span></div>",
+      "css": ".ds-tags { display: flex; gap: 10px; } .ds-tag { display: grid; place-items: center; width: 26px; height: 26px; background: var(--ink, #111); color: var(--stock, #f4f1e8); font: 700 14px 'Barlow Condensed', 'Arial Narrow', sans-serif; } .ds-tag-alert { background: var(--red, #c8102e); color: #fff; } .ds-tag-done { background: var(--complete, #3a7d2c); color: #fff; } .ds-tag-on { background: var(--amber, #e0a100); color: var(--ink, #111); } .ds-tag:focus-visible { outline: 3px solid var(--amber, #e0a100); outline-offset: 2px; }"
     },
     {
       "name": "Crew Switch",

@@ -40,6 +40,13 @@ export function changeOf(key, current, baseline) {
   return { amount, text, by: rule.by };
 }
 
+/** What a comparison still needs, in days: each day counts once, with that day's latest reading. */
+function waiting(ref, readings, recent) {
+  const days = n => `${n} day${n === 1 ? '' : 's'}`;
+  if (ref) return recent >= 3 ? 'Your ghost needs 3 good readings of this.' : `Needs ${days(3 - recent)} more of readings after your ghost.`;
+  return `Needs readings on 6 days: the first become your ghost, the latest 3 compare. ${days(readings)} so far.`;
+}
+
 export function analyze(checkIns, simulated, references = []) {
   const records = checkIns.filter(c => c.simulated === simulated).sort((a, b) => a.date.localeCompare(b.date));
   // Legacy records retain a fixed first-three reference. Their missing conditions prevent a trend claim.
@@ -70,7 +77,7 @@ export function analyze(checkIns, simulated, references = []) {
       ghostSols: span(ref && validBases.length ? validBases : bases), recentSols: span(latestValues),
       baseline: median((ref && validBases.length ? validBases : bases).map(r => r[key])), current: median(latestValues.map(r => r[key])), lastMeasuredAt: last ? measuredAt(last, key) : null,
       state: !last ? 'missing' : issue ? 'unreliable' : comparable ? 'comparable' : 'insufficient',
-      reason: !last ? 'Not measured yet.' : issue ?? (comparable ? 'Your last 3 readings against your ghost.' : 'Needs 3 earlier and 3 newer readings.'), comparable }];
+      reason: !last ? 'Not measured yet.' : issue ?? (comparable ? 'Your last 3 readings against your ghost.' : waiting(ref, valued.length, latestValues.length)), comparable }];
   }));
   const baseline = Object.fromEntries(keys.map(k => [k, comparisons[k].baseline]));
   const current = Object.fromEntries(keys.map(k => [k, comparisons[k].current]));

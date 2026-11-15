@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Play, Pause, RotateCcw, Move3d, Maximize2, Layers3, ChevronDown, Camera, Minus, Plus } from 'lucide-react';
 import type { PoseFrame } from './types';
 import type { GhostReference, Recording } from './types';
-import MovementEvidence from './MovementEvidence';
+import MovementEvidence, { ghostRecording } from './MovementEvidence';
 
 const GaussianSequenceViewer = lazy(() => import('./GaussianSequenceViewer'));
 
@@ -98,10 +98,16 @@ function makeAstronaut(ghost: boolean) {
 export default function MovementViewer(props: Props) {
   const [technical, setTechnical] = useState(false);
   const [poseOpen, setPoseOpen] = useState(false);
-  if (!props.simulated) return <div className="movement-viewer">
-    <MovementEvidence recordings={props.recordings ?? []} references={props.references ?? []} onRecord={props.onRecord}/>
-    <details className="pose-replay" onToggle={e => setPoseOpen(e.currentTarget.open)}><summary>Estimated pose replay</summary><p className="muted">Pose tracking is an estimate. Trust the video above.</p>{poseOpen && <PoseMovementViewer {...props} hasBaseline={false}/>}</details>
-  </div>;
+  if (!props.simulated) {
+    // The replay's ghost arms take the ghost recording's angle, so the replay and the videos compare the same two.
+    const latest = (props.recordings ?? []).slice().sort((a, b) => a.date.localeCompare(b.date)).at(-1);
+    const ghost = ghostRecording(props.recordings ?? [], props.references ?? [], latest);
+    const ghostRange = ghost?.recording.leftRange ?? null;
+    return <div className="movement-viewer">
+      <MovementEvidence recordings={props.recordings ?? []} references={props.references ?? []} onRecord={props.onRecord}/>
+      <details className="pose-replay" onToggle={e => setPoseOpen(e.currentTarget.open)}><summary>Estimated pose replay</summary><p className="muted">Pose tracking is an estimate. Trust the video above.</p>{poseOpen && <PoseMovementViewer {...props} hasBaseline={ghostRange != null} baselineRange={ghostRange ?? props.baselineRange}/>}</details>
+    </div>;
+  }
   return <div className="movement-viewer">
     <p className="comparison-note">Record your own movement to compare.</p>
     <PoseMovementViewer {...props}/>
@@ -255,7 +261,7 @@ function PoseMovementViewer({ onRecord, onEvidence, sol = 42, simulated, frames,
       {(failed || (!simulated && !frames?.length)) && <div className="webgl-fallback"><Move3d size={48}/><p>{failed ? '3D preview needs WebGL.' : 'No confident pose was detected.'}</p><span>{failed ? 'Your diary and check-ins are still available.' : 'Your original video is retained for review.'}</span></div>}
       <div className="stage-top"><div className="stage-session"><span className="live-dot"/> SHOULDER MOBILITY <small>Sol {String(sol).padStart(3, '0')} · Standardized arm raise</small></div><span className="simulation-tag">{simulated ? 'POSE REPLAY' : frames?.length ? 'RECORDED POSE' : 'VIDEO ONLY'}</span></div>
       <div className="viewer-tabs" role="group" aria-label="Comparison mode">{(['overlay', 'today', 'baseline'] as Mode[]).map(m => <button key={m} className={mode === m ? 'active' : ''} aria-pressed={mode === m} disabled={m === 'baseline' && !hasBaseline} onClick={() => setMode(m)}>{m === 'overlay' && <Layers3 size={13}/>} {m[0].toUpperCase() + m.slice(1)}</button>)}</div>
-      <div className="ghost-annotation"><span className="annotation-line"/><span>Your ghost<small>{hasBaseline ? 'Retained phase reference' : 'No comparable phase reference'}</small></span></div>
+      <div className="ghost-annotation"><span className="annotation-line"/><span>Your ghost<small>{hasBaseline ? 'Your ghost recording' : 'No ghost recording yet'}</small></span></div>
       {hasBaseline && <button className="range-annotation" onClick={onEvidence}><span className="annotation-dot"/><span>Left arm range<strong>{Math.round((leftRange - baselineRange) / baselineRange * 100)}% <small>from baseline</small></strong></span></button>}
       <div className="stage-bottom"><span><Move3d size={13}/> Drag to orbit · Scroll to zoom</span><div><button className="icon-button" aria-label="Zoom out" onClick={() => { cameraRef.current?.position.multiplyScalar(1.12); controlsRef.current?.update(); }}><Minus size={14}/></button><button className="icon-button" aria-label="Zoom in" onClick={() => { cameraRef.current?.position.multiplyScalar(.9); controlsRef.current?.update(); }}><Plus size={14}/></button><button className="icon-button" aria-label="Reset 3D view" onClick={resetView}><RotateCcw size={14}/></button><button className="icon-button" aria-label="Expand movement viewer" onClick={() => { const panel = mount.current?.closest('.movement-panel'); if (document.fullscreenElement) void document.exitFullscreen(); else void panel?.requestFullscreen?.(); }}><Maximize2 size={14}/></button></div></div>
       <div className="axis-label">Y ↑ <span>Z ↙</span> X →</div>
