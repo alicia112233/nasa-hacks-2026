@@ -374,7 +374,7 @@ export default function App() {
     {modal === 'movement' && <Dialog title="Movement" wide onClose={() => setModal(null)}>
       {!analysis.comparisons.leftRange.comparable && <p className="comparison-note">No % change against your ghost yet. {analysis.comparisons.leftRange.reason} The videos below compare now.</p>}
       <Suspense fallback={<p role="status">Loading…</p>}>
-        <MovementViewer active recordings={crewRecordings} references={view.references} onRecord={() => setModal('capture')} onEvidence={() => setModal(null)} simulated={!latestRecording} sol={latestRecording?.sol ?? sol}
+        <MovementViewer active recordings={crewRecordings} references={view.references} ghostClips={mission.profile.ghostClips} onGhostClip={(recordingId, reason) => { setMission(old => withProfile(old, { ghostClips: [...(old.profile.ghostClips ?? []), { recordingId, reason, setAt: new Date().toISOString() }] })); notify('Ghost clip changed. The earlier one stays listed.'); }} onRecord={() => setModal('capture')} onEvidence={() => setModal(null)} simulated={!latestRecording} sol={latestRecording?.sol ?? sol}
           frames={latestRecording?.frames} leftRange={latestRecording?.leftRange ?? analysis.current.leftRange ?? 0} baselineRange={analysis.baseline.leftRange ?? 0} hasBaseline={analysis.comparisons.leftRange.comparable}/>
       </Suspense>
     </Dialog>}

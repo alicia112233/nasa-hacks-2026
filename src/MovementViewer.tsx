@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Play, Pause, RotateCcw, Move3d, Maximize2, Layers3, ChevronDown, Camera, Minus, Plus } from 'lucide-react';
 import type { PoseFrame } from './types';
-import type { GhostReference, Recording } from './types';
+import type { GhostClip, GhostReference, Recording } from './types';
 import MovementEvidence, { ghostRecording } from './MovementEvidence';
 
 const GaussianSequenceViewer = lazy(() => import('./GaussianSequenceViewer'));
@@ -21,6 +21,9 @@ interface Props {
   active?: boolean;
   recordings?: Recording[];
   references?: GhostReference[];
+  /** Ghost clips chosen on purpose, and how to choose one. */
+  ghostClips?: GhostClip[];
+  onGhostClip?: (recordingId: string, reason: string) => void;
 }
 
 function makeAstronaut(ghost: boolean) {
@@ -101,10 +104,10 @@ export default function MovementViewer(props: Props) {
   if (!props.simulated) {
     // The replay's ghost arms take the ghost recording's angle, so the replay and the videos compare the same two.
     const latest = (props.recordings ?? []).slice().sort((a, b) => a.date.localeCompare(b.date)).at(-1);
-    const ghost = ghostRecording(props.recordings ?? [], props.references ?? [], latest);
+    const ghost = ghostRecording(props.recordings ?? [], props.references ?? [], latest, props.ghostClips);
     const ghostRange = ghost?.recording.leftRange ?? null;
     return <div className="movement-viewer">
-      <MovementEvidence recordings={props.recordings ?? []} references={props.references ?? []} onRecord={props.onRecord}/>
+      <MovementEvidence recordings={props.recordings ?? []} references={props.references ?? []} onRecord={props.onRecord} clips={props.ghostClips} onGhostClip={props.onGhostClip}/>
       <details className="pose-replay" onToggle={e => setPoseOpen(e.currentTarget.open)}><summary>Estimated pose replay</summary><p className="muted">Pose tracking is an estimate. Trust the video above.</p>{poseOpen && <PoseMovementViewer {...props} hasBaseline={ghostRange != null} baselineRange={ghostRange ?? props.baselineRange}/>}</details>
     </div>;
   }

@@ -127,7 +127,10 @@ export interface Profile {
   /** Body shape set by hand (no camera). The crew card counts its first step done only after a scan or this. */
   setByHand?: boolean;
   recordingContext?: RecordingContext;
+  /** Clips chosen as the movement ghost, oldest first. The last one is the ghost; the first clip is the ghost until one is chosen. */
+  ghostClips?: GhostClip[];
 }
+export interface GhostClip { recordingId: string; reason: string; setAt: string }
 
 /** Camera body scan: front-view breadths divided by torso length (src/scan.mjs). No image is kept; the review clip is never stored. */
 export interface BodyScan {

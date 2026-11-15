@@ -129,3 +129,40 @@ test('a new crew member chooses a model before saving, and Female survives retak
   await expect(models.getByRole('button', { name: 'Female', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await dialog.getByRole('button', { name: 'Close body scan', exact: true }).click();
 });
+
+test('the first shoulder clip is the ghost until another is chosen on purpose, and the choice stays on record', async ({ page }) => {
+  test.setTimeout(180000);
+  await page.goto('/');
+  await page.locator('.crew-switch-btn').click();
+  await page.getByRole('button', { name: 'Add crew member', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Edit profile', exact: true }).getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByRole('list', { name: 'Body regions' }).getByRole('button', { name: /^E Arms/ }).click();
+  await page.locator('.steps').getByRole('button', { name: /Shoulder range/ }).click();
+  for (let n = 0; n < 2; n++) {
+    await page.getByRole('button', { name: 'Record 12 s' }).click();
+    const capture = page.getByRole('dialog', { name: /Shoulder range/ });
+    await capture.getByRole('button', { name: 'Enable camera' }).click();
+    await capture.getByRole('button', { name: 'Record', exact: true }).click({ timeout: 60000 });
+    await page.waitForTimeout(3000);
+    await capture.getByRole('button', { name: 'Stop and save' }).click();
+    await expect(capture.getByText(/^Left shoulder \d+°$/)).toBeVisible({ timeout: 30000 });
+    await capture.getByRole('button', { name: 'Done', exact: true }).click();
+  }
+  await page.getByRole('button', { name: 'Compare movement' }).click();
+  const evidence = page.getByRole('dialog', { name: 'Movement' }).locator('.movement-evidence');
+  await expect(evidence.locator('.ghost-clip-note')).toContainText('Ghost: the first clip you recorded, kept for reference.');
+  await evidence.getByRole('button', { name: 'Use this clip as your ghost' }).click();
+  await evidence.getByLabel('Why this clip?').fill('First clip had my hips cut off');
+  await evidence.getByRole('button', { name: 'Use as ghost', exact: true }).click();
+  await expect(evidence.getByRole('list', { name: 'Ghost clip changes' })).toContainText('First clip had my hips cut off');
+  // Reviewing the first clip now compares it with the chosen one.
+  const review = evidence.getByLabel('Recording to review');
+  await review.selectOption((await review.locator('option').evaluateAll(o => o.map(x => (x as HTMLOptionElement).value))).at(-1)!);
+  await expect(evidence.locator('.ghost-clip-note')).toContainText('the clip you chose');
+  await page.waitForTimeout(400); // let the IndexedDB write settle before reloading
+  await page.reload();
+  await page.getByRole('list', { name: 'Body regions' }).getByRole('button', { name: /^E Arms/ }).click();
+  await page.locator('.steps').getByRole('button', { name: /Shoulder range/ }).click();
+  await page.getByRole('button', { name: 'Compare movement' }).click();
+  await expect(page.getByRole('dialog', { name: 'Movement' }).getByRole('list', { name: 'Ghost clip changes' })).toBeVisible();
+});

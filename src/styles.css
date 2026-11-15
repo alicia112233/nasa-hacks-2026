@@ -746,7 +746,12 @@ button.ring:hover { background: var(--stock-2); border-color: var(--ink); }
 .movement-video { min-width: 0; }
 .movement-video video { display: block; width: 100%; aspect-ratio: 4 / 3; background: var(--ink); object-fit: contain; }
 .movement-video figcaption { padding-top: 8px; font-size: 14px; }
-.movement-reference-gap { padding: 16px; background: var(--stock-2); border: var(--rule); }
+.movement-reference-gap { display: grid; gap: 6px; align-content: start; padding: 16px; background: var(--stock-2); border: var(--rule); }
+.movement-reference-gap span { font-size: 14px; color: var(--ink-2); }
+.ghost-clip-note { font-size: 15px; }
+.ghost-clip-use { justify-self: start; }
+.ghost-clip-form { display: grid; gap: 10px; max-width: 520px; }
+.ghost-clip-history { padding-left: 20px; font-size: 14px; color: var(--ink-2); }
 .pose-replay, .technical-demo { border-top: var(--rule); margin-top: 20px; padding-top: 12px; }
 @media (max-width: 640px) { .movement-video-pair { grid-template-columns: 1fr; } }
 .reference-panel > p, .reference-panel form { margin-top: 12px; }
