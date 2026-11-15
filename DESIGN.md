@@ -2,6 +2,8 @@
 name: GhostPilot
 description: Crew procedure cards for a long-mission self-check, printed in black ink on matte card stock.
 colors:
+  space: "#060a12"
+  space-2: "#0d1626"
   binder: "#5b6770"
   stock: "#f4f1e8"
   stock-2: "#ebe6d8"
@@ -151,14 +153,14 @@ components:
 
 **Creative North Star: "The Crew Procedure Card"**
 
-Every surface is a printed flight-data-file card clipped to a slate binder. Matte card stock carries black ink: 1.5px rules, square check boxes, numbered steps with their times, condensed uppercase labels. The body itself is drawn as a manual illustration (a three-tone toon render with an ink outline and hatching) and serves as a lettered index; picking a region fills it amber and opens its card. The world reads as an operational document, not as a screen.
+Every surface is a printed flight-data-file card held up against a window onto space. Matte card stock carries black ink: 1.5px rules, square check boxes, numbered steps with their times, condensed uppercase labels. The body itself is drawn as a manual illustration (a three-tone toon render with an ink outline and hatching) and serves as a lettered index; picking a region fills it amber and opens its card. The world reads as an operational document, not as a screen.
 
 Density is a checklist's density: rows sit at 46 to 56px, separated by full-width ink rules rather than boxes, and there is one red action per card. Colour is spent sparingly and by meaning. Amber means caution or "selected", red means a trend alert or the one primary action, and the five NASA hazard inks appear only as the card's edge tabs and as chart lines for the matching data.
 
 The world rejects the dark holographic body-scan dashboard and the rounded wellness-tile grid. Nothing glows, nothing is glass, and nothing is rounded beyond the 3px of a cut card corner.
 
 **Key Characteristics:**
-- Card stock panels on a slate binder ground, with a solid black top bar.
+- Card stock panels against the window (deep space, slow-drifting stars), with a solid black top bar.
 - Black 1.5px rules divide content, and square marks carry state.
 - Barlow Condensed uppercase for every label, number and heading; Barlow for sentences.
 - Amber marks caution and selection; red marks trend alerts and the single primary action.
@@ -167,7 +169,7 @@ The world rejects the dark holographic body-scan dashboard and the rounded welln
 
 ## Colors
 
-A printed palette: warm paper, slate, black ink, plus two safety inks and five hazard inks that each carry exactly one meaning.
+A printed palette: warm paper, deep space, black ink, plus two safety inks and five hazard inks that each carry exactly one meaning.
 
 ### Primary
 - **Caution Amber** (amber): NOTE frames (3px border), the selected region (body fill, tag and list row), the current-page underline in the top bar, the focus ring, selection highlight and status labels such as NEXT. **Amber Tint** (amber-tint) marks the active row in ledgers.
@@ -182,7 +184,8 @@ A printed palette: warm paper, slate, black ink, plus two safety inks and five h
 - **Radiation Violet** (hazard-radiation), **Isolation Blue** (hazard-isolation), **Distance Green** (hazard-distance), **Gravity Rust** (hazard-gravity), **Habitat Teal** (hazard-habitat): full-height vertical tabs on the left edge of a procedure card, with white condensed labels set vertically. They also colour hazard keys and the matching NASA data line (radiation dose in violet, habitat air in teal). The source of truth for these values is the `hazards` array in `src/body.mjs`.
 
 ### Neutral
-- **Slate Binder** (binder): the page ground behind every card and the background of the docking task.
+- **Space** (space, space-2): the window behind every card, a vertical gradient from deep space to a slightly lighter navy at the bottom. Two sparse star layers (faint far points, a few brighter near ones, a third of them faintly blue or warm) drift left at different speeds as the station orbits, the near layer twinkles gently, a thin shooting star crosses now and then (under a second, on 17 s and 29 s cycles), and Earth's blue glow along the lower edge brightens and fades over about 70 seconds, like orbital day and night. It stays behind everything, never carries text, has no animation for reduced motion, and is hidden in print.
+- **Slate Binder** (binder): the background of the docking task.
 - **Card Stock** (stock): every panel, card, sheet and dialog, and the text on ink surfaces. **Stock 2** (stock-2) is the hover wash for rows and buttons and the 3D stage ground. **Stock 3** (stock-3) draws hairline dividers (1px) inside lists and ledgers.
 - **Field Paper** (field-paper): the brighter writing surface inside inputs.
 - **Ink** (ink): text, 1.5px rules, the top bar, letter tabs, region tags, filled check boxes and active segments. **Ink 2** (ink-2) is secondary labels, and **Muted** (muted) is captions, sub-labels and "needs instrument" rows.
@@ -219,7 +222,7 @@ A printed palette: warm paper, slate, black ink, plus two safety inks and five h
 
 ## Layout
 
-The page is a 1480px max-width column on the binder, with a `gap` gutter of 24px (12px under 640px) around and between cards. The Body view is a two-column grid: a sticky crew index (minmax(340px, 5fr)) that fills the viewport height below the 56px bar (560 to 920px tall), beside the procedure card (7fr). The index stacks a 3D stage over a three-column region list (two columns under 640px, one under 380px) and a state key. Trends uses a 5fr/7fr sheet grid, Report uses 7fr/5fr, and Sources uses equal halves; Risks is one full-width sheet with the whole ledger on the page (no inner scroll), stacking each risk into a block under 640px. A sheet can span both columns.
+The page is a 1480px max-width column against the window, with a `gap` gutter of 24px (12px under 640px) around and between cards. The Body view is a two-column grid: a sticky crew index (minmax(340px, 5fr)) that fills the viewport height below the 56px bar (560 to 920px tall), beside the procedure card (7fr). The index stacks a 3D stage over a three-column region list (two columns under 640px, one under 380px) and a state key. Trends uses a 5fr/7fr sheet grid, Report uses 7fr/5fr, and Sources uses equal halves; Risks is one full-width sheet with the whole ledger on the page (no inner scroll), stacking each risk into a block under 640px. A sheet can span both columns.
 
 Under 900px every grid collapses to one column, and the index becomes a 56vh stage that is no longer sticky. Under 640px the top bar wraps, so the nav drops to its own horizontally scrolling row. On short screens (height 640px or less, width above 900px, the 1024x600 case) the card title drops to 38px and the rows tighten to 46px.
 
@@ -227,7 +230,7 @@ Inside a procedure card the step row is a fixed grid: number (44px), name, time,
 
 ## Elevation & Depth
 
-Flat. Cards sit on the binder with no shadow, and the contrast of paper against slate does the separating. Depth inside a card comes from ink rules and hover washes, never from layering. Only things that truly float above the page cast a shadow.
+Flat. Cards sit against the window with no shadow, and the contrast of paper against deep space does the separating. Depth inside a card comes from ink rules and hover washes, never from layering. Only things that truly float above the page cast a shadow.
 
 ### Shadow Vocabulary
 - **Dialog lift** (`box-shadow: 0 18px 50px rgba(0, 0, 0, .35)`): modal dialogs over a 60% ink scrim.

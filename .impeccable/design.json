@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-15T14:45:57.235109+00:00",
+  "generatedAt": "2026-11-15T15:23:14.596728+00:00",
   "title": "Design System: GhostPilot",
   "extensions": {
     "colorMeta": {
@@ -318,6 +318,36 @@
           "#d4e2d1",
           "#eff5ee"
         ]
+      },
+      "space": {
+        "role": "neutral",
+        "displayName": "Space",
+        "canonical": "#060a12",
+        "tonalRamp": [
+          "#020305",
+          "#030509",
+          "#05080e",
+          "#060a12",
+          "#515459",
+          "#8f9194",
+          "#c8c9cb",
+          "#ebebec"
+        ]
+      },
+      "space-2": {
+        "role": "neutral",
+        "displayName": "Space 2",
+        "canonical": "#0d1626",
+        "tonalRamp": [
+          "#04060b",
+          "#070b14",
+          "#0a111d",
+          "#0d1626",
+          "#565c67",
+          "#92969d",
+          "#cacccf",
+          "#ececee"
+        ]
       }
     },
     "typographyMeta": {
@@ -488,9 +518,9 @@
   ],
   "narrative": {
     "northStar": "The Crew Procedure Card",
-    "overview": "Every surface is a printed flight-data-file card clipped to a slate binder. Matte card stock carries black ink: 1.5px rules, square check boxes, numbered steps with their times, condensed uppercase labels. The body itself is drawn as a manual illustration (a three-tone toon render with an ink outline and hatching) and serves as a lettered index; picking a region fills it amber and opens its card. The world reads as an operational document, not as a screen.\n\nDensity is a checklist's density: rows sit at 46 to 56px, separated by full-width ink rules rather than boxes, and there is one red action per card. Colour is spent sparingly and by meaning. Amber means caution or \"selected\", red means a trend alert or the one primary action, and the five NASA hazard inks appear only as the card's edge tabs and as chart lines for the matching data.\n\nThe world rejects the dark holographic body-scan dashboard and the rounded wellness-tile grid. Nothing glows, nothing is glass, and nothing is rounded beyond the 3px of a cut card corner.",
+    "overview": "Every surface is a printed flight-data-file card held up against a window onto space. Matte card stock carries black ink: 1.5px rules, square check boxes, numbered steps with their times, condensed uppercase labels. The body itself is drawn as a manual illustration (a three-tone toon render with an ink outline and hatching) and serves as a lettered index; picking a region fills it amber and opens its card. The world reads as an operational document, not as a screen.\n\nDensity is a checklist's density: rows sit at 46 to 56px, separated by full-width ink rules rather than boxes, and there is one red action per card. Colour is spent sparingly and by meaning. Amber means caution or \"selected\", red means a trend alert or the one primary action, and the five NASA hazard inks appear only as the card's edge tabs and as chart lines for the matching data.\n\nThe world rejects the dark holographic body-scan dashboard and the rounded wellness-tile grid. Nothing glows, nothing is glass, and nothing is rounded beyond the 3px of a cut card corner.",
     "keyCharacteristics": [
-      "Card stock panels on a slate binder ground, with a solid black top bar.",
+      "Card stock panels against the window (deep space, slow-drifting stars), with a solid black top bar.",
       "Black 1.5px rules divide content, and square marks carry state.",
       "Barlow Condensed uppercase for every label, number and heading; Barlow for sentences.",
       "Amber marks caution and selection; red marks trend alerts and the single primary action.",
