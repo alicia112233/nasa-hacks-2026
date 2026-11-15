@@ -69,11 +69,11 @@ export default function MissionView({ mission, onOpenRegion, onSource, onReloadD
     <section className="sheet">
       <h2>Data</h2>
       <div className="seg" role="group" aria-label="Data source">
-        <button aria-pressed={mission.demo} onClick={() => onSource(true)}>Demo</button>
+        <button aria-pressed={mission.demo} onClick={() => onSource(true)}>Built-in</button>
         <button aria-pressed={!mission.demo} onClick={() => onSource(false)}>My records</button>
       </div>
       
-      <button className="link" onClick={onReloadDemo}>Reload demo history</button>
+      <button className="link" onClick={onReloadDemo}>Reload built-in history</button>
       <div className="danger">
         {confirm ? <><span>Delete all personal records on this device? This includes videos, pose data, follow-ups, handoffs and your crew profile. Downloaded files must be deleted separately.</span><button className="btn danger-btn" disabled={clearing} onClick={clear}>{clearing ? 'Deleting…' : 'Delete'}</button><button className="link" disabled={clearing} onClick={() => setConfirm(false)}>Cancel</button></>
           : <button className="btn outline-danger" onClick={() => setConfirm(true)}>Clear personal records</button>}

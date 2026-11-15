@@ -59,14 +59,12 @@ for (const width of [1440, 390]) {
     await page.goto('/#body');
     await page.getByRole('button', { name: /^C Chest/ }).click();
     await page.getByRole('button', { name: /Short of breath/ }).click();
-    await page.getByRole('button', { name: 'Plan follow-up' }).count();
     await audit();
     await page.getByRole('button', { name: /^I Cabin/ }).click();
     await page.getByRole('button', { name: /Cabin CO₂/ }).click();
     await expect(page.getByText('ppm CO₂ median')).toBeVisible();
     await audit();
     await page.getByRole('button', { name: /^A Head/ }).click();
-    await page.getByRole('button', { name: 'Plan follow-up' }).click();
     await audit();
     await page.getByRole('button', { name: /Attention/ }).click();
     await audit();

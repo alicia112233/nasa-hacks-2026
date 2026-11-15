@@ -65,6 +65,7 @@ test('a personal self-check saves to today, marks the region and survives reload
 test('attention task records real responses over the full 60 seconds', async ({ page }) => {
   test.setTimeout(120000);
   await personal(page);
+  await page.getByRole('button', { name: /^A Head/ }).click();
   await page.getByRole('button', { name: /Attention/ }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Start', exact: true }).click();
   const dialog = page.getByRole('dialog');
@@ -78,11 +79,13 @@ test('attention task records real responses over the full 60 seconds', async ({ 
   await expect(page.locator('.toast')).toContainText('Attention saved');
   await page.waitForTimeout(400);
   await page.reload();
+  await page.getByRole('button', { name: /^A Head/ }).click();
   await expect(page.getByRole('img', { name: /Done: \d+ ms/ })).toBeVisible();
 });
 
 test('stopping the attention task early saves nothing', async ({ page }) => {
   await personal(page);
+  await page.getByRole('button', { name: /^A Head/ }).click();
   await page.getByRole('button', { name: /Attention/ }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Start', exact: true }).click();
   await page.getByRole('button', { name: 'Stop and discard' }).click();
@@ -116,13 +119,13 @@ test('movement comparison keeps the trained 4DGS model as a secondary reference'
   const dialog = page.getByRole('dialog', { name: 'Movement' });
   await expect(dialog.locator('.movement-panel')).toBeVisible();
   await expect(dialog.locator('.gaussian-stage')).toHaveCount(0);
-  await dialog.getByText('Technical demo · public 4DGS model', { exact: true }).click();
+  await dialog.getByText('4DGS model · public reference', { exact: true }).click();
   const stage = dialog.locator('.gaussian-stage');
   await expect(stage).toHaveAttribute('data-model-status', 'ready', { timeout: 45000 });
   await dialog.locator('.technical-demo').getByLabel('Movement timeline', { exact: true }).fill('0.7');
   await expect(stage).toHaveAttribute('data-motion-phase', '0.700');
   await expect(dialog.getByText('Not crew data.')).toBeVisible();
-  await dialog.getByText('Technical demo · public 4DGS model', { exact: true }).click();
+  await dialog.getByText('4DGS model · public reference', { exact: true }).click();
   await expect(dialog.locator('.range-annotation')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Compare movement' })).toBeFocused();

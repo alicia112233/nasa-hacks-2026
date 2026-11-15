@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Play, Trash2, X } from 'lucide-react';
 import { formatDate } from './data';
 import { BUILDS, LIMITS } from './physique.mjs';
 import { compareScan, thighCm, validScan } from './scan.mjs';
 import { linkedReading, scanHistory, scanId } from './scan-history.mjs';
+import { loadScanClip, scanClipIds } from './scan-clips';
 import type { BodyScan, CheckIn, Profile } from './types';
 
 interface Props {
@@ -31,6 +32,21 @@ const pct = (x: number) => !Number.isFinite(x) ? '—' : `${x > 0.005 ? '+' : x 
 const when = (s: BodyScan) => formatDate(s.date, { hour: '2-digit', minute: '2-digit' });
 /** Shown before Show all. */
 const RECENT = 6;
+
+/** Replays a saved scan's recorded seconds, outline and measuring lines included. */
+function ClipPlayer({ scan, onClose }: { scan: BodyScan; onClose: () => void }) {
+  const [url, setUrl] = useState('');
+  const [missing, setMissing] = useState(false);
+  useEffect(() => {
+    let objectUrl = '';
+    loadScanClip(scanId(scan)).then(clip => { if (!clip) { setMissing(true); return; } objectUrl = URL.createObjectURL(clip.blob); setUrl(objectUrl); }).catch(() => setMissing(true));
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [scan]);
+  return <figure className="scan-history-clip">
+    {url ? <video src={url} controls loop muted playsInline autoPlay aria-label={`Scan clip from ${when(scan)}`}/> : <p className="muted">{missing ? 'Clip not found on this device.' : 'Loading clip…'}</p>}
+    <figcaption>{when(scan)} · {scan.mode === 'legs' ? 'Leg outline' : 'Body scan'}<button className="icon-btn" aria-label="Close clip" onClick={onClose}><X size={16}/></button></figcaption>
+  </figure>;
+}
 
 /** Click-to-edit text: the value reads as a heading until clicked; Enter or leaving the field saves, Escape cancels. */
 function EditText({ value, label, className, onSave, start = false, onDone }: { value: string; label: string; className: string; onSave: (v: string) => void; start?: boolean; onDone?: () => void }) {
@@ -62,6 +78,8 @@ export default function CrewCard({ profile, onProfile, onLegs, onScan, onClose, 
   const [showAll, setShowAll] = useState(false);
   /** The scan waiting for delete confirmation, and where focus goes once that is answered. */
   const [pending, setPending] = useState<string | null>(null);
+  const [clips, setClips] = useState<Set<string>>(new Set());
+  const [playing, setPlaying] = useState<string | null>(null);
   const focusAfter = useRef<string | null>(null);
   const root = useRef<HTMLElement>(null);
   const scan = profile.scan;
@@ -82,6 +100,9 @@ export default function CrewCard({ profile, onProfile, onLegs, onScan, onClose, 
     element?.focus();
   });
   function ask(id: string | null, focus: string) { focusAfter.current = focus; setPending(id); }
+  // Which scans have their clip on this device (scans saved before clips were kept have none).
+  useEffect(() => { scanClipIds().then(ids => setClips(new Set(ids))).catch(() => {}); }, [profile.scans]);
+  const playingScan = history.find(s => scanId(s) === playing);
   const fromScan = () => scan?.detected && scan.detected.build === profile.build ? <small>{scan.detected.sure.build ? 'From scan' : 'Best guess from scan'}</small> : null;
   const byHand = scan ? {} : { setByHand: true };
 
@@ -122,7 +143,7 @@ export default function CrewCard({ profile, onProfile, onLegs, onScan, onClose, 
         <div className="scan-history-head"><h4 id="scan-history-title">Scan history <small>{history.length}</small></h4><button className="link" onClick={onLegs}>Thigh trend in H Legs</button></div>
         <div className="scroll scan-history-table" tabIndex={0} role="region" aria-labelledby="scan-history-title">
           <table className="ledger small">
-            <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Thigh</th>{BREADTHS.map(m => <th key={m} scope="col">{HEAD[m]}</th>)}<th scope="col"><span className="sr">Delete</span></th></tr></thead>
+            <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Clip</th><th scope="col">Thigh</th>{BREADTHS.map(m => <th key={m} scope="col">{HEAD[m]}</th>)}<th scope="col"><span className="sr">Delete</span></th></tr></thead>
             <tbody>{shown.map(s => {
               const id = scanId(s), current = !!scan && scanId(scan) === id;
               const cm = thighCm(s, height ?? undefined);
@@ -130,6 +151,7 @@ export default function CrewCard({ profile, onProfile, onLegs, onScan, onClose, 
               return <tr key={id} className={current ? 'on' : ''}>
                 <th scope="row">{when(s)}{current && <small>Shapes figure</small>}</th>
                 <td>{s.mode === 'legs' ? 'Legs' : 'Body'}</td>
+                <td>{clips.has(id) ? <button className="icon-btn" aria-pressed={playing === id} aria-label={`Play clip from ${when(s)}`} onClick={() => setPlaying(playing === id ? null : id)}><Play size={16} aria-hidden="true"/></button> : '—'}</td>
                 <td>{cm != null ? `${cm} cm` : '—'}</td>
                 {BREADTHS.map(m => <td key={m}>{vs ? pct(vs[m].you) : '—'}</td>)}
                 <td><button className="icon-btn" data-scan={id} aria-label={`Delete scan from ${when(s)}`} onClick={() => ask(id, 'confirm')}><Trash2 size={16} aria-hidden="true"/></button></td>
@@ -137,6 +159,7 @@ export default function CrewCard({ profile, onProfile, onLegs, onScan, onClose, 
             })}</tbody>
           </table>
         </div>
+        {playingScan && <ClipPlayer key={playing} scan={playingScan} onClose={() => setPlaying(null)}/>}
         <p className="muted">% against the standard figure</p>
         {history.length > RECENT && <button className="link" onClick={() => setShowAll(!showAll)}>{showAll ? 'Show recent' : `Show all ${history.length}`}</button>}
         {target && <div className="crew-remove scan-confirm" role="group" aria-label="Confirm scan deletion">

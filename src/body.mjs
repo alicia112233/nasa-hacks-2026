@@ -2,6 +2,7 @@
 // regions and the checks a crew member can run. Links verified 2026-11-14.
 import { analyze } from './rules.mjs';
 import { measuredAt } from './references.mjs';
+import { outOfRange } from './guidance.mjs';
 
 export const hazards = [
   { id: 'radiation', label: 'Radiation', color: '#8e2a8b', url: 'https://www.nasa.gov/hrp/hazard-space-radiation/' },
@@ -53,7 +54,7 @@ export const checks = [
   { id: 'oct', region: 'eyes', title: 'Eye imaging (OCT)', kind: 'instrument', needs: 'Needs OCT imager', risks: ['sans'] },
   { id: 'heartRate', region: 'chest', title: 'Resting heart rate', seconds: 20, kind: 'number', field: 'heartRate', unit: 'bpm', min: 30, max: 220, risks: ['cardiovascular'] },
   { id: 'breath', region: 'chest', title: 'Short of breath', seconds: 5, kind: 'symptom', field: 'breath', options: SYMPTOM, risks: ['hypoxia', 'cardiovascular'] },
-  { id: 'joint', region: 'chest', title: 'Joint pain after a spacewalk', seconds: 5, kind: 'symptom', field: 'joint', options: SYMPTOM, risks: ['dcs', 'eva'] },
+  { id: 'joint', region: 'chest', title: 'Joint pain after a spacewalk', seconds: 5, kind: 'symptom', field: 'joint', options: SYMPTOM, skip: 'No spacewalk', risks: ['dcs', 'eva'] },
   { id: 'bp', region: 'chest', title: 'Blood pressure', kind: 'instrument', needs: 'Needs cuff', risks: ['cardiovascular'] },
   { id: 'appetite', region: 'abdomen', title: 'Appetite and meals', seconds: 5, kind: 'scale', field: 'appetite', options: SCALE, risks: ['nutrition'] },
   { id: 'gut', region: 'abdomen', title: 'Stomach upset', seconds: 5, kind: 'symptom', field: 'gut', options: SYMPTOM, risks: ['microbes'] },
@@ -65,7 +66,7 @@ export const checks = [
   { id: 'back', region: 'pelvis', title: 'Back pain', seconds: 5, kind: 'symptom', field: 'back', options: SYMPTOM, risks: ['fitness', 'loads'] },
   { id: 'landing', region: 'pelvis', title: 'Landing load check', kind: 'instrument', needs: 'At landing', risks: ['loads'] },
   { id: 'exercise', region: 'legs', title: 'Exercise today', seconds: 10, kind: 'number', field: 'exerciseMin', unit: 'min', min: 0, max: 300, risks: ['fitness', 'bone'] },
-  { id: 'legs', region: 'legs', title: 'Leg outline', seconds: 5, kind: 'camera', field: 'thighCm', unit: 'cm', risks: ['fitness', 'cardiovascular'] },
+  { id: 'legs', region: 'legs', title: 'Thigh breadth', seconds: 5, kind: 'camera', field: 'thighCm', unit: 'cm', risks: ['fitness', 'cardiovascular'] },
   { id: 'dxa', region: 'legs', title: 'Bone density (DXA)', kind: 'instrument', needs: 'Needs scanner', risks: ['bone'] },
   { id: 'dose', region: 'cabin', title: 'Radiation dose', kind: 'data', series: 'dose', needs: 'Needs personal dosimeter', risks: ['cancer'] },
   { id: 'air', region: 'cabin', title: 'Cabin CO₂ and climate', kind: 'data', series: 'air', risks: ['hypoxia', 'microbes'] },
@@ -118,12 +119,12 @@ export function regionStatuses(checkIns, simulated, now = new Date().toISOString
       const ever = check.field ? records.some(c => isNum(c[check.field])) : false;
       const flagged = !!trend[check.field];
       const last = check.field ? lastValue(check.field) : null;
-      const reported = check.kind === 'symptom' && last != null && last > 0;
+      const reported = (check.kind === 'symptom' && last != null && last > 0) || outOfRange(check, last);
       const lastRecord = check.field ? forField(check.field).at(-1) : null;
       return { check, value, last, done: value != null, ever, flagged, reported, lastMeasuredAt: lastRecord ? measuredAt(lastRecord, check.field) : null, comparison: analysis.comparisons[check.field] };
     });
     const self = items.filter(i => i.check.field);
-    const state = items.some(i => i.flagged) ? 'flag' : items.some(i => i.reported) ? 'reported'
+    const state = items.some(i => i.flagged || i.reported) ? 'flag'
       : self.length && self.every(i => i.done) ? 'done' : self.some(i => i.ever) ? 'due' : self.length ? 'none' : 'instrument';
     return [region.id, { state, items, latestDate: latest?.date ?? null }];
   }));
@@ -135,3 +136,10 @@ export const totalSeconds = list => list.reduce((sum, c) => sum + (c.seconds ?? 
 export const MIND_RISKS = ['behavioral', 'teamwork', 'sleep', 'support'];
 /** @param {{ risks: string[] }} check @returns {'mental' | 'physical'} */
 export const domainOf = check => (check.risks.every(r => MIND_RISKS.includes(r)) ? 'mental' : 'physical');
+
+/** A neutral name for each check, for lists and next steps: "breathing", not "short of breath". */
+const TOPICS = { dizziness: 'Balance', headache: 'Headache', vision: 'Vision', heartRate: 'Heart rate', breath: 'Breathing', joint: 'Joints after a spacewalk',
+  appetite: 'Appetite', gut: 'Stomach', shoulder: 'Shoulder range', skin: 'Skin', grip: 'Fingertips and grip', back: 'Back', exercise: 'Exercise', legs: 'Thigh breadth',
+  attention: 'Attention', sleep: 'Sleep', mood: 'Mood', energy: 'Energy', workload: 'Workload', team: 'Teamwork' };
+/** @param {{ id: string, title: string }} check */
+export const topicOf = check => TOPICS[check.id] ?? check.title;

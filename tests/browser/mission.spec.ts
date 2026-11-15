@@ -18,6 +18,7 @@ test('mission view covers all 17 NASA risks with working region links and real N
 test('personal records never use the demo ghost, and clearing needs a confirmation', async ({ page }) => {
   await page.goto('/#mission');
   await page.getByRole('button', { name: 'My records' }).click();
+  // The built-in records are never labelled in the top bar.
   await expect(page.getByRole('button', { name: 'Demo data' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Body' }).click();
   await expect(page.locator('.region-list .flag')).toHaveCount(0);
@@ -25,6 +26,8 @@ test('personal records never use the demo ghost, and clearing needs a confirmati
   await page.getByRole('link', { name: 'Mission' }).click();
   await page.getByRole('button', { name: 'Clear personal records' }).click();
   await page.getByRole('button', { name: 'Cancel' }).click();
-  await page.getByRole('button', { name: 'Demo', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Demo data' })).toBeVisible();
+  await page.getByRole('button', { name: 'Built-in', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Demo data' })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Body' }).click();
+  await expect(page.locator('.region-list .flag').first()).toBeVisible();
 });

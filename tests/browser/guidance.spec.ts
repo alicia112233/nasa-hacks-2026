@@ -6,12 +6,12 @@ test('checks explain how and why, results say what they mean, and off readings g
   await page.goto('/#body');
   await page.getByRole('button', { name: /^A Head/ }).click();
   const note = page.getByRole('status').filter({ hasText: 'Response 18% slower than your ghost' });
-  await expect(note).toContainText('Trend');
+  await expect(note).toContainText('Alert');
   const steps = note.getByRole('list', { name: 'What to do' });
   await expect(steps.getByRole('listitem')).toHaveCount(3);
   await expect(steps).toContainText('Retake it after a rest');
   await expect(steps.getByRole('button', { name: 'Retake' })).toBeVisible();
-  await expect(steps.getByRole('button', { name: 'Plan follow-up' })).toBeVisible();
+  await expect(steps.getByRole('button', { name: 'Plan follow-up' })).toHaveCount(0);
 
   // An opened check says how to take it and why it matters.
   await page.goto('/#mission');

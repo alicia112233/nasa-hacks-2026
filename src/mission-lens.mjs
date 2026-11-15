@@ -67,7 +67,7 @@ export function createMissionPacket({ snapshot, profile, actions, context, oneWa
     sources: researchSources,
     research: researchUse,
     limitations: [
-      'Experimental prototype, not diagnostic or a NASA-approved risk model.',
+      'Not diagnostic or a NASA-approved risk model.',
       'Links on the map represent monitoring context, not demonstrated causation.',
       'Trend thresholds are illustrative; each flagged metric requires at least three valid earlier and three valid recent samples.',
       'No dosimetry, bone-density or immune assays are collected. Cabin readings can be entered manually; no live sensor feed is connected.',

@@ -49,10 +49,11 @@ Your past self is the reference, not a population norm or a score. The body map 
 - The body model is authored in Blender (installed locally, version 5.2) and shipped as a static GLB.
 - Static Vite + React + TypeScript + Three.js app. No backend, accounts, or paid services.
 - The Body page opens on Today, never straight into a region card: two rings of today's checks (Physical and Mental, split by NASA risk) and one next step. Rings count checks done; they are never a health score or a ranking against others.
+- Alerts are red everywhere: a reading off the ghost (ALERT), a reported symptom, or an out-of-range vital such as resting heart rate over 100 or under 50 bpm. There is one camera scan; the Legs check runs it for thigh breadth. Sample records stay available (Mission → Data: Built-in) without labels in the daily screens.
 - The day is handed off once, as a report: readable in the app, printable as PDF, saved on the device with an optional note. Finishing a region leads to the next region, not to a handoff.
-- A first-use tutorial teaches the loop, not the controls: it follows one reading through Spot (the flagged region), Check (the check behind it, with How and Why), Compare (that measure against the ghost on Trends) and Act (Report). Steps are built from the crew member's own data and fall back to a real region and check when nothing is flagged. Goal steps advance only when the real control is used; the chart step has Next. Back, Skip, Close and Emergency remain available. It replays from every page, works offline, writes no readings and preserves an existing handoff draft.
+- A first-use tutorial teaches the loop, not the controls: it follows one reading through Spot (the flagged region), Check (the check behind it, with How and Why), Compare (that measure against the ghost on Trends) and Act (Report). Steps are built from the crew member's own data and fall back to a real region and check when nothing is flagged. Goal steps advance only when the real control is used; the chart step has Next. Back, Skip and Close remain available. It replays from every page, works offline, writes no readings and preserves an existing handoff draft.
 - Avatar models are chosen by the crew member. A scan must preserve that choice through retakes, saves and rescans, fit proportions within it, and never present Female/Male as a camera classification. New members choose a model before saving.
-- Every scan is kept in the crew member's scan history (ratios only, no images). Deleting a scan requires confirmation and says what changes: the figure reverts to the previous body scan or the standard figure, and the linked thigh reading leaves the records. Fixed ghosts keep their snapshot.
+- Every scan is kept in the crew member's scan history with its recorded seconds (outline and measuring lines drawn on), on this device only. Deleting a scan requires confirmation and says what changes: the figure reverts to the previous body scan or the standard figure, and the linked thigh reading leaves the records. Fixed ghosts keep their snapshot.
 - Body and leg scans fill the window with large centered positioning instructions. Optional bundled speech, a countdown and a completion cue support use at camera distance; mute/replay controls remain on screen. Audio stays offline and the camera never requests microphone access.
 
 ## Brand Commitments
@@ -70,9 +71,9 @@ Your past self is the reference, not a population norm or a score. The body map 
 
 ## Product Principles
 
-### Current iteration: emergency and context-aware assessment
+### Current iteration: context-aware assessment
 
-Keep the central challenge loop—gather health indicators, understand/evaluate them, act—visible in every flow. Acute escalation is available on every page and never depends on a ghost. The supplied emergency package is an unreviewed hackathon demonstration; clinician review and mission approval are not available and must never be implied.
+Keep the central challenge loop—gather health indicators, understand/evaluate them, act—visible in every flow. A strong symptom never waits for a ghost: it goes first in Today's next step and its region shows Act now steps. There is no emergency workflow or follow-up scheduler in this iteration; the daily report and its handoff carry the next check.
 
 Preflight and explicitly established phase references are fixed snapshots, retained separately by crew and source. Record conditions, quality and per-metric timestamps. Unreliable comparisons ask for matching-condition repeats rather than appearing as concerning trends. Do not normalize deterioration automatically, or infer muscle loss from leg silhouette.
 

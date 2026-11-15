@@ -58,7 +58,7 @@ export function createDemo(): MissionState {
   });
   const headacheAt = new Date(Date.now() - 3600000).toISOString();
   for (const p of [alex, jordan]) { const last = checkIns.filter(r => r.crewId === p.id).at(-1)!; last.headache = 1; last.measurements.headache = { ...context, measuredAt: headacheAt, quality: 'good' }; }
-  return { demo: true, profile: alex, crew: [alex, jordan], crewId: alex.id, checkIns, references, actions: [], emergencies: [], cabinReadings: [{ id: 'demo-cabin', date: headacheAt, location: 'Habitat module · synthetic sensor', co2Ppm: 2400, temperatureC: 23, humidityPct: 43, source: 'simulated' }] };
+  return { demo: true, profile: alex, crew: [alex, jordan], crewId: alex.id, checkIns, references, actions: [], cabinReadings: [{ id: 'demo-cabin', date: headacheAt, location: 'Habitat module · synthetic sensor', co2Ppm: 2400, temperatureC: 23, humidityPct: 43, source: 'simulated' }] };
 }
 
 let dbPromise: Promise<IDBDatabase> | undefined;

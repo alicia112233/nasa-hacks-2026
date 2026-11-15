@@ -103,9 +103,9 @@ export default function MovementViewer(props: Props) {
     <details className="pose-replay" onToggle={e => setPoseOpen(e.currentTarget.open)}><summary>Estimated pose replay</summary><p className="muted">Pose tracking is an estimate. Trust the video above.</p>{poseOpen && <PoseMovementViewer {...props} hasBaseline={false}/>}</details>
   </div>;
   return <div className="movement-viewer">
-    <p className="comparison-note">Example movement, not a recording. Record your own to compare.</p>
+    <p className="comparison-note">Record your own movement to compare.</p>
     <PoseMovementViewer {...props}/>
-    <details className="technical-demo" onToggle={e => setTechnical(e.currentTarget.open)}><summary>Technical demo · public 4DGS model</summary><p className="muted">Public demo model, not crew data.</p>
+    <details className="technical-demo" onToggle={e => setTechnical(e.currentTarget.open)}><summary>4DGS model · public reference</summary><p className="muted">Public D-NeRF model.</p>
       {technical && <Suspense fallback={<section className="panel reconstruction-loading" role="status">Preparing the Gaussian splat viewer…</section>}><GaussianSequenceViewer active={props.active ?? true}/></Suspense>}
     </details>
   </div>;
@@ -253,7 +253,7 @@ function PoseMovementViewer({ onRecord, onEvidence, sol = 42, simulated, frames,
     <div className="movement-stage">
       <div ref={mount} className="three-mount" />
       {(failed || (!simulated && !frames?.length)) && <div className="webgl-fallback"><Move3d size={48}/><p>{failed ? '3D preview needs WebGL.' : 'No confident pose was detected.'}</p><span>{failed ? 'Your diary and check-ins are still available.' : 'Your original video is retained for review.'}</span></div>}
-      <div className="stage-top"><div className="stage-session"><span className="live-dot"/> SHOULDER MOBILITY <small>Sol {String(sol).padStart(3, '0')} · Standardized arm raise</small></div><span className="simulation-tag">{simulated ? 'SIMULATED SESSION' : frames?.length ? 'RECORDED POSE' : 'VIDEO ONLY'}</span></div>
+      <div className="stage-top"><div className="stage-session"><span className="live-dot"/> SHOULDER MOBILITY <small>Sol {String(sol).padStart(3, '0')} · Standardized arm raise</small></div><span className="simulation-tag">{simulated ? 'POSE REPLAY' : frames?.length ? 'RECORDED POSE' : 'VIDEO ONLY'}</span></div>
       <div className="viewer-tabs" role="group" aria-label="Comparison mode">{(['overlay', 'today', 'baseline'] as Mode[]).map(m => <button key={m} className={mode === m ? 'active' : ''} aria-pressed={mode === m} disabled={m === 'baseline' && !hasBaseline} onClick={() => setMode(m)}>{m === 'overlay' && <Layers3 size={13}/>} {m[0].toUpperCase() + m.slice(1)}</button>)}</div>
       <div className="ghost-annotation"><span className="annotation-line"/><span>Your ghost<small>{hasBaseline ? 'Retained phase reference' : 'No comparable phase reference'}</small></span></div>
       {hasBaseline && <button className="range-annotation" onClick={onEvidence}><span className="annotation-dot"/><span>Left arm range<strong>{Math.round((leftRange - baselineRange) / baselineRange * 100)}% <small>from baseline</small></strong></span></button>}
@@ -261,6 +261,6 @@ function PoseMovementViewer({ onRecord, onEvidence, sol = 42, simulated, frames,
       <div className="axis-label">Y ↑ <span>Z ↙</span> X →</div>
     </div>
     <div className="playback"><button className="play-button" aria-label={playing ? 'Pause playback' : 'Play movement'} onClick={() => setPlaying(!playing)}>{playing ? <Pause size={15} fill="currentColor"/> : <Play size={15} fill="currentColor"/>}</button><span className="time-label">00:{String(Math.floor(time)).padStart(2, '0')}</span><input aria-label="Movement timeline" type="range" min="0" max={duration} step="0.05" value={time} onChange={e => { setPlaying(false); setTime(Number(e.target.value)); }}/><span className="time-label">00:{String(Math.round(duration)).padStart(2, '0')}</span><button className="speed-button" onClick={() => setSpeed(speed === 1 ? .5 : speed === .5 ? 2 : 1)} aria-label={`${speed}\u00d7 playback speed; activate to change`}>{speed}× <ChevronDown size={12}/></button></div>
-    <div className="viewer-footer"><span><i className="legend-dot current"/> Today <i className="legend-dot ghost"/> Personal baseline</span><span>{simulated ? 'Illustrative 3D replay · not a 4DGS reconstruction' : 'Pose-driven replay · original video retained'}</span></div>
+    <div className="viewer-footer"><span><i className="legend-dot current"/> Today <i className="legend-dot ghost"/> Personal baseline</span><span>{simulated ? '3D pose replay' : 'Pose-driven replay · original video retained'}</span></div>
   </section>;
 }

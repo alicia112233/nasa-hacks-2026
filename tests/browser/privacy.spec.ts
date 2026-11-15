@@ -128,7 +128,7 @@ test('demo reports and movement views exclude personal recordings while personal
   await page.getByRole('button', { name: /^E Arms/ }).click();
   await page.getByRole('button', { name: /Shoulder range/ }).click();
   await page.getByRole('button', { name: 'Compare movement', exact: true }).click();
-  await expect(page.getByRole('dialog').getByText('Example movement, not a recording.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('Record your own movement to compare.', { exact: false })).toBeVisible();
   await expect(page.locator('.gaussian-stage')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await page.getByRole('link', { name: 'Mission', exact: true }).click();

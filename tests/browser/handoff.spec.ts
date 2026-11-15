@@ -20,7 +20,7 @@ test('blackout handoff persists, downloads the body index and never claims trans
   expect(packet.communication).toMatchObject({ blackoutDrill: true, transmitted: false });
   expect(packet.context).toBe('Vision blur since sol 41.');
   expect(packet.analysis.bodyIndex).toHaveLength(9);
-  expect(packet.analysis.bodyIndex.find((r: { region: string }) => r.region === 'Eyes').state).toBe('reported');
+  expect(packet.analysis.bodyIndex.find((r: { region: string }) => r.region === 'Eyes').state).toBe('flag');
   await expect(page.locator('.care-thread-head small')).toHaveText('Downloaded · blackout drill');
 });
 

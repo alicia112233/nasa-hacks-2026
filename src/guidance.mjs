@@ -22,15 +22,15 @@ export const HOW = {
   vision: 'Cover one eye, read small print at arm’s length, then switch.',
   heartRate: 'Rest 5 min. Count your wrist pulse for 30 s and double it.',
   breath: 'At rest, notice any breathlessness or effort to breathe.',
-  joint: 'After a spacewalk, check shoulders, elbows and knees for aching.',
+  joint: 'Check shoulders, elbows and knees for aching after a spacewalk; else tap No spacewalk.',
   appetite: 'Rate your appetite and how much of today’s meals you ate.',
   gut: 'Any nausea, cramps or loose stools today?',
   shoulder: 'Face the camera, raise both arms slowly, lower, repeat.',
   skin: 'Check hands, face and lips for rash or cold sores.',
   grip: 'Press each fingertip. Any pain or numbness after glove work?',
   back: 'Any back pain at rest, or when you bend or twist?',
-  exercise: 'Enter today’s total exercise minutes.',
-  legs: 'Stand back so your feet show, arms a little out. 5 s scan.',
+  exercise: 'Enter today’s total minutes on the treadmill, bike and weights.',
+  legs: 'Body scan: feet in view, arms a little out, hold still 5 s.',
 };
 
 /** Why each check matters in flight, in one line. @type {Record<string, string>} */
@@ -53,11 +53,21 @@ export const WHY = {
   skin: 'Immune changes in flight can reactivate viruses such as cold sores.',
   grip: 'Spacewalk gloves can injure fingertips and nails.',
   back: 'The spine lengthens in weightlessness, and back pain is common.',
-  exercise: 'Daily exercise is the main defence for bone and muscle.',
-  legs: 'Fluid shifts change leg outline. A narrower silhouette alone cannot establish muscle loss.',
+  exercise: 'Treadmill, bike and weights load the legs: the main defence for bone and muscle.',
+  legs: 'Thigh breadth tracks fluid shift and leg muscle; narrower alone isn’t muscle loss.',
 };
 
 export const LEVELS = { watch: 'Watch', tell: 'Tell surgeon', now: 'Act now' };
+/** General adult resting heart rate, 60–100 bpm (American Heart Association); under 50 is treated as low. */
+export const RESTING_HR = [60, 100];
+/** A vital sign clearly outside its range: today this is resting heart rate over 100 or under 50 bpm. */
+export const outOfRange = (check, value) => check.field === 'heartRate' && typeof value === 'number' && (value > RESTING_HR[1] || value < 50);
+/** Steps for an out-of-range vital, by value. */
+const VITAL = {
+  heartRate: v => v > RESTING_HR[1]
+    ? { level: 'tell', steps: [{ text: 'Rest 5 min, then take it again.', action: 'retake' }, { text: 'Still over 100 at rest? Hand it off.', action: 'handoff' }] }
+    : { level: 'tell', steps: [{ text: 'Sit still 5 min, then take it again.', action: 'retake' }, { text: 'Dizzy or faint? Hand it off now.', action: 'handoff' }] },
+};
 const RANK = { watch: 0, tell: 1, now: 2 };
 
 /** Steps for a trend against the ghost. action: retake | followup | handoff. */
@@ -122,6 +132,7 @@ export function nextSteps(items) {
   for (const i of items) {
     if (i.flagged && TREND[i.check.field]) plans.push({ ...TREND[i.check.field], checkId: i.check.id });
     else if (i.reported && SYMPTOM[i.check.field] && i.last > 0) plans.push({ ...SYMPTOM[i.check.field][Math.min(i.last, 2) - 1], checkId: i.check.id });
+    else if (i.reported && VITAL[i.check.field] && i.last != null) plans.push({ ...VITAL[i.check.field](i.last), checkId: i.check.id });
   }
   if (!plans.length) return null;
   plans.sort((a, b) => RANK[b.level] - RANK[a.level]);
@@ -129,9 +140,6 @@ export function nextSteps(items) {
   for (const p of plans) for (const s of p.steps) if (!seen.has(s.text) && steps.length < 3) { seen.add(s.text); steps.push({ ...s, checkId: p.checkId }); }
   return { level: plans[0].level, steps };
 }
-
-/** General adult resting heart rate, 60–100 bpm (American Heart Association). Outside it, rest and recheck. */
-export const RESTING_HR = [60, 100];
 
 /**
  * What a saved result means, in a few words: today's value against the ghost, and a plain warning when a value is

@@ -4,6 +4,7 @@ import { fillCarePlan } from './care-helpers';
 
 test('a sleep-only check-in keeps attention and shoulder comparisons consistent across views', async ({ page }) => {
   await page.goto('/#body');
+  await page.getByRole('button', { name: /^A Head/ }).click();
   await page.getByRole('button', { name: /Sleep quality/ }).click();
   await page.getByRole('group', { name: 'Sleep quality', exact: true }).getByRole('button', { name: /Good/ }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Response 18% slower than your ghost' })).toBeVisible();
@@ -47,5 +48,4 @@ test('the daily report shows the selected crew member’s own day', async ({ pag
   await page.getByRole('list', { name: 'Crew' }).getByRole('button', { name: /Jordan Lee/ }).click();
   await expect(report).toContainText('Jordan Lee');
   await expect(report).not.toContainText('Alex Morgan');
-  await expect(report.locator('.report-table')).toHaveCount(0);
 });

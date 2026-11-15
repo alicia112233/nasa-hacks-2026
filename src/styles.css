@@ -74,11 +74,13 @@ a { color: inherit; text-underline-offset: 3px; }
 .scan-history .ledger td:last-child { padding: 0; text-align: right; }
 .scan-history > .link { justify-self: start; }
 .scan-confirm { padding: 10px 12px; border: 3px solid var(--amber); }
-.demo-tag { background: var(--amber); color: var(--ink); font: 700 14px var(--cond); text-transform: uppercase; letter-spacing: .08em; padding: 4px 10px; }
+.scan-history .icon-btn[aria-pressed=true] { background: var(--ink); color: var(--stock); }
+.scan-history-clip { display: grid; gap: 6px; }
+.scan-history-clip video { width: 100%; max-height: 320px; background: var(--ink); object-fit: contain; }
+.scan-history-clip figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 500 14px var(--cond); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); }
 .offline { display: inline-flex; gap: 6px; align-items: center; color: var(--amber); }
 
 main { max-width: 1480px; margin: 0 auto; padding: var(--gap); outline: none; }
-.foot { margin-top: var(--gap); text-align: center; font: 500 14px var(--cond); letter-spacing: .08em; text-transform: uppercase; color: #e4e6e3; }
 
 /* Shared atoms */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 18px; border: var(--rule); font: 700 17px var(--cond); text-transform: uppercase; letter-spacing: .06em; background: transparent; white-space: nowrap; }
@@ -259,7 +261,7 @@ input[type=range] { accent-color: var(--ink); width: 100%; height: 32px; }
 .how-why dt { font: 700 14px var(--cond); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); }
 /* A saved result that is off for its kind: ink text behind an amber square, like other state marks. */
 .step .t small.off { color: var(--ink); }
-.step .t small.off::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 6px; background: var(--amber); }
+.step .t small.off::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 6px; background: var(--red); }
 .plan { display: flex; flex-wrap: wrap; gap: 8px; }
 .plan select, .plan input { width: auto; padding: 8px 10px; }
 .steps { list-style: none; border-bottom: var(--rule); }
@@ -417,7 +419,6 @@ li.instrument .box { background: var(--hatch), var(--stock); }
 .tour-coach { position: fixed; z-index: 45; width: min(380px, calc(100vw - 24px)); max-height: min(470px, calc(100dvh - 100px)); overflow: auto; background: var(--stock); border: var(--rule); box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
 .tour-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 4px 16px; background: var(--ink); color: var(--stock); }
 .tour-head h2 { flex: 1; font: 700 22px var(--cond); text-transform: uppercase; letter-spacing: .04em; }
-.tour-head .tour-emergency { font-size: 14px; }
 .tour-head .icon-btn { flex: none; color: var(--stock); }
 .tour-head .icon-btn:hover { border-color: var(--stock); }
 .tour-content { display: grid; gap: 12px; padding: 14px 16px 16px; }
@@ -526,7 +527,9 @@ li.instrument .box { background: var(--hatch), var(--stock); }
   .body-page { grid-template-columns: 1fr; }
   .index { position: relative; top: 0; height: auto; min-height: 0; max-height: none; grid-template-rows: auto auto auto; }
   .body-stage { height: 56vh; min-height: 340px; max-height: 560px; }
-  .page-grid, .page-grid.trends, .page-grid.report { grid-template-columns: 1fr; }
+  .page-grid, .page-grid.trends, .page-grid.report { grid-template-columns: minmax(0, 1fr); }
+  /* Stacked: Today comes first, so the day's rings and next step lead; a region card still follows the body. */
+  .body-page.today-first .procedure-stack { order: -1; }
 }
 @media (max-width: 640px) {
   :root { --gap: 12px; }
@@ -582,7 +585,7 @@ li.instrument .box { background: var(--hatch), var(--stock); }
   .box.done, .box.flag { forced-color-adjust: none; }
 }
 
-/* Keep the guide and emergency controls in reach beside the crew switch. */
+/* Keep the guide in reach beside the crew switch. */
 @media (max-width: 1200px) and (min-width: 641px) {
   .bar { gap: 12px; }
   .bar-meta { gap: 10px; }
@@ -598,8 +601,6 @@ li.instrument .box { background: var(--hatch), var(--stock); }
 }
 
 /* Operational controls use the same ink rules and paper as the crew cards. */
-.emergency-entry { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none; min-height: 44px; padding: 4px 10px; border: 1.5px solid var(--stock); color: var(--stock); font: 700 16px var(--cond); text-transform: uppercase; letter-spacing: .04em; }
-.emergency-entry:hover { background: var(--red); }
 .procedure-stack { display: grid; gap: 12px; min-width: 0; }
 .reference-panel summary, .cabin-review summary { cursor: pointer; min-height: 32px; font-weight: 600; }
 
@@ -646,7 +647,8 @@ button.ring:hover { background: var(--stock-2); border-color: var(--ink); }
 .back-today:hover { text-decoration: underline; text-underline-offset: 4px; }
 
 /* Report: the day's results, read in the app or printed, and one handoff beside it. */
-.page-grid.report { grid-template-columns: 7fr 5fr; }
+.page-grid.report { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+@media (max-width: 900px) { .page-grid.report { grid-template-columns: minmax(0, 1fr); } }
 .report-head p { margin-top: 6px; font-size: 15px; color: var(--ink-2); }
 .report-stats { display: grid; grid-template-columns: repeat(4, 1fr); border-block: var(--rule); }
 .report-stats div { padding: 10px 14px; border-left: 1px solid var(--stock-3); }
@@ -668,14 +670,16 @@ button.ring:hover { background: var(--stock-2); border-color: var(--ink); }
 .handoff-done { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .report-plan, .report-link { border-top: 1px solid var(--stock-3); padding-top: 4px; }
 .report-plan summary, .report-link summary { display: flex; align-items: center; min-height: 40px; cursor: pointer; font-weight: 600; }
-.report-plan[open], .report-link[open] { display: grid; gap: 12px; padding-bottom: 8px; }
+.report-section-body { display: grid; gap: 12px; padding-bottom: 8px; }
+.report-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.report-day select { min-height: 40px; padding: 4px 10px; border: var(--rule); background: var(--field-paper); font: 600 16px var(--cond); text-transform: uppercase; letter-spacing: .04em; }
 .trends-page { display: grid; gap: var(--gap); }
 
 /* Save as PDF prints the report alone, black on white. */
 @media print {
   @page { margin: 14mm; }
   body { background: #fff; }
-  .bar, .skip, .foot, .toast, .handoff-sheet, .tour-coach, .tour-masks, .tour-cover { display: none !important; }
+  .bar, .skip, .toast, .handoff-sheet, .report-day, .tour-coach, .tour-masks, .tour-cover { display: none !important; }
   main { max-width: none; padding: 0; }
   .page-grid.report { display: block; }
   .report-sheet { padding: 0; background: none; }
@@ -725,32 +729,18 @@ button.ring:hover { background: var(--stock-2); border-color: var(--ink); }
 .review-warning { border: 3px solid var(--amber); padding: 10px 14px; font-size: 14px; }
 .review-warning ol { padding-left: 20px; }
 .review-warning li + li { margin-top: 8px; }
-.emergency-meta { display: grid; gap: 4px; padding-bottom: 12px; }
-.emergency-meta span { color: var(--muted); font-size: 14px; }
-.emergency-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 24px; margin-top: 20px; }
-.emergency-step { display: grid; align-content: start; gap: 18px; }
-.emergency-step h3 { font: 700 30px/1.1 var(--cond); text-transform: uppercase; }
-.emergency-answers { display: grid; gap: 10px; }
-.emergency-answers .btn { white-space: normal; }
-.emergency-log { min-width: 0; border-left: var(--rule); padding-left: 20px; }
-.emergency-log h3 { font: 700 20px var(--cond); text-transform: uppercase; }
-.emergency-log ol { list-style: none; max-height: 240px; overflow-y: auto; margin-block: 12px; }
-.emergency-log li { display: grid; gap: 3px; border-top: 1px solid var(--stock-3); padding-block: 8px; overflow-wrap: anywhere; }
-.emergency-log time { font: 500 14px var(--cond); font-variant-numeric: tabular-nums; }
-.emergency-log .btn { width: 100%; white-space: normal; }
 @media (max-width: 1200px) {
   .bar { gap: 12px; }
   .bar-meta { gap: 10px; }
   .crew-switch-name { max-width: 10ch; }
 }
-@media (max-width: 900px) and (min-width: 641px) { .bar { gap: 8px; padding-inline: 16px; } .bar nav a { padding-inline: 7px; } .bar-meta { gap: 6px; } .brand { font-size: 20px; } .emergency-entry { padding-inline: 7px; } }
+@media (max-width: 900px) and (min-width: 641px) { .bar { gap: 8px; padding-inline: 16px; } .bar nav a { padding-inline: 7px; } .bar-meta { gap: 6px; } .brand { font-size: 20px; } }
 @media (max-width: 640px) {
   .bar { gap: 4px 8px; }
-  .emergency-entry { min-height: 40px; font-size: 14px; padding-inline: 7px; }
   .bar-meta { gap: 8px; }
   .bar-meta > .demo-tag, .bar-meta > span:not(.offline) { display: none; }
   .crew-switch-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .context-fields, .emergency-layout { grid-template-columns: 1fr; }
+  .context-fields { grid-template-columns: 1fr; }
   .today-alert { flex-wrap: wrap; }
   .today-alert p { flex-basis: 100%; }
   .today-next { grid-template-columns: auto minmax(0, 1fr); }
@@ -761,6 +751,5 @@ button.ring:hover { background: var(--stock-2); border-color: var(--ink); }
   .report-attention li { grid-template-columns: 1fr; gap: 4px; }
   .measurement-context { margin-left: 0; }
   .daily-action .btn { padding-inline: 12px; }
-  .emergency-log { border-left: 0; border-top: var(--rule); padding: 16px 0 0; }
   .ledger { font-size: 14px; }
 }

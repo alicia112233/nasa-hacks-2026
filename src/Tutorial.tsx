@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Play, Siren, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Play, X } from 'lucide-react';
 import type { Page } from './types';
 
 export const TUTORIAL_STORAGE_KEY = 'ghostpilot-tutorial-v1';
@@ -21,10 +21,9 @@ export type TourContext = { letter: string; label: string; state: string; check:
  * the region that stands out, a check inside it, and that check's trend.
  */
 export function buildTour(c: TourContext): TourStep[] {
-  const spot = c.state === 'flag' ? `Red means a reading in ${c.label} has drifted from your ghost. Amber means a reported symptom; hatching, not measured yet.`
-    : c.state === 'reported' ? `Amber means a symptom was reported in ${c.label}. Red means drift from your ghost; hatching, not measured yet.`
-    : 'Nothing has drifted yet. Red will mean drift from your ghost, amber a reported symptom, hatching not measured yet.';
-  const why = c.checkState === 'flag' ? `${c.check} is one reason ${c.label} is red. ` : c.checkState === 'reported' ? `${c.check} was reported here. ` : '';
+  const spot = c.state === 'flag' ? `Red means something in ${c.label} needs attention: a reading off your ghost, or a symptom you reported. Hatching means not measured yet.`
+    : 'Nothing needs attention yet. Red will mark a reading off your ghost or a symptom you report; hatching means not measured yet.';
+  const why = c.checkState !== 'none' ? `${c.check} is one reason ${c.label} is red. ` : '';
   return [
     { target: null, phase: null, page: 'body', title: 'Your first check, start to finish', body: 'GhostPilot compares you with your ghost: your own readings from earlier in the mission. Follow one reading from spotting a change to telling the medical team. About a minute; nothing is saved.' },
     { target: 'spot', phase: 0, page: 'body', title: c.state === 'clear' ? 'Pick a region' : 'Spot what changed', body: spot, goal: `Tap ${c.label}.` },
@@ -42,7 +41,6 @@ interface Props {
   onAdvance: () => void;
   onBack: () => void;
   onClose: () => void;
-  onEmergency: () => void;
 }
 type Rect = { left: number; top: number; width: number; height: number; viewportWidth: number; viewportHeight: number };
 const controls = 'button, a[href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])';
@@ -189,7 +187,7 @@ export default function Tutorial(props: Props) {
       <div className="tour-spotlight" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}/>
     </div> : <div className="tour-mask tour-cover" aria-hidden="true"/>}
     <section ref={panel} className={`tour-coach ${intro || complete ? 'centered' : ''}`} role="dialog" aria-modal="false" aria-labelledby="tour-title" style={{ left, top, maxHeight }}>
-      <header className="tour-head"><h2 id="tour-title">Tutorial</h2><button className="emergency-entry tour-emergency" onClick={props.onEmergency}><Siren size={16} aria-hidden="true"/>Emergency</button><button className="icon-btn" aria-label="Close tutorial" onClick={props.onClose}><X size={18}/></button></header>
+      <header className="tour-head"><h2 id="tour-title">Tutorial</h2><button className="icon-btn" aria-label="Close tutorial" onClick={props.onClose}><X size={18}/></button></header>
       <div className="tour-content">
         <ol className="tour-phases" aria-label="Tutorial progress">
           {TOUR_PHASES.map((name, index) => <li key={name} aria-current={index === phase ? 'step' : undefined} className={index < phase ? 'complete' : ''}><i aria-hidden="true"/>{name}</li>)}

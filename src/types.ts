@@ -57,12 +57,6 @@ export interface GhostReference {
   id: string; crewId?: string; simulated: boolean; phase: MissionPhase;
   establishedAt: string; reason: string; records: CheckIn[];
 }
-export interface EmergencyEvent { at: string; step: string; instruction: string; response: string; note: string }
-export interface EmergencyIncident {
-  id: string; crewId?: string; crewName: string; simulated: boolean; startedAt: string; endedAt?: string;
-  procedure: { id: string; version: string; title: string; review: { status: string; clinician: string | null; reviewedAt: string | null }; sources: { title: string; url: string }[]; steps: Record<string, { title: string; text: string; answers: string[] }> };
-  step: string; events: EmergencyEvent[]; equipment?: string; assistance?: string;
-}
 export interface CabinReading {
   id: string; date: string; location: string; co2Ppm: number; temperatureC?: number; humidityPct?: number;
   source: 'manual' | 'simulated';
@@ -146,7 +140,6 @@ export interface MissionState {
   demo: boolean;
   packets?: MissionPacket[];
   references?: GhostReference[];
-  emergencies?: EmergencyIncident[];
   cabinReadings?: CabinReading[];
   checkRuns?: CheckRun[];
   careUpdates?: CareUpdate[];

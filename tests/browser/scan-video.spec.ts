@@ -63,30 +63,34 @@ test('the scan keeps the profile model, refits a chosen model, and tracks the le
   await page.getByRole('dialog', { name: 'Edit profile' }).getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.getByRole('group', { name: 'Body shown' }).getByRole('button', { name: /^Sol \d+ 177 cm$/ })).toBeVisible();
 
-  // The same scan, run as the Legs check, measures thigh breadth for the ghost.
+  // The Legs check is the same body scan: it keeps the chosen model and records thigh breadth in centimetres.
   await page.getByRole('list', { name: 'Body regions' }).getByRole('button', { name: /^H Legs/ }).click();
-  await page.getByRole('button', { name: /Leg outline/ }).click();
+  await page.getByRole('button', { name: /Thigh breadth/ }).click();
   await page.getByRole('button', { name: 'Scan 5 s' }).click();
-  dialog = page.getByRole('dialog', { name: 'Leg outline · 5 s' });
-  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeVisible({ timeout: 90000 });
-  await expect(dialog.locator('.scan-value')).toHaveText(/^\d+(\.\d)? cm$/);
-  await expect(dialog.getByText(/None yet\. This outline is saved as a reading\./)).toBeVisible();
+  dialog = page.getByRole('dialog', { name: 'Body scan · 5 s' });
+  await expect(dialog.getByRole('button', { name: 'Use scan', exact: true })).toBeEnabled({ timeout: 90000 });
+  await expect(dialog.getByText(/^Thigh \d+(\.\d)? cm\. Saved to H Legs\.$/)).toBeVisible();
   await expect.poll(() => dialog.getByLabel('Recorded scan clip').evaluate((v: HTMLVideoElement) => v.videoWidth > 0)).toBe(true);
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Leg outline saved to your records' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Use scan', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: /Body scan saved · thigh \d/ })).toBeVisible();
 
   await page.locator('.crew-switch-btn').click();
   await page.getByRole('button', { name: 'Edit profile' }).click();
-  // Both scans are in the history; deleting the body scan asks first, and with only a leg outline left the figure goes back to standard.
+  // Both scans are in the history; deleting the newest asks first, and the figure goes back to the previous scan.
   const profile = page.getByRole('dialog', { name: 'Edit profile' });
   await expect(profile.getByRole('region', { name: 'Scan history' }).locator('tbody tr')).toHaveCount(2);
+  // Each saved scan keeps its recorded seconds on the device, and the history replays them.
+  await expect(profile.getByRole('button', { name: /^Play clip from/ })).toHaveCount(2);
+  await profile.getByRole('button', { name: /^Play clip from/ }).first().click();
+  await expect.poll(() => profile.locator('.scan-history-clip video').evaluate((v: HTMLVideoElement) => v.videoWidth)).toBeGreaterThan(0);
+  await profile.getByRole('button', { name: 'Close clip' }).click();
   await profile.getByRole('row').filter({ hasText: 'Shapes figure' }).getByRole('button', { name: /^Delete scan from/ }).click();
-  await expect(profile.getByRole('group', { name: 'Confirm scan deletion' })).toContainText('The figure goes back to the standard one.');
+  await expect(profile.getByRole('group', { name: 'Confirm scan deletion' })).toContainText('The figure goes back to your previous scan.');
   await profile.getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(profile.getByRole('region', { name: 'Scan history' }).locator('tbody tr')).toHaveCount(1);
   await profile.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Scan me' })).toBeVisible();
-  await expect(page.getByText('Standard figure · not scanned')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Rescan' })).toBeVisible();
+  await expect(page.getByText(/^Figure fitted to scan · /)).toBeVisible();
   expect(errors).toEqual([]);
 });
 

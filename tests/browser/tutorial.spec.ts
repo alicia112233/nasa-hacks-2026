@@ -136,19 +136,6 @@ test('replay on personal records preserves the current crew, source, page and un
   expect(await savedMission(page)).toBe(before);
 });
 
-test('emergency help is available during the tour and resumes after reload', async ({ page }) => {
-  await page.goto('/');
-  await advance(page, 0);
-  await advance(page, 1);
-  await guide(page).getByRole('button', { name: 'Emergency', exact: true }).click();
-  await expect(guide(page)).toHaveCount(0);
-  await expect(page.getByRole('dialog', { name: 'Emergency response', exact: true })).toBeVisible();
-  await expect(page.locator('main')).toHaveAttribute('inert', '');
-  await page.keyboard.press('Escape');
-  await page.reload();
-  await expect(page.getByRole('button', { name: 'Resume emergency', exact: true })).toBeVisible();
-});
-
 test('unavailable preference storage still allows skipping and replaying the tour', async ({ page }) => {
   await page.addInitScript(() => {
     const get = Storage.prototype.getItem, set = Storage.prototype.setItem;

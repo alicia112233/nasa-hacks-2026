@@ -33,16 +33,33 @@ test('regions carry every hazard and map to the meshes exported by Blender', asy
   for (const name of names) assert.ok(regionForMesh(name), `${name} has no region`);
 });
 
-test('region status separates flags, reported symptoms, completed and unmeasured regions', () => {
+test('region status marks every alert red, and separates completed and unmeasured regions', () => {
   const day = (i, extra = {}) => ({ id: `s${i}`, date: new Date(Date.UTC(2026, 0, 1 + i, 2)).toISOString(), sol: i, simulated: true, reactionMs: 300, missed: 0, signals: 10, sleep: 4, mood: 4, energy: 4, symptoms: [], notes: '', leftRange: 150, ...extra });
   const history = [0, 1, 2, 3, 4, 5].map(i => day(i));
   history.push(day(6, { reactionMs: 380, vision: 1, heartRate: 66, breath: 0, joint: 0 }), day(7, { reactionMs: 390 }), day(8, { reactionMs: 400, vision: 1 }));
   const recorded = documented(history);
   const status = regionStatuses(recorded, true, history.at(-1).date, referencesFor(recorded, 6));
   assert.equal(status.head.state, 'flag');
-  assert.equal(status.eyes.state, 'reported');
+  // A reported symptom is an alert too: the region turns red, and the item still says it was reported, not a trend.
+  assert.equal(status.eyes.state, 'flag');
+  assert.equal(status.eyes.items.find(i => i.check.id === 'vision').reported, true);
+  assert.equal(status.eyes.items.find(i => i.check.id === 'vision').flagged, false);
   assert.equal(status.cabin.state, 'instrument');
   assert.equal(status.abdomen.state, 'none');
   assert.equal(status.chest.state, 'due');
   assert.equal(regionStatuses(history, false).head.state, 'none');
+});
+
+test('a resting heart rate outside its range is an alert with its own steps', async () => {
+  const { nextSteps } = await import('../src/guidance.mjs');
+  const now = new Date().toISOString();
+  const entry = heartRate => [{ id: 'hr', crewId: 'a', simulated: false, date: now, sol: 1, reactionMs: null, missed: 0, signals: 0, symptoms: [], notes: '', heartRate, measurements: { heartRate: { measuredAt: now, quality: 'good' } } }];
+  for (const [rate, first] of [[108, /Rest 5 min/], [44, /Sit still/]]) {
+    const chest = regionStatuses(entry(rate), false, now).chest;
+    assert.equal(chest.state, 'flag', `${rate} bpm`);
+    const steps = nextSteps(chest.items);
+    assert.equal(steps.level, 'tell');
+    assert.match(steps.steps[0].text, first);
+  }
+  assert.notEqual(regionStatuses(entry(72), false, now).chest.state, 'flag');
 });

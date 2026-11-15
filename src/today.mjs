@@ -23,7 +23,7 @@ export function daySummary(statuses, ghost = {}) {
   // What needs attention, with the same urgency label and first step a region card gives that reading on its own.
   const attention = regions.flatMap(region => statuses[region.id].items.filter(i => i.flagged || i.reported).map(i => {
     const guide = nextSteps([i]);
-    return { region, check: i.check, label: i.flagged ? 'Trend' : guide ? LEVELS[guide.level] : 'Reported', urgent: guide?.level === 'now', step: guide?.steps[0]?.text ?? null };
+    return { region, check: i.check, label: i.flagged ? 'Alert' : guide ? LEVELS[guide.level] : 'Alert', urgent: guide?.level === 'now', step: guide?.steps[0]?.text ?? null };
   }));
   const notMeasured = regions.flatMap(region => region.checks.filter(c => c.kind === 'instrument').map(c => ({ region, check: c })));
   return { rows, physical, mental, attention, notMeasured, done: physical.done + mental.done, total: physical.total + mental.total };

@@ -1,47 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { analyze } from '../src/rules.mjs';
-import { createIncident, advanceIncident, emergencyHandoff, supportInstruction } from '../src/emergency.mjs';
 import { establishReference } from '../src/references.mjs';
 import { recommendChecks, crewHeadaches } from '../src/daily.mjs';
 import { documented, referencesFor } from './fixtures/references.mjs';
 
 const now = Date.parse('2026-11-15T10:00:00Z');
 const series = () => documented(Array.from({ length: 14 }, (_, i) => ({ id: `r-${i}`, crewId: 'crew-a', simulated: false, date: new Date(now - (14 - i) * 86400000).toISOString(), sol: i + 1, reactionMs: i < 11 ? 300 : 390, leftRange: i < 11 ? 150 : 120, thighCm: i < 11 ? 16 : 15, sleep: 4 })));
-
-test('a new crew member can run the offline emergency branch and generate a versioned handoff without history', () => {
-  let e = createIncident({ id: 'incident', crewId: 'new', crewName: 'New crew', simulated: true, now: new Date(now).toISOString() });
-  for (const response of ['Response activated', 'Unresponsive', 'Not breathing normally']) e = advanceIncident(e, response, 'Observation', new Date(now + e.events.length * 1000).toISOString());
-  assert.equal(e.step, 'urgent');
-  e = advanceIncident(e, 'Response underway', '', new Date(now + 4000).toISOString());
-  e = advanceIncident(e, 'No AED available', '', new Date(now + 5000).toISOString());
-  e = advanceIncident(e, 'No trained assistance present', 'Crew called', new Date(now + 6000).toISOString());
-  assert.match(supportInstruction(e), /without waiting/);
-  assert.match(supportInstruction(e), /Call for trained help/);
-  assert.equal(e.events.length, 6);
-  const packet = emergencyHandoff(e);
-  assert.equal(packet.transmitted, false);
-  assert.equal(packet.procedure.version, '0.1.0');
-  assert.equal(packet.procedure.review.clinician, null);
-  assert.match(packet.procedure.review.status, /review required/);
-  assert.ok(packet.events.every(v => v.at && v.instruction && v.response));
-  assert.throws(() => advanceIncident(e, 'Impossible answer', '', new Date(now).toISOString()), /Invalid/);
-});
-
-test('normal breathing follows observation, resources adapt, reassessment appends, and transfer closes the log', () => {
-  let e = createIncident({ id: 'i', crewId: 'a', crewName: 'A', simulated: false, now: new Date(now).toISOString() });
-  const step = response => { e = advanceIncident(e, response, '', new Date(now + e.events.length * 1000).toISOString()); };
-  step('Response activated'); step('Responsive'); step('Breathing normally');
-  assert.equal(e.step, 'assess');
-  step('Observation underway'); step('AED available'); step('Medical lead present');
-  assert.match(supportInstruction(e), /AED retrieval/);
-  step('Reassess responsiveness'); assert.equal(e.step, 'responsive');
-  step('Unresponsive'); step('Unsure'); assert.equal(e.step, 'urgent');
-  step('Response underway'); step('AED available'); step('Medical lead present'); step('Care transferred to medical lead');
-  assert.ok(e.endedAt);
-  assert.equal(emergencyHandoff(e).status, 'care transferred');
-  assert.throws(() => advanceIncident(e, 'Reassess responsiveness', '', new Date(now).toISOString()), /Invalid/);
-});
 
 test('matching fixed references allow trends; recording changes suppress a clinical-looking comparison', () => {
   const records = series(), refs = referencesFor(records);
@@ -100,7 +65,11 @@ test('recommendations prioritize quality, respect equipment and time, and escala
   assert.ok(recommendChecks({ ...options, camera: false }).every(r => !['shoulder', 'legs'].includes(r.checkId)));
   assert.ok(recommendChecks({ ...options, seconds: 5 }).every(r => r.seconds <= 5));
   const acute = [{ crewId: 'new', simulated: false, date: new Date(now).toISOString(), breath: 2 }];
-  assert.equal(recommendChecks({ checkIns: acute, simulated: false, now })[0].emergency, true);
+  // A strong symptom goes first, with what to do now, and opens its region's Act now steps.
+  const urgent = recommendChecks({ checkIns: acute, simulated: false, now })[0];
+  assert.equal(urgent.checkId, 'breath');
+  assert.equal(urgent.priority, 100);
+  assert.match(urgent.reason, /Tell a crewmate/);
 });
 
 test('crew headache prompt counts unique people in a bounded window, respects resolution and separates demo', () => {

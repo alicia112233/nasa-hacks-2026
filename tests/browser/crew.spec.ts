@@ -27,7 +27,7 @@ test('the top bar names who is shown on every page, and switching crew switches 
   await page.getByRole('list', { name: 'Crew' }).getByRole('button', { name: /Jordan Lee/ }).click();
   await expect(who).toContainText('Jordan Lee');
   await expect(page.getByRole('heading', { name: 'Today', level: 2 })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Physical:/ })).toContainText('Leg outline');
+  await expect(page.getByRole('button', { name: /^Physical:/ })).toContainText('Thigh breadth');
   await page.getByRole('button', { name: /^H Legs/ }).click();
   await expect(page.getByRole('heading', { name: 'Legs', level: 2 })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Thigh breadth 6% below your ghost' })).toBeVisible();

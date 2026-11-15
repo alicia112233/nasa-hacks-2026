@@ -4,22 +4,19 @@ import { hazards, risks, totalSeconds } from './body.mjs';
 import { formatDate } from './data';
 import { HOW, LEVELS, WHY, nextSteps, resultLine } from './guidance.mjs';
 import NasaData from './NasaData';
-import type { CheckIn, FollowUp, RegionId } from './types';
+import type { CheckIn, RegionId } from './types';
 
-type Check = { id: string; title: string; kind: string; field?: string; seconds?: number; unit?: string; options?: string[]; needs?: string; series?: 'dose' | 'air'; min?: number; max?: number; risks: string[] };
+type Check = { id: string; title: string; kind: string; field?: string; seconds?: number; unit?: string; options?: string[]; skip?: string; needs?: string; series?: 'dose' | 'air'; min?: number; max?: number; risks: string[] };
 type Item = { check: Check; value: number | null; last: number | null; done: boolean; flagged: boolean; reported: boolean; lastMeasuredAt?: string; comparison?: { state: string; reason: string; comparable: boolean } };
 interface Props {
   region: { id: RegionId; letter: string; label: string; checks: Check[]; risks: string[]; hazards: string[] };
   status: { state: string; items: Item[] };
   analysis: { baselineRecords: CheckIn[]; recent: CheckIn[]; current: Record<string, number | null>; baseline: Record<string, number | null>; attentionDelta: number | null; movementDelta: number | null; legDelta: number | null };
-  simulated: boolean;
-  actions: FollowUp[];
   onSave: (field: string, value: number) => void;
   onAttention: () => void;
   /** Open a camera check: 'shoulder' records movement, 'legs' runs the body scan. */
   onCamera: (checkId: string) => void;
   onMovement: () => void;
-  onFollowUp: (action: FollowUp) => void;
   /** Opens today's report, where the whole day is handed off at once. */
   onHandoff: () => void;
   /** Where to go once this region is done: the next region with checks left, or the report. */
@@ -28,17 +25,14 @@ interface Props {
   requestedCheck?: { id: string; nonce: number } | null;
   /** The check the tutorial points at, if it is running. */
   tourCheck?: string;
-  onEmergency: () => void;
   cabinContent?: ReactNode;
 }
 
-const followUps = ['Repeat this check tomorrow', 'Note it for the flight surgeon', 'Review the mission-approved procedure'];
 const fmt = (s: number) => s >= 60 ? `${Math.floor(s / 60)} MIN${s % 60 ? ` ${s % 60} S` : ''}` : `${s} S`;
 
-export default function ProcedureCard({ region, status, analysis, simulated, actions, onSave, onAttention, onCamera, onMovement, onFollowUp, onHandoff, requestedCheck, tourCheck, onEmergency, cabinContent, nextRegion, onRegion }: Props) {
+export default function ProcedureCard({ region, status, analysis, onSave, onAttention, onCamera, onMovement, onHandoff, requestedCheck, tourCheck, cabinContent, nextRegion, onRegion }: Props) {
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
-  const [plan, setPlan] = useState(false);
   const items = status.items;
   const ghost = analysis.baseline;
   // Actionable checks write a value; instrument and NASA-data rows stay outside the count.
@@ -51,7 +45,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
   const reported = items.filter(i => i.reported);
   const regionHazards = hazards.filter(h => region.hazards.includes(h.id));
   const regionRisks = risks.filter(r => region.risks.includes(r.id));
-  useEffect(() => { setOpen(null); setPlan(false); setDraft(''); }, [region.id]);
+  useEffect(() => { setOpen(null); setDraft(''); }, [region.id]);
   useEffect(() => { if (requestedCheck && region.checks.some(c => c.id === requestedCheck.id)) setOpen(requestedCheck.id); }, [requestedCheck, region]);
 
   function begin() {
@@ -86,8 +80,6 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
     else if (c.kind === 'camera') onCamera(c.id);
     else setOpen(c.id);
   }
-  const regionActions = actions.filter(a => a.kind === region.id && a.status === 'scheduled');
-  const followUp = (title: string, when: Date) => onFollowUp({ id: crypto.randomUUID(), title, kind: region.id as FollowUp['kind'], notes: '', checklist: [], createdAt: new Date().toISOString(), scheduledAt: when.toISOString(), status: 'scheduled', simulated });
   // Step numbers follow the actionable checks, so they match the count.
   let number = 0;
 
@@ -108,30 +100,19 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
         </div> : <span className="card-time">Reference</span>}
       </header>
 
-      {(flagged.length > 0 || reported.length > 0) && <div className={`note ${flagged.length || guide?.level === 'now' ? 'flag' : ''}`} role="status">
-        {/* Trends keep the red TREND label; reported symptoms show how urgent they are. Act now outranks both. */}
-        <b>{guide?.level === 'now' ? LEVELS.now : flagged.length ? 'Trend' : guide ? LEVELS[guide.level] : 'Reported'}</b>
+      {(flagged.length > 0 || reported.length > 0) && <div className="note flag" role="status">
+        {/* Every alert is red: off your ghost reads ALERT; a symptom or vital says how urgent it is. Act now outranks both. */}
+        <b>{guide?.level === 'now' ? LEVELS.now : flagged.length ? 'Alert' : guide ? LEVELS[guide.level] : 'Alert'}</b>
         <div>
-          <p>{flagged.length ? flagged.map(note).join(' ') : `Last report: ${reported.map(i => `${i.check.title.toLowerCase()} (${i.check.options?.[i.last ?? 0].toLowerCase()})`).join(', ')}.`}</p>
-          {guide?.level === 'now' && <button className="btn" onClick={onEmergency}>Open emergency response</button>}
-          {/* What to do, in order. Once the region is finished, the done panel below owns follow-up and hand off. */}
+          <p>{flagged.length ? flagged.map(note).join(' ') : `Last report: ${reported.map(i => i.check.options ? `${i.check.title.toLowerCase()} (${i.check.options[i.last ?? 0].toLowerCase()})` : `${i.check.title.toLowerCase()} ${i.last} ${i.check.unit ?? ''}`.trim()).join(', ')}.`}</p>
+          {/* What to do, in order. */}
           {guide && <ol className="next-steps" aria-label="What to do">
             {guide.steps.map(step => <li key={step.text}>
               <span>{step.text}</span>
               {step.action === 'retake' && <button className="link" onClick={() => retake(step.checkId)}>Retake</button>}
-              {step.action === 'followup' && !complete && (regionActions.length
-                ? <span className="muted">Follow-up set.</span>
-                : !plan && <button className="link" onClick={() => setPlan(true)}>Plan follow-up</button>)}
               {step.action === 'handoff' && !complete && <button className={guide.level === 'now' ? 'btn' : 'link'} onClick={onHandoff}>Hand off</button>}
             </li>)}
           </ol>}
-          {plan && !regionActions.length && <form className="plan" onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); followUp(String(f.get('action')), new Date(String(f.get('when')))); setPlan(false); }}>
-            <select name="action" aria-label="Follow-up">{followUps.map(a => <option key={a}>{a}</option>)}</select>
-            <input name="when" type="date" aria-label="Reassess on" required defaultValue={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}/>
-            <button className="btn">Save</button>
-          </form>}
-          {!guide && !complete && !regionActions.length && !plan && <button className="link" onClick={() => setPlan(true)}>Plan follow-up</button>}
-          {regionActions.length > 0 && !complete && <p className="muted">Follow-up set: {regionActions[0].title.toLowerCase()}.</p>}
         </div>
       </div>}
 
@@ -169,6 +150,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
                 <div><dt>Why</dt><dd>{WHY[c.id]}</dd></div>
               </dl>}
               {(c.kind === 'scale' || c.kind === 'symptom') && <div className="choices" role="group" aria-label={c.title}>
+                {c.skip && <button onClick={() => save(c, 0)}>{c.skip}</button>}
                 {c.options!.map((label, i) => { const v = c.kind === 'scale' ? i + 1 : i; return <button key={label} aria-pressed={item.value === v} onClick={() => save(c, v)}>{c.kind === 'scale' && <b>{v}</b>}{label}</button>; })}
               </div>}
               {c.kind === 'number' && <form className="number" onSubmit={e => { e.preventDefault(); const v = Number(draft); if (Number.isFinite(v) && v >= c.min! && v <= c.max!) save(c, Math.round(v)); }}>
@@ -197,7 +179,6 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
         <div>
           <p><b>{actionable.length === 1 ? 'Done.' : `All ${actionable.length} done.`}</b> {flagged.length || reported.length ? 'Added to today’s report.' : 'Nothing off.'}</p>
           <div className="row-actions">
-            {guide?.level === 'now' && <button className="btn" onClick={onEmergency}>Open emergency response</button>}
             {nextRegion ? <button className="btn primary" onClick={() => onRegion(nextRegion.id)}>Next: {nextRegion.letter} {nextRegion.label}<ArrowRight size={16} aria-hidden="true"/></button>
               : <button className="btn primary" onClick={onHandoff}>Open today’s report<ArrowRight size={16} aria-hidden="true"/></button>}
           </div>

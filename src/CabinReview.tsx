@@ -33,6 +33,6 @@ export default function CabinReview({ mission, onSave }: { mission: MissionState
       </form>{error && <p className="error" role="alert">{error}</p>}
     </details>
     <button className="btn" aria-expanded={procedure} onClick={() => setProcedure(!procedure)}>Air-quality steps</button>
-    {procedure && <div className="review-warning"><b>Example steps. Use your mission’s approved procedure.</b><ol><li>Tell the medical lead who has headaches, since when, and where.</li><li>Take fresh readings where they are, and check the sensor works.</li><li>Follow your air-quality procedure and its limits. Archived NASA data can’t tell you today’s exposure.</li><li>Log readings, actions and changes in the handoff. If anyone collapses or symptoms are severe, press Emergency.</li></ol></div>}
+    {procedure && <div className="review-warning"><b>Use your mission’s approved air-quality procedure.</b><ol><li>Tell the medical lead who has headaches, since when, and where.</li><li>Take fresh readings where they are, and check the sensor works.</li><li>Follow your air-quality procedure and its limits. Archived NASA data can’t tell you today’s exposure.</li><li>Log readings, actions and changes in the handoff. If anyone collapses or symptoms are severe, tell the medical lead now.</li></ol></div>}
   </section>;
 }
