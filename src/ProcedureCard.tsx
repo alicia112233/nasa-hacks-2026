@@ -4,6 +4,7 @@ import { hazards, risks, totalSeconds } from './body.mjs';
 import { formatDate } from './data';
 import { HOW, LEVELS, WHY, nextSteps, resultLine } from './guidance.mjs';
 import NasaData from './NasaData';
+import VisionTest from './VisionTest';
 import type { CheckIn, RegionId } from './types';
 
 type Check = { id: string; title: string; kind: string; field?: string; seconds?: number; unit?: string; options?: string[]; skip?: string; needs?: string; series?: 'dose' | 'air'; min?: number; max?: number; risks: string[] };
@@ -154,7 +155,8 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
                 <div><dt>How</dt><dd>{HOW[c.id]}</dd></div>
                 <div><dt>Why</dt><dd>{WHY[c.id]}</dd></div>
               </dl>}
-              {(c.kind === 'scale' || c.kind === 'symptom') && <div className="choices" role="group" aria-label={c.title}>
+              {c.id === 'vision' && <VisionTest onSave={v => save(c, v)}/>}
+              {(c.kind === 'scale' || c.kind === 'symptom') && c.id !== 'vision' && <div className="choices" role="group" aria-label={c.title}>
                 {c.skip && <button onClick={() => save(c, 0)}>{c.skip}</button>}
                 {c.options!.map((label, i) => { const v = c.kind === 'scale' ? i + 1 : i; return <button key={label} aria-pressed={item.value === v} onClick={() => save(c, v)}>{c.kind === 'scale' && <b>{v}</b>}{label}</button>; })}
               </div>}

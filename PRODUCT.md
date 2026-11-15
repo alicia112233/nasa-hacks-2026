@@ -42,7 +42,7 @@ Your past self is the reference, not a population norm or a score. The body map 
 ## Capabilities and Constraints
 
 - Checks today: a 60-second docking-signal attention task; self-reports of sleep quality, mood, energy, and symptoms; manual heart rate; a camera shoulder range-of-motion check (MediaPipe Pose, local, video stored on the device).
-- Adding: short self-checks for risks where self-report is meaningful (vision change, dizziness/coordination, pain, appetite/nutrition, skin/rash, teamwork). Risks that need instruments or labs (bone density, radiation dose, immune assays, decompression) are labeled "needs instrument".
+- Adding: short self-checks for risks where self-report is meaningful (vision change, read off a shrinking letter chart one eye at a time; dizziness/coordination, pain, appetite/nutrition, skin/rash, teamwork). Risks that need instruments or labs (bone density, radiation dose, immune assays, decompression) are labeled "needs instrument".
 - Trend rules are deterministic prototype thresholds (15% response time, 8% shoulder range, a 1-point sleep drop), not clinically validated.
 - One stream of records: the sample crew (four members with synthetic history) and members the crew add work the same way. With no ghost set, a member's earliest readings are the ghost, so comparisons work from the first week.
 - The trained 4DGS model (a public D-NeRF "Mutant" humanoid) is kept as a secondary technical view inside the movement check. It supplies no crew data.

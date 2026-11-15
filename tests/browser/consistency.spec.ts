@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { fillCarePlan } from './care-helpers';
+import { ALL_CLEAR, eyeTest } from './eye-helpers';
 
 test('a sleep-only check-in keeps attention and shoulder comparisons consistent across views', async ({ page }) => {
   await page.goto('/#body');
@@ -39,7 +40,7 @@ test('the daily report shows the selected crew member’s own day', async ({ pag
   await page.goto('/#body');
   await page.getByRole('list', { name: 'Body regions' }).getByRole('button', { name: /^B Eyes/ }).click();
   await page.getByRole('button', { name: 'Begin', exact: true }).click();
-  await page.getByRole('group', { name: 'Blurred or changed vision' }).getByRole('button', { name: 'None', exact: true }).click();
+  await eyeTest(page, ALL_CLEAR, ALL_CLEAR);
   await page.getByRole('link', { name: 'Report', exact: true }).click();
   const report = page.locator('.report-sheet');
   await expect(report).toContainText('Alex Morgan');

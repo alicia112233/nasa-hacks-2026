@@ -19,7 +19,7 @@ export const HOW = {
   dizziness: 'Hold still with eyes open for 10 s. Any spinning or unsteadiness?',
   workload: 'Rate whether today’s tasks fit the time you have.',
   team: 'Rate how well the crew worked together today.',
-  vision: 'Cover one eye, read small print at arm’s length, then switch.',
+  vision: 'At arm’s length, read each line until it blurs, one eye at a time.',
   heartRate: 'Rest 5 min. Count your wrist pulse for 30 s and double it.',
   breath: 'At rest, notice any breathlessness or effort to breathe.',
   joint: 'Check shoulders, elbows and knees for aching after a spacewalk; else tap No spacewalk.',

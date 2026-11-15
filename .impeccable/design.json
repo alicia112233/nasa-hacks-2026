@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-15T09:51:02.144952+00:00",
+  "generatedAt": "2026-11-15T10:54:20.136198+00:00",
   "title": "Design System: GhostPilot",
   "extensions": {
     "colorMeta": {
@@ -473,9 +473,9 @@
       "name": "Today Ring",
       "kind": "custom",
       "refersTo": "complete",
-      "description": "One ring per area (Physical, Mental): a segment per check today, Complete Green done, red alert, amber next, Stock 3 to do; the count in the middle.",
-      "html": "<button class=\"ds-ring\" type=\"button\"><svg viewBox=\"0 0 120 120\" aria-hidden=\"true\"><path class=\"ds-seg ds-done\" d=\"M60 10 A50 50 0 0 1 103.3 35\"/><path class=\"ds-seg ds-alert\" d=\"M104.4 37 A50 50 0 0 1 104.4 83\"/><path class=\"ds-seg ds-next\" d=\"M103.3 85 A50 50 0 0 1 60 110\"/><path class=\"ds-seg\" d=\"M57.4 110 A50 50 0 0 1 16.7 85\"/><path class=\"ds-seg\" d=\"M15.6 83 A50 50 0 0 1 57.4 10\"/></svg><span class=\"ds-ring-figure\"><b>2</b><small>/6</small></span><span class=\"ds-ring-name\">Mental</span></button>",
-      "css": ".ds-ring { position: relative; display: grid; justify-items: center; gap: 6px; padding: 12px; width: 180px; background: none; border: 1.5px solid transparent; border-radius: 3px; cursor: pointer; } .ds-ring:hover { background: var(--stock-2, #ebe6d8); border-color: var(--ink, #111); } .ds-ring:focus-visible { outline: 3px solid var(--amber, #e0a100); outline-offset: 2px; } .ds-ring svg { width: 150px; height: 150px; } .ds-seg { fill: none; stroke-width: 13; stroke: var(--stock-3, #ddd6c4); } .ds-done { stroke: var(--complete, #3a7d2c); } .ds-alert { stroke: var(--red, #c8102e); } .ds-next { stroke: var(--amber, #e0a100); } .ds-ring-figure { position: absolute; top: 12px; left: 0; right: 0; height: 150px; display: grid; grid-auto-flow: column; place-content: center; align-items: baseline; font-variant-numeric: tabular-nums; } .ds-ring-figure b { font: 700 46px/1 'Barlow Condensed', sans-serif; } .ds-ring-figure small { font: 600 20px 'Barlow Condensed', sans-serif; color: var(--ink-2, #33322f); } .ds-ring-name { font: 700 18px 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .08em; }"
+      "description": "One ring per area (Physical, Mental): a Stock 3 track with one continuous Complete Green arc for the share of today's checks done, from 12 o'clock clockwise; the count in the middle.",
+      "html": "<button class=\"ds-ring\" type=\"button\"><svg viewBox=\"0 0 120 120\" aria-hidden=\"true\"><circle class=\"ds-ring-track\" cx=\"60\" cy=\"60\" r=\"50\"/><circle class=\"ds-ring-fill\" cx=\"60\" cy=\"60\" r=\"50\" transform=\"rotate(-90 60 60)\" stroke-dasharray=\"314.16\" stroke-dashoffset=\"209.44\"/></svg><span class=\"ds-ring-figure\"><b>2</b><small>/6</small></span><span class=\"ds-ring-name\">Mental</span></button>",
+      "css": ".ds-ring { position: relative; display: grid; justify-items: center; gap: 6px; padding: 12px; width: 180px; background: none; border: 1.5px solid transparent; border-radius: 3px; cursor: pointer; } .ds-ring:hover { background: var(--stock-2, #ebe6d8); border-color: var(--ink, #111); } .ds-ring:focus-visible { outline: 3px solid var(--amber, #e0a100); outline-offset: 2px; } .ds-ring svg { width: 150px; height: 150px; } .ds-ring-track { fill: none; stroke-width: 13; stroke: var(--stock-3, #ddd6c4); } .ds-ring-fill { fill: none; stroke-width: 13; stroke: var(--complete, #3a7d2c); transition: stroke-dashoffset .9s cubic-bezier(.16, 1, .3, 1); } .ds-ring-figure { position: absolute; top: 12px; left: 0; right: 0; height: 150px; display: grid; grid-auto-flow: column; place-content: center; align-items: baseline; font-variant-numeric: tabular-nums; } .ds-ring-figure b { font: 700 46px/1 'Barlow Condensed', sans-serif; } .ds-ring-figure small { font: 600 20px 'Barlow Condensed', sans-serif; color: var(--ink-2, #33322f); } .ds-ring-name { font: 700 18px 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .08em; }"
     },
     {
       "name": "Alert Note",

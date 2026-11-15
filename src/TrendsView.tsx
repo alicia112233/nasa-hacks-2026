@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { analyze } from './rules.mjs';
 import { formatDate } from './data';
 import { phases } from './references.mjs';
@@ -42,7 +42,16 @@ export default function TrendsView({ checkIns, simulated, references, tourMetric
     return { ...m, ghost, now, change, worse, comparison };
   });
   const active = rows.find(r => r.key === key)!;
-  const data = analysis.records.map((c: CheckIn) => ({ sol: c.sol, value: c[key] ?? null }));
+  const data: { sol: number; value: number | null }[] = analysis.records.map((c: CheckIn) => ({ sol: c.sol, value: (c[key] as number | undefined) ?? null }));
+  // The text names exactly what the chart shades: the ghost's sols and the last 3 readings, with their values.
+  const c = active.comparison as typeof active.comparison & { auto?: boolean; ghostSols?: [number, number] | null; recentSols?: [number, number] | null };
+  const sols = (span?: [number, number] | null) => !span ? '' : span[0] === span[1] ? `S${span[0]}` : `S${span[0]}–S${span[1]}`;
+  const ghostWhen = c.ghostSols && c.ghostSols[1] === 0 ? 'preflight' : sols(c.ghostSols);
+  const onChart = (span?: [number, number] | null) => !!span && span[1] > 0 && data.some(d => d.sol === span[0]) && data.some(d => d.sol === span[1]);
+  const rating = active.unit === '/5';
+  const summary = active.comparison.comparable && active.now != null && active.ghost != null
+    ? `Last 3 readings (${sols(c.recentSols)}): ${show(active.now, active.unit)}. Ghost (${ghostWhen}): ${show(active.ghost, active.unit)}.${active.change != null ? ` Change ${active.change > 0 ? '+' : ''}${active.change}%.` : ''}`
+    : active.comparison.reason;
 
   return <div className="page-grid trends">
     <section className="sheet">
@@ -56,20 +65,22 @@ export default function TrendsView({ checkIns, simulated, references, tourMetric
           <td>{r.comparison.state === 'unreliable' ? 'Unreliable' : !r.comparison.comparable ? 'Need readings' : r.change != null ? `${r.change > 0 ? '+' : ''}${r.change}%` : '—'}</td>
         </tr>)}</tbody>
       </table>
-      <p className="muted">Ghost = your earlier steady readings. Last 3 = your latest.</p>
+      <p className="muted">Last 3 and Ghost are medians: your latest 3 readings, and your earlier steady readings.</p>
     </section>
     <section className="sheet">
       <div className="trend-focus" data-tour={tourMetric ? 'trend-chart' : undefined}>
       <h2>{active.label} <small>{active.unit}</small></h2>
-      <div className="comparison-note" role="status"><b>{active.comparison.state === 'unreliable' ? 'Comparison unreliable' : active.worse ? 'Alert' : active.comparison.comparable ? 'No alert' : 'More readings needed'}</b><p>{active.comparison.reason}</p><p className="muted">{(active.comparison as { auto?: boolean }).auto ? 'Ghost from your earliest readings.' : `Ghost from ${phases[active.comparison.phase as keyof typeof phases].toLowerCase()}.`}{active.key === 'thighCm' && ' Fluid shifts also thin the legs, so a narrower outline alone doesn’t mean muscle loss.'}</p></div>
-      <div className="chart tall" role="img" aria-label={`${active.label} by sol with ghost line`}>
+      <div className="comparison-note" role="status"><b>{active.comparison.state === 'unreliable' ? 'Comparison unreliable' : active.worse ? 'Alert' : active.comparison.comparable ? 'No alert' : 'More readings needed'}</b><p>{summary}</p><p className="muted">{active.comparison.comparable ? `Both are shaded on the chart; each value is the median of its readings. ${c.auto ? 'Ghost: your earliest readings.' : `Ghost: ${phases[active.comparison.phase as keyof typeof phases].toLowerCase()}.`}` : ''}{active.key === 'thighCm' && ' Fluid shifts also thin the legs, so a narrower outline alone doesn’t mean muscle loss.'}</p></div>
+      <div className="chart tall" role="img" aria-label={`${active.label} by sol. ${summary}`}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 12, left: -8, bottom: 0 }}>
             <CartesianGrid stroke="#d9d3c3" vertical={false}/>
             <XAxis dataKey="sol" tick={axis} stroke="#111" tickFormatter={s => `S${s}`}/>
-            <YAxis tick={axis} stroke="#111" width={44} domain={['auto', 'auto']}/>
+            <YAxis tick={axis} stroke="#111" width={44} domain={rating ? [1, 5] : ['auto', 'auto']} ticks={rating ? [1, 2, 3, 4, 5] : undefined} allowDecimals={!rating && active.unit === 'cm'}/>
+            {onChart(c.ghostSols) && <ReferenceArea x1={c.ghostSols![0]} x2={c.ghostSols![1]} fill="#d9d3c3" fillOpacity={0.45} ifOverflow="extendDomain" label={{ value: 'Ghost', position: 'insideTopLeft', fill: '#3b3a37', fontSize: 12 }}/>}
+            {onChart(c.recentSols) && <ReferenceArea x1={c.recentSols![0]} x2={c.recentSols![1]} fill="#f4e3b2" fillOpacity={0.8} ifOverflow="extendDomain" label={{ value: 'Last 3', position: 'insideTopRight', fill: '#3b3a37', fontSize: 12 }}/>}
             <Tooltip contentStyle={{ background: '#f4f1e8', border: '1.5px solid #111', borderRadius: 0, fontFamily: 'Barlow' }} labelFormatter={s => `Sol ${s}`}/>
-            {active.ghost != null && <ReferenceLine y={active.ghost} stroke="#7a7466" strokeDasharray="5 4" label={{ value: 'Ghost', position: 'insideTopLeft', fill: '#3b3a37', fontSize: 12 }}/>}
+            {active.ghost != null && <ReferenceLine y={active.ghost} stroke="#7a7466" strokeDasharray="5 4" label={{ value: `Ghost ${show(active.ghost, active.unit)}`, position: 'insideBottomRight', fill: '#3b3a37', fontSize: 12 }}/>}
             <Line dataKey="value" name={active.label} stroke={active.worse ? '#c8102e' : '#111'} strokeWidth={2} dot={{ r: 3, fill: '#f4f1e8' }} connectNulls isAnimationActive={false}/>
           </LineChart>
         </ResponsiveContainer>

@@ -32,7 +32,9 @@ export function analyze(checkIns, simulated, references = []) {
     const validBases = bases.filter(r => !comparisonIssue(r, base, key));
     const validRecent = latestValues.filter(r => !comparisonIssue(r, base, key));
     const comparable = !issue && validBases.length >= 3 && latestValues.length === 3 && validRecent.length === 3;
+    const span = list => list.length ? [Math.min(...list.map(r => r.sol)), Math.max(...list.map(r => r.sol))] : null;
     return [key, { referenceId: ref?.id ?? null, auto: !ref, phase: ref?.phase ?? 'unknown', referenceCount: bases.length, recentCount: latestValues.length,
+      ghostSols: span(ref && validBases.length ? validBases : bases), recentSols: span(latestValues),
       baseline: median((ref && validBases.length ? validBases : bases).map(r => r[key])), current: median(latestValues.map(r => r[key])), lastMeasuredAt: last ? measuredAt(last, key) : null,
       state: !last ? 'missing' : issue ? 'unreliable' : comparable ? 'comparable' : 'insufficient',
       reason: !last ? 'Not measured yet.' : issue ?? (comparable ? 'Your last 3 readings against your ghost.' : 'Needs 3 earlier and 3 newer readings.'), comparable }];

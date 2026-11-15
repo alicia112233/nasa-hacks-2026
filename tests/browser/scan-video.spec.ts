@@ -116,6 +116,8 @@ test('a new crew member chooses a model before saving, and Female survives retak
   await expect(models.getByRole('button', { name: 'Female', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(dialog.getByText('Your figure · Female · Slight', { exact: true })).toBeVisible();
   await save.click();
+  await expect(page.getByRole('button', { name: 'Rescan', exact: true })).toBeVisible();
+  await page.waitForTimeout(400); // let the IndexedDB write settle before reloading
   await page.reload();
   await page.locator('.crew-switch-btn').click();
   await page.getByRole('button', { name: 'Edit profile', exact: true }).click();

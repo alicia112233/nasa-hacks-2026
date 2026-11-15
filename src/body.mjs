@@ -50,7 +50,7 @@ export const checks = [
   { id: 'headache', region: 'head', title: 'Headache', seconds: 5, kind: 'symptom', field: 'headache', options: SYMPTOM, risks: ['hypoxia'] },
   { id: 'workload', region: 'head', title: 'Workload is manageable', seconds: 5, kind: 'scale', field: 'workload', options: SCALE, risks: ['support'] },
   { id: 'team', region: 'head', title: 'Crew working well together', seconds: 5, kind: 'scale', field: 'team', options: SCALE, risks: ['teamwork'] },
-  { id: 'vision', region: 'eyes', title: 'Blurred or changed vision', seconds: 5, kind: 'symptom', field: 'vision', options: SYMPTOM, risks: ['sans'] },
+  { id: 'vision', region: 'eyes', title: 'Blurred or changed vision', seconds: 30, kind: 'symptom', field: 'vision', options: SYMPTOM, risks: ['sans'] },
   { id: 'oct', region: 'eyes', title: 'Eye imaging (OCT)', kind: 'instrument', needs: 'Needs OCT imager', risks: ['sans'] },
   { id: 'heartRate', region: 'chest', title: 'Resting heart rate', seconds: 20, kind: 'number', field: 'heartRate', unit: 'bpm', min: 30, max: 220, risks: ['cardiovascular'] },
   { id: 'breath', region: 'chest', title: 'Short of breath', seconds: 5, kind: 'symptom', field: 'breath', options: SYMPTOM, risks: ['hypoxia', 'cardiovascular'] },

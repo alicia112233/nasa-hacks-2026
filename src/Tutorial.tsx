@@ -29,7 +29,7 @@ export function buildTour(c: TourContext): TourStep[] {
     { target: 'spot', phase: 0, page: 'body', title: c.state === 'clear' ? 'Pick a region' : 'Spot what changed', body: spot, goal: `Tap ${c.label}.` },
     { target: 'check', phase: 1, page: 'body', title: 'Learn the check', body: `${why}Every check opens with how to take it and why it matters.`, goal: `Tap ${c.check}.` },
     { target: 'trends', phase: 2, page: 'body', title: 'Is it getting worse?', body: 'One reading can be noise. Trends plots every reading against your ghost.', goal: 'Tap Trends.' },
-    { target: 'trend-chart', phase: 2, page: 'trends', look: true, title: 'Read the trend', body: `This is ${c.metric} over the mission. The dashed line is your ghost. Several readings in a row away from it make a trend; one odd point does not.` },
+    { target: 'trend-chart', phase: 2, page: 'trends', look: true, title: 'Read the trend', body: `This is ${c.metric} over the mission. The grey band is your ghost and the dashed line its value; the last 3 readings are shaded on the right. When they sit away from the line, that’s an alert.` },
     { target: 'report', phase: 3, page: 'trends', title: 'Act on it', body: 'Every check lands in today’s report. Hand it off to the medical team once, at the end of the day.', goal: 'Tap Report.' },
   ];
 }

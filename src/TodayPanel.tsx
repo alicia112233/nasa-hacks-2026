@@ -1,3 +1,4 @@
+import type React from 'react';
 import { ArrowRight, Play } from 'lucide-react';
 import { recommendChecks } from './daily.mjs';
 import type { MissionState, RegionId } from './types';
@@ -7,24 +8,20 @@ type Row = { region: { id: string; letter: string; label: string }; check: { id:
 type Side = { rows: Row[]; done: number; total: number; trends: string[]; reported: string[]; next: Row | null };
 export type DaySummary = { physical: Side; mental: Side; done: number; total: number; attention: unknown[] };
 
-const TAU = Math.PI * 2;
-/** One arc of the ring, clockwise from 12 o'clock, leaving a 2px gap of card stock between checks. */
-function arc(i: number, n: number, r = 50) {
-  const gap = n > 1 ? 2.6 / r : 0, step = TAU / n;
-  const a0 = -Math.PI / 2 + i * step + gap / 2, a1 = a0 + step - gap;
-  const at = (a: number) => `${(60 + r * Math.cos(a)).toFixed(2)} ${(60 + r * Math.sin(a)).toFixed(2)}`;
-  return n === 1 ? `M60 10 A50 50 0 1 1 59.99 10` : `M${at(a0)} A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${at(a1)}`;
-}
+/** The ring's circumference: the fill is drawn as a dash of the done share, from 12 o'clock clockwise. */
+const C = 2 * Math.PI * 50;
 
-/** A ring of today's checks in one area: a segment per check, green when done, red for an alert, amber for the next. */
+/** A ring of today's checks in one area: it fills up in green as checks are done; alerts are named under it. */
 function Ring({ name, side, onStart }: { name: string; side: Side; onStart: (row: Row) => void }) {
   const alerts = [...new Set([...side.trends, ...side.reported])];
   const status = alerts.length ? `${alerts.length === 1 ? 'Alert' : `${alerts.length} alerts`}: ${alerts.join(', ')}` : side.done === side.total ? 'All done' : side.done ? 'Nothing off so far' : 'Not started';
+  const offset = C * (1 - (side.total ? side.done / side.total : 0));
   const body = <>
     <span className="sr">{name}: </span>
     <span className="ring-art">
       <svg viewBox="0 0 120 120" aria-hidden="true">
-        {side.rows.map((row, i) => <path key={row.check.id} d={arc(i, side.rows.length)} className={`seg ${row === side.next ? 'next' : row.state}`} style={{ animationDelay: `${i * 45}ms` }}><title>{`${row.check.title}: ${row.state === 'todo' ? 'to do' : row.state === 'off' ? 'alert' : 'done'}`}</title></path>)}
+        <circle className="ring-track" cx="60" cy="60" r="50"/>
+        {side.done > 0 && <circle className="ring-fill" cx="60" cy="60" r="50" transform="rotate(-90 60 60)" strokeDasharray={C} strokeDashoffset={offset} style={{ '--ring-c': C } as React.CSSProperties}/>}
       </svg>
       <span className="ring-figure"><b>{side.done}</b><small>/{side.total}</small><span className="sr"> checks done today.</span></span>
     </span>
@@ -58,7 +55,6 @@ export default function TodayPanel({ mission, summary, sol, headaches, onStart, 
       <Ring name="Physical" side={summary.physical} onStart={start}/>
       <Ring name="Mental" side={summary.mental} onStart={start}/>
     </div>
-    <p className="ring-key" aria-hidden="true"><span><i className="done"/>Done</span><span><i className="off"/>Alert</span><span><i className="next"/>Next</span><span><i className="todo"/>To do</span></p>
     {next ? <div className="today-next">
       <span className="today-next-label">Next</span>
       <div><b>{next.title}</b>{(next.priority ?? 0) >= 70 && <p>{next.reason}</p>}</div>

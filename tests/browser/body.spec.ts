@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { freshMember } from './crew-helpers';
+import { ALL_CLEAR, eyeTest } from './eye-helpers';
 
 /** A crew member with nothing recorded yet. */
 const personal = (page: Page) => freshMember(page);
@@ -40,7 +41,8 @@ test('a personal self-check saves to today, marks the region and survives reload
   await personal(page);
   await page.getByRole('button', { name: /^B Eyes/ }).click();
   await page.getByRole('button', { name: 'Begin' }).click();
-  await page.getByRole('group', { name: 'Blurred or changed vision' }).getByRole('button', { name: 'Mild' }).click();
+  // Left eye clear to the end; right eye blurs at line 4: a mild change.
+  await eyeTest(page, ALL_CLEAR, ['Clear', 'Clear', 'Clear', 'Blurry', 'Blurry', 'Blurry']);
   await expect(page.getByRole('status').filter({ hasText: 'blurred or changed vision (mild)' })).toBeVisible();
   // Eyes has one self-check (OCT needs an imager), so it is finished: the done panel points at the next region.
   const done = page.getByRole('status', { name: 'Eyes complete' });
