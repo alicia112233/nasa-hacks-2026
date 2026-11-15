@@ -1,0 +1,136 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>GhostPilot slides</title>
+<style>
+@font-face{font-family:'BC';font-weight:700;src:url('file:///c:/Users/alici/Downloads/nasa-hacks/node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-700-normal.woff2') format('woff2')}
+@font-face{font-family:'BC';font-weight:500;src:url('file:///c:/Users/alici/Downloads/nasa-hacks/node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-500-normal.woff2') format('woff2')}
+@font-face{font-family:'B';font-weight:500;src:url('file:///c:/Users/alici/Downloads/nasa-hacks/node_modules/@fontsource/barlow/files/barlow-latin-500-normal.woff2') format('woff2')}
+@font-face{font-family:'B';font-weight:600;src:url('file:///c:/Users/alici/Downloads/nasa-hacks/node_modules/@fontsource/barlow/files/barlow-latin-600-normal.woff2') format('woff2')}
+:root{--binder:#5b6770;--stock:#f4f1e8;--stock2:#ebe6d8;--stock3:#ddd6c4;--ink:#111;--ink2:#33322f;--muted:#55534d;--amber:#e0a100;--red:#c8102e;--green:#3a7d2c;
+--rad:#8e2a8b;--iso:#2e6f9e;--dist:#1f7a5c;--grav:#9c5419;--hab:#0f7c86}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--binder)}
+.slide{position:absolute;inset:0;display:none;background:var(--binder);padding:56px}
+.slide.on{display:block}
+.sheet{position:absolute;inset:56px;background:var(--stock);border-radius:3px;overflow:hidden;box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.bar{position:absolute;left:0;right:0;top:0;height:64px;background:var(--ink);color:var(--stock);display:flex;align-items:center;padding:0 40px;font:700 26px 'BC';letter-spacing:.08em}
+.bar .n{margin-left:auto;font-weight:500;color:#bdb6a4;letter-spacing:.1em}
+.bar .tag{background:var(--red);color:var(--stock);padding:4px 12px;margin-left:20px;font-size:20px}
+.k{font:700 24px 'BC';letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 150px/0.9 'BC';letter-spacing:.005em;text-transform:uppercase;color:var(--ink)}
+h2{font:700 118px/0.92 'BC';text-transform:uppercase;color:var(--ink)}
+.red{color:var(--red)}
+.body{position:absolute;left:72px;right:72px;top:120px;bottom:60px}
+.foot{position:absolute;left:72px;right:72px;bottom:44px;font:500 26px 'B';color:var(--ink2)}
+.fig{font:700 150px/0.85 'BC';font-feature-settings:'tnum';color:var(--ink)}
+.figl{font:700 28px 'BC';letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin-top:14px}
+.chip{display:inline-flex;align-items:center;gap:12px;font:700 30px 'BC';letter-spacing:.08em;text-transform:uppercase;margin-right:34px}
+.chip i{width:26px;height:26px;display:inline-block}
+.shot{border:2px solid var(--ink);background:#fff;overflow:hidden}
+.shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:top left}
+.letter{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;background:var(--ink);color:var(--stock);font:700 40px 'BC'}
+.letter.r{background:var(--red)}
+</style></head><body>
+
+<!-- 1 TITLE -->
+<section class="slide" id="s1"><div class="sheet">
+  <div class="bar">GHOSTPILOT<span class="tag">NASA SPACE APPS 2026</span><span class="n">01 / 07</span></div>
+  <div class="body">
+    <div style="position:absolute;left:0;top:70px;width:1020px">
+      <div class="k" style="color:var(--red)">Health Monitoring Software</div>
+      <h1 style="font-size:196px;margin-top:18px">Ghost<span class="red">Pilot</span></h1>
+      <div style="font:600 46px/1.2 'B';color:var(--ink);margin-top:34px;max-width:940px">Crew health checks you navigate by body.<br>Your past self is the baseline.</div>
+      <div style="margin-top:70px;border-top:3px solid var(--ink);padding-top:22px;font:500 30px/1.5 'B';color:var(--ink2)">
+        <b style="font:700 32px 'BC';letter-spacing:.06em">TEAM WILDBANANAMILKTEA</b> · Singapore<br>Lin Junyu · Tang Wei Shan Alicia
+      </div>
+    </div>
+    <div style="width:702px;height:824px;overflow:hidden;position:absolute;right:0;top:-10px"><img src="file:///c:/Users/alici/Downloads/nasa-hacks/research/deck-assets/body-alerts.png" style="display:block;width:1026px;margin-left:-162px;margin-top:-202px"></div>
+  </div>
+</div></section>
+
+<!-- 2 PROBLEM -->
+<section class="slide" id="s2"><div class="sheet" style="background:var(--ink)">
+  <div class="bar" style="background:#000">THE PROBLEM<span class="n">02 / 07</span></div>
+  <div class="body">
+    <div class="k" style="color:#bdb6a4;margin-top:60px">One-way signal delay to Mars</div>
+    <div style="font:700 330px/0.85 'BC';color:var(--stock);margin-top:10px">~20 <span style="font-size:150px">MIN</span></div>
+    <h2 style="color:var(--stock);font-size:96px;margin-top:30px">The astronaut has to <span class="red">notice first.</span></h2>
+    <div style="margin-top:56px;color:var(--stock)">
+      <span class="chip"><i style="background:var(--rad)"></i>Radiation</span><span class="chip"><i style="background:var(--iso)"></i>Isolation</span><span class="chip"><i style="background:var(--dist)"></i>Distance</span><span class="chip"><i style="background:var(--grav)"></i>Gravity</span><span class="chip"><i style="background:var(--hab)"></i>Closed habitat</span>
+    </div>
+  </div>
+</div></section>
+
+<!-- 3 LOOP -->
+<section class="slide" id="s3"><div class="sheet">
+  <div class="bar">THE LOOP<span class="n">03 / 07</span></div>
+  <div class="body">
+    <h2 style="font-size:116px;margin-top:20px;white-space:nowrap">Spot <span class="red">→</span> Check <span class="red">→</span> Compare <span class="red">→</span> Act</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:28px;margin-top:56px">
+      <div><div class="shot" style="height:440px"><img src="file:///c:/Users/alici/Downloads/nasa-hacks/research/deck-assets/today.png"></div><div class="figl">1 · Today shows what's red</div></div>
+      <div><div class="shot" style="height:440px"><img src="file:///c:/Users/alici/Downloads/nasa-hacks/research/deck-assets/head.png"></div><div class="figl">2 · Each check: how &amp; why</div></div>
+      <div><div class="shot" style="height:440px"><img src="file:///c:/Users/alici/Downloads/nasa-hacks/research/deck-assets/trends.png"></div><div class="figl">3 · You vs. your ghost</div></div>
+      <div><div class="shot" style="height:440px"><img src="file:///c:/Users/alici/Downloads/nasa-hacks/research/deck-assets/report.png"></div><div class="figl">4 · One report to hand off</div></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- 4 BODY -->
+<section class="slide" id="s4"><div class="sheet">
+  <div class="bar">CREATIVITY<span class="n">04 / 07</span></div>
+  <div class="body">
+    <div style="position:absolute;left:0;top:60px;width:700px">
+      <h2 style="font-size:150px">The body<br>is the <span class="red">interface.</span></h2>
+      <div style="font:600 38px/1.3 'B';color:var(--ink2);margin-top:40px">Built in Blender, posed to NASA's measured zero-g posture. Shaped to you by a 5-second scan.</div>
+    </div>
+    <div style="position:absolute;right:0;top:10px;display:flex;gap:30px"><div><div style="width:413px;height:757px;overflow:hidden;"><img src="file:///c:/Users/alici/Downloads/nasa-hacks/research/deck-assets/preflight.png" style="display:block;width:980px;margin-left:-284px;margin-top:-232px"></div><div class="figl" style="text-align:center;font-size:34px">Preflight · 168 cm</div></div><div><div style="width:413px;height:757px;overflow:hidden;"><img src="file:///c:/Users/alici/Downloads/nasa-hacks/research/deck-assets/sol.png" style="display:block;width:980px;margin-left:-284px;margin-top:-232px"></div><div class="figl" style="text-align:center;font-size:34px;color:var(--red)">Sol 42 in 0g · 173 cm</div></div></div>
+  </div>
+</div></section>
+
+<!-- 5 NASA -->
+<section class="slide" id="s5"><div class="sheet">
+  <div class="bar">NASA OPEN DATA &amp; SCIENCE<span class="n">05 / 07</span></div>
+  <div class="body">
+    <h2 style="font-size:140px;margin-top:20px">Built on <span class="red">NASA</span> data.</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-top:44px;border-top:3px solid var(--ink);padding-top:34px">
+      <div><div class="fig">17<span style="font-size:90px;color:var(--muted)">/17</span></div><div class="figl">NASA HRP risks mapped<br>to a body region</div></div>
+      <div><div class="fig">43 <span style="font-size:90px">days</span></div><div class="figl">of ISS radiation dose<br>from NASA OSDR</div></div>
+      <div><div class="fig">22</div><div class="figl">NASA &amp; CSA sources,<br>bundled offline</div></div>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:70px;height:250px;overflow:hidden;border-top:2px solid var(--stock3)"><img src="file:///c:/Users/alici/Downloads/nasa-hacks/research/deck-assets/dose.png" style="width:100%;margin-top:-262px;display:block;opacity:.95"></div><div class="foot" style="bottom:20px">Archived mission context, never a personal reading. ISS dose: NASA OSDR Environmental Data App, Rodent Research-3 (2016).</div>
+  </div>
+</div></section>
+
+<!-- 6 FEASIBLE -->
+<section class="slide" id="s6"><div class="sheet">
+  <div class="bar">FEASIBLE &amp; HONEST<span class="n">06 / 07</span></div>
+  <div class="body">
+    <h2 style="font-size:170px;margin-top:30px">Nothing leaves<br>the <span class="red">device.</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-top:90px;border-top:3px solid var(--ink);padding-top:44px">
+      <div><div class="fig">0</div><div class="figl">servers, accounts or cloud.<br>Works offline.</div></div>
+      <div><div class="fig">8<span style="font-size:90px;color:var(--muted)">/8</span></div><div class="figl">held-out bodies: scan<br>guessed the shape right</div></div>
+      <div><div class="fig" style="font-size:120px;line-height:1.05">WCAG 2.2</div><div class="figl">AA accessibility,<br>tested automatically</div></div>
+    </div>
+    <div class="foot" style="bottom:20px">Thresholds illustrative · sample history synthetic · never diagnoses.</div>
+  </div>
+</div></section>
+
+<!-- 7 CLOSE -->
+<section class="slide" id="s7"><div class="sheet" style="background:var(--ink)">
+  <div class="bar" style="background:#000">IMPACT<span class="n">07 / 07</span></div>
+  <div class="body">
+    <div style="position:absolute;left:0;top:70px;width:1150px">
+      <h1 style="color:var(--stock);font-size:156px;line-height:.95">Know your normal.<br>Spot the change.<br><span class="red">Act early.</span></h1>
+      <div style="font:600 38px/1.35 'B';color:#d8d2c2;margin-top:44px">For Artemis &amp; Mars crews, and Antarctic stations,<br>submarines and remote telemedicine on Earth.</div>
+    </div>
+    <div style="position:absolute;right:30px;top:100px;width:470px;text-align:center">
+      <div style="background:var(--stock);padding:26px"><img src="file:///c:/Users/alici/Downloads/nasa-hacks/research/deck-assets/qr-demo.png" style="width:100%;display:block"></div>
+      <div style="font:700 36px 'BC';letter-spacing:.06em;color:var(--stock);margin-top:22px">GHOSTPILOT-LOVAT.VERCEL.APP</div>
+    </div>
+  </div>
+</div></section>
+
+<script>
+window.show = n => { document.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('on', i===n-1)); };
+show(1);
+</script>
+</body></html>

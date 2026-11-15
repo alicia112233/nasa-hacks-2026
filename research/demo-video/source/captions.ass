@@ -1,0 +1,20 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Cap,Barlow SemiBold,38,&H00F4F1E8,&H00F4F1E8,&H38111111,&H00000000,0,0,0,0,100,100,0.4,0,3,14,0,2,80,80,52,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:07.00,0:00:10.40,Cap,,0,0,0,,{\fad(120,80)}Meet GhostPilot. Today, Alex's head is flagged.
+Dialogue: 0,0:00:10.45,0:00:13.30,Cap,,0,0,0,,{\fad(80,80)}Tap it. It tells you what changed, and what to do.
+Dialogue: 0,0:00:13.35,0:00:16.20,Cap,,0,0,0,,{\fad(80,80)}Every check shows how… and why.
+Dialogue: 0,0:00:16.25,0:00:20.50,Cap,,0,0,0,,{\fad(80,80)}Then compare against your ghost: that's {\c&H00A1E0&}you{\c}, before launch.
+Dialogue: 0,0:00:20.55,0:00:23.50,Cap,,0,0,0,,{\fad(80,80)}See how zero-g reshapes your body.
+Dialogue: 0,0:00:23.55,0:00:26.85,Cap,,0,0,0,,{\fad(80,80)}Real ISS radiation data, from NASA.
+Dialogue: 0,0:00:26.90,0:00:29.90,Cap,,0,0,0,,{\fad(80,200)}And one report, ready for the next comms window.
