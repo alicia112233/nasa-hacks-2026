@@ -4,6 +4,7 @@ import { formatDate } from './data';
 import { BUILDS, LIMITS } from './physique.mjs';
 import { compareScan, thighCm, validScan } from './scan.mjs';
 import { linkedReading, scanHistory, scanId } from './scan-history.mjs';
+import { solOn } from './body.mjs';
 import { loadScanClip, scanClipIds } from './scan-clips';
 import type { BodyScan, CheckIn, Profile } from './types';
 
@@ -32,6 +33,17 @@ const pct = (x: number) => !Number.isFinite(x) ? '—' : `${x > 0.005 ? '+' : x 
 const when = (s: BodyScan) => formatDate(s.date, { hour: '2-digit', minute: '2-digit' });
 /** Shown before Show all. */
 const RECENT = 6;
+const dateInput = (iso?: string) => iso ? new Date(Date.parse(iso) + 8 * 3600000).toISOString().slice(0, 10) : '';
+
+/** The mission start: Sol 1. Saves when you leave the field or press Enter, never to a future date. */
+function EditDate({ value, onSave }: { value?: string; onSave: (iso: string) => void }) {
+  const today = dateInput(new Date().toISOString());
+  return <label className="crew-number"><span className="sr">Mission start</span>
+    <input key={value ?? 'empty'} type="date" max={today} defaultValue={dateInput(value)}
+      onBlur={e => { const v = e.currentTarget.value; if (v && v <= today && v !== dateInput(value)) onSave(new Date(`${v}T00:00:00+08:00`).toISOString()); }}
+      onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}/>
+  </label>;
+}
 
 /** Replays a saved scan's recorded seconds, outline and measuring lines included. */
 function ClipPlayer({ scan, onClose }: { scan: BodyScan; onClose: () => void }) {
@@ -132,6 +144,10 @@ export default function CrewCard({ profile, onProfile, onLegs, onScan, onClose, 
         <div>
           <dt>Height</dt>
           <dd><EditNumber value={height ?? undefined} label="Height" unit="cm" limits={LIMITS.heightCm} step={1} onSave={v => onProfile({ heightCm: Math.round(v) })}/></dd>
+        </div>
+        <div>
+          <dt>Mission start</dt>
+          <dd><EditDate value={profile.startDate} onSave={startDate => onProfile({ startDate })}/>{profile.startDate && <small>Today is Sol {solOn(profile.startDate)}</small>}</dd>
         </div>
         <div>
           <dt>Mass</dt>

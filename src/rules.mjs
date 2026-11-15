@@ -1,5 +1,5 @@
 import { comparisonIssue, isNumber, measuredAt, metricKeys } from './references.mjs';
-/** Deterministic prototype rules. Baselines never mix simulated and recorded data. */
+/** Deterministic rules. With no ghost set, a crew member's earliest readings are the ghost. */
 export function median(values) {
   const sorted = values.filter(v => typeof v === 'number' && Number.isFinite(v)).sort((a, b) => a - b);
   if (!sorted.length) return null;
@@ -21,19 +21,21 @@ export function analyze(checkIns, simulated, references = []) {
     const last = attempts.at(-1);
     const phase = last?.measurements?.[key]?.phase;
     const ref = ownReferences.find(r => r.phase === phase && r.records.some(c => isNumber(c[key]))) ?? ownReferences.find(r => r.phase === 'preflight') ?? ownReferences[0];
-    const bases = (ref?.records ?? baselineRecords).filter(r => isNumber(r[key]));
+    // No ghost set: the earliest readings (up to 11, leaving the latest 3 to compare) are the ghost.
+    const valued = attempts.filter(r => isNumber(r[key]));
+    const bases = ref ? ref.records.filter(r => isNumber(r[key])) : valued.slice(0, Math.min(11, Math.max(0, valued.length - 3)));
     const base = bases[0];
     // Compare every sample's conditions and require independent measurements after the fixed snapshot.
     const baseEnd = bases.map(r => measuredAt(r, key)).sort().at(-1) ?? '';
     const latestValues = attempts.filter(r => isNumber(r[key]) && measuredAt(r, key) > baseEnd).slice(-3);
-    const issue = !ref ? 'No ghost set yet. Earlier readings are shown for context.' : !base ? 'Your ghost has no reading for this.' : comparisonIssue(last, base, key) ?? latestValues.map(r => comparisonIssue(r, base, key)).find(Boolean) ?? null;
+    const issue = ref && !base ? 'Your ghost has no reading for this.' : base ? comparisonIssue(last, base, key) ?? latestValues.map(r => comparisonIssue(r, base, key)).find(Boolean) ?? null : null;
     const validBases = bases.filter(r => !comparisonIssue(r, base, key));
     const validRecent = latestValues.filter(r => !comparisonIssue(r, base, key));
     const comparable = !issue && validBases.length >= 3 && latestValues.length === 3 && validRecent.length === 3;
-    return [key, { referenceId: ref?.id ?? null, phase: ref?.phase ?? 'unknown', referenceCount: bases.length, recentCount: latestValues.length,
+    return [key, { referenceId: ref?.id ?? null, auto: !ref, phase: ref?.phase ?? 'unknown', referenceCount: bases.length, recentCount: latestValues.length,
       baseline: median((ref && validBases.length ? validBases : bases).map(r => r[key])), current: median(latestValues.map(r => r[key])), lastMeasuredAt: last ? measuredAt(last, key) : null,
       state: !last ? 'missing' : issue ? 'unreliable' : comparable ? 'comparable' : 'insufficient',
-      reason: !last ? 'Not measured yet.' : issue ?? (comparable ? 'Your last 3 readings, taken under the same conditions as your ghost.' : 'Needs 3 ghost readings and 3 newer ones under the same conditions.'), comparable }];
+      reason: !last ? 'Not measured yet.' : issue ?? (comparable ? 'Your last 3 readings against your ghost.' : 'Needs 3 earlier and 3 newer readings.'), comparable }];
   }));
   const baseline = Object.fromEntries(keys.map(k => [k, comparisons[k].baseline]));
   const current = Object.fromEntries(keys.map(k => [k, comparisons[k].current]));

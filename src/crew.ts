@@ -18,10 +18,16 @@ export function normalise(state: MissionState): MissionState {
   crew = crew.map(c => (c.id === crewId ? { ...c, ...state.profile, id: crewId } : c));
   const first = crew[0].id!;
   const tag = <T extends { crewId?: string }>(x: T): T => (x.crewId ? x : { ...x, crewId: first });
+  // One stream of records: sample history and what crew enter themselves are the same kind of record.
+  const real = <T extends { simulated?: boolean }>(x: T): T => (x.simulated ? { ...x, simulated: false } : x);
   return {
-    ...state, crew, crewId,
+    ...state, crew, crewId, demo: false,
     profile: crew.find(c => c.id === crewId)!,
-    checkIns: state.checkIns.map(tag), actions: state.actions.map(tag), packets: state.packets?.map(tag),
+    checkIns: state.checkIns.map(tag).map(real), actions: state.actions.map(tag).map(real),
+    packets: state.packets?.map(tag).map(p => (p.source === 'simulated' ? { ...p, source: 'recorded' as const } : p)),
+    careUpdates: state.careUpdates?.map(u => (u.source === 'simulated' ? { ...u, source: 'recorded' as const } : u)),
+    references: state.references?.map(real), checkRuns: state.checkRuns?.map(real),
+    cabinReadings: state.cabinReadings?.map(r => (r.source === 'simulated' ? { ...r, source: 'manual' as const } : r)),
   };
 }
 

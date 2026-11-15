@@ -3,6 +3,7 @@ import { Download } from 'lucide-react';
 import CarePlanFields, { blankCarePlan } from './CarePlanFields';
 import { careState, continuingCarePacket, createCareUpdate, procedureLabel } from './continuing-care.mjs';
 import { downloadFile, formatDate } from './data';
+import { compactExport } from './export.mjs';
 import { checks } from './body.mjs';
 import type { CareUpdate, CheckIn, MissionPacket } from './types';
 
@@ -28,7 +29,7 @@ export default function CareThread({ packet, updates, checkIns, onSave, onDownlo
     finally { setSaving(false); }
   }
   function download() {
-    downloadFile(`ghostpilot-handoff-${packet.id}.json`, JSON.stringify(continuingCarePacket(packet, updates), null, 2), 'application/json'); onDownloaded(packet.id);
+    downloadFile(`ghostpilot-handoff-${packet.id}.json`, JSON.stringify(compactExport(continuingCarePacket(packet, updates)), null, 2), 'application/json'); onDownloaded(packet.id);
   }
   return <li className="care-thread">
     <div className="care-thread-head"><span><b>Sol {packet.sol}</b> · {formatDate(packet.createdAt, { hour: '2-digit', minute: '2-digit' })}<small>{packet.status === 'downloaded' ? 'Downloaded' : 'Saved on this device'}{packet.communication.blackoutDrill ? ' · blackout drill' : ''}</small></span><button className="btn ghost" aria-label={`Download Sol ${packet.sol} handoff`} onClick={download}><Download size={16}/></button></div>

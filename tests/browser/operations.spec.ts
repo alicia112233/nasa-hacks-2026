@@ -1,12 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { readFile } from 'node:fs/promises';
+import { freshMember } from './crew-helpers';
 
 async function makeShoulderUnreliable(page: Page) {
   await page.evaluate(async () => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => { const r = indexedDB.open('ghostpilot-mission', 1); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
     const state = await new Promise<any>((resolve, reject) => { const r = db.transaction('mission').objectStore('mission').get('state'); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
-    const last = state.checkIns.filter((r: any) => r.crewId === state.crewId && r.simulated).at(-1);
+    const last = state.checkIns.filter((r: any) => r.crewId === state.crewId && typeof r.leftRange === 'number').at(-1);
     last.measurements.leftRange.quality = 'poor'; last.measurements.leftRange.confidentFrames = 4;
     await new Promise<void>((resolve, reject) => { const tx = db.transaction('mission', 'readwrite'); tx.objectStore('mission').put(state, 'state'); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); db.close();
   });
@@ -39,11 +40,6 @@ test('shared headache reports lead to current cabin review while archived NASA d
   await expect(page.locator('.cabin-review')).toContainText('Latest cabin reading');
   await page.getByRole('button', { name: 'Air-quality steps' }).click();
   await expect(page.locator('.cabin-review')).toContainText('Use your mission’s approved air-quality procedure');
-  await page.getByRole('link', { name: 'Mission', exact: true }).click();
-  await page.getByRole('button', { name: 'My records', exact: true }).click();
-  await page.getByRole('link', { name: 'Body', exact: true }).click();
-  await page.getByRole('list', { name: 'Body regions' }).getByRole('button', { name: /^I Cabin/ }).click();
-  await expect(page.locator('.cabin-review')).toContainText('No cabin reading yet');
   await page.getByText('Log a cabin reading', { exact: true }).click();
   await page.getByLabel('CO₂ (ppm)', { exact: true }).fill('1250');
   await page.getByLabel('Observed at', { exact: true }).fill(new Date(Date.now() + 8 * 3600000 - 600000).toISOString().slice(0, 16));
@@ -56,8 +52,7 @@ test('shared headache reports lead to current cabin review while archived NASA d
 });
 
 test('crew explicitly establish a fixed reference and a changed camera condition explains uncertainty', async ({ page }) => {
-  await page.goto('/#mission');
-  await page.getByRole('button', { name: 'My records', exact: true }).click();
+  await freshMember(page);
   await page.evaluate(async () => {
     const db = await new Promise<IDBDatabase>(resolve => { const r = indexedDB.open('ghostpilot-mission', 1); r.onsuccess = () => resolve(r.result); });
     const state = await new Promise<any>(resolve => { const r = db.transaction('mission').objectStore('mission').get('state'); r.onsuccess = () => resolve(r.result); });

@@ -43,7 +43,9 @@ test('a saved result reads against the ghost, and a clearly off value says what 
   assert.match(resultLine(check('heartRate'), 108, 62).text, /high at rest: rest 5 min, recheck/);
   assert.equal(resultLine(check('heartRate'), 108, 62).level, 'watch');
   assert.equal(resultLine(check('legs'), 15.46, 15.8).text, 'Today 15.5 cm · ghost 15.8 cm');
-  assert.equal(resultLine(check('breath'), 2, null).text, 'Today strong');
+  // An off answer carries a few words of what to do, so feedback is instant.
+  assert.equal(resultLine(check('breath'), 2, null).text, 'Today strong · rest, check cabin CO₂');
+  assert.equal(resultLine(check('sleep'), 1, 4).text, 'Today very low · protect your next sleep');
   assert.equal(resultLine(check('breath'), 2, null).level, 'watch');
   assert.equal(resultLine(check('sleep'), 4, 4).level, 'ok');
 });

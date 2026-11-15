@@ -10,7 +10,7 @@ const plan = () => ({ procedure: { status: 'followed', name: 'Onboard observatio
 const packet = () => ({ id: 'packet-a', crewId: 'crew-a', source: 'recorded', createdAt: start, context: 'Blurred vision reported', observations: [], communication: { transmitted: false }, carePlan: plan() });
 
 test('handoff rejects empty/whitespace observations and retains an independent snapshot', () => {
-  const mission = scoped(createDemo()), snapshot = lensSnapshot(mission.checkIns, true);
+  const mission = scoped(createDemo()), snapshot = lensSnapshot(mission.checkIns, false);
   const args = { snapshot, profile: mission.profile, actions: [], context: '  ', oneWayMinutes: 14, blackoutDrill: true, id: 'new', createdAt: at };
   assert.throws(() => createMissionPacket(args), /crew observation/);
   const p = createMissionPacket({ ...args, context: '  Crew observed fatigue  ' });
@@ -60,7 +60,7 @@ test('latest plan drives due state and downloads carry the original packet with 
 });
 
 test('crew scoping and deletion keep continuing-care events with their owner', () => {
-  const s = createDemo(); s.careUpdates = s.crew.map((c, i) => ({ id: String(i), crewId: c.id, source: 'simulated' }));
+  const s = createDemo(); s.careUpdates = s.crew.map((c, i) => ({ id: String(i), crewId: c.id, source: 'recorded' }));
   assert.equal(scoped(s).careUpdates.length, 1);
-  const next = removeCrew(s, s.crewId); assert.equal(next.careUpdates.length, 1); assert.notEqual(next.careUpdates[0].crewId, s.crewId);
+  const next = removeCrew(s, s.crewId); assert.equal(next.careUpdates.length, s.crew.length - 1); assert.ok(next.careUpdates.every(u => u.crewId !== s.crewId));
 });

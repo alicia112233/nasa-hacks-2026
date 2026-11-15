@@ -16,7 +16,7 @@ function arc(i: number, n: number, r = 50) {
   return n === 1 ? `M60 10 A50 50 0 1 1 59.99 10` : `M${at(a0)} A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${at(a1)}`;
 }
 
-/** A ring of today's checks in one area: a segment per check, ink when done, red for an alert, amber for the next. */
+/** A ring of today's checks in one area: a segment per check, green when done, red for an alert, amber for the next. */
 function Ring({ name, side, onStart }: { name: string; side: Side; onStart: (row: Row) => void }) {
   const alerts = [...new Set([...side.trends, ...side.reported])];
   const status = alerts.length ? `${alerts.length === 1 ? 'Alert' : `${alerts.length} alerts`}: ${alerts.join(', ')}` : side.done === side.total ? 'All done' : side.done ? 'Nothing off so far' : 'Not started';

@@ -6,15 +6,16 @@ export const cameraKeys = ['leftRange', 'rightRange', 'thighCm'];
 export const isNumber = v => typeof v === 'number' && Number.isFinite(v);
 export const measuredAt = (record, key) => record.measurements?.[key]?.measuredAt ?? record.date;
 
+/**
+ * Why a reading can't be compared with the ghost, or null when it can. Self-reports and vitals compare as they are;
+ * only a poor recording stops them. A camera reading is set aside only when both sides recorded their setup and it differs.
+ */
 export function comparisonIssue(record, referenceRecord, key) {
   const a = record?.measurements?.[key], b = referenceRecord?.measurements?.[key];
   if (a?.quality === 'poor' || b?.quality === 'poor') return 'Recording too unclear. Record it again.';
-  if (!a || !b || a.phase === 'unknown' || b.phase === 'unknown') return 'Conditions not recorded, so it can’t be compared yet. Set them before the next check.';
-  if (a.phase !== b.phase) return 'Different mission phase from your ghost, so it can’t be compared.';
-  const fields = cameraKeys.includes(key) ? ['cameraSetup', 'posture', 'lighting', 'clothing', 'activity'] : ['activity'];
-  if (a.quality !== 'good' || b.quality !== 'good' || fields.some(f => !a[f]?.trim() || !b[f]?.trim())) return 'Conditions incomplete. Fill them in and repeat.';
-  if (fields.some(f => a[f].trim().toLowerCase() !== b[f].trim().toLowerCase())) return 'Conditions differ from your ghost. Repeat with the same setup.';
-  return null;
+  if (!cameraKeys.includes(key)) return null;
+  const differs = ['cameraSetup', 'posture', 'clothing'].some(f => a?.[f]?.trim() && b?.[f]?.trim() && a[f].trim().toLowerCase() !== b[f].trim().toLowerCase());
+  return differs ? 'Conditions differ from your ghost. Repeat with the same setup.' : null;
 }
 
 /** References are snapshots. Adding one never alters or discards an earlier reference. */

@@ -11,6 +11,8 @@
   --amber: #e0a100;
   --amber-tint: #f4e3b2;
   --red: #c8102e;
+  /* Complete: a check done today, in the Today rings. Only that meaning. */
+  --complete: #3a7d2c;
   --red-tint: #f6d3d7;
   --rule: 1.5px solid var(--ink);
   --hatch: repeating-linear-gradient(45deg, var(--ink) 0 1.5px, transparent 1.5px 7px);
@@ -224,6 +226,7 @@ input[type=range] { accent-color: var(--ink); width: 100%; height: 32px; }
 .muted-ink { color: var(--ink-2); }
 .crew-number { display: inline-flex; align-items: center; gap: 8px; font: 700 16px var(--cond); text-transform: uppercase; }
 .crew-number input { width: 110px; border: var(--rule); background: #fbfaf6; padding: 8px 10px; font: 400 18px var(--sans); font-variant-numeric: tabular-nums; border-radius: 0; }
+.crew-number input[type=date] { width: 11.5em; font-size: 16px; }
 @media (max-width: 640px) { .crew-profile .crew-facts > div { grid-template-columns: 1fr; } }
 /* Clear the sticky top bar when a pick scrolls the card into view (the bar wraps to two rows on phones). */
 .body-page > .card { scroll-margin-top: 72px; }
@@ -268,6 +271,7 @@ input[type=range] { accent-color: var(--ink); width: 100%; height: 32px; }
 .steps > li { border-top: var(--rule); }
 .step { width: 100%; display: grid; grid-template-columns: 44px 1fr auto 28px 18px; align-items: center; gap: 12px; min-height: 56px; padding: 8px 0; text-align: left; }
 .step:hover { background: var(--stock-2); }
+.step.static:hover { background: none; }
 .step .n { font: 700 26px var(--cond); text-align: center; font-variant-numeric: tabular-nums; }
 .step .t { font-size: 18px; font-weight: 600; line-height: 1.25; }
 .step .t small { display: block; font: 500 14px var(--cond); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-top: 2px; }
@@ -294,7 +298,7 @@ li.instrument .box { background: var(--hatch), var(--stock); }
 .risks a { white-space: nowrap; }
 .risks svg { vertical-align: -1px; }
 
-/* Sheets: trends, report, mission */
+/* Sheets: trends, report, risks, sources */
 .page-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); align-items: start; }
 .page-grid.trends { grid-template-columns: 5fr 7fr; }
 .sheet { background: var(--stock); padding: 24px 28px; border-radius: 3px; display: grid; gap: 16px; align-content: start; min-width: 0; }
@@ -316,7 +320,17 @@ li.instrument .box { background: var(--hatch), var(--stock); }
 .needs { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
 .hatch-mark { width: 14px; height: 14px; border: 1.5px solid var(--ink); background: var(--hatch), var(--stock); flex: none; }
 .scroll { overflow: auto; max-height: 360px; border-top: 1px solid var(--stock-3); }
-.mission .scroll { max-height: none; }
+.page-grid.risks-page { grid-template-columns: minmax(0, 1fr); }
+.risk-table td, .risk-table th { overflow-wrap: break-word; }
+/* Phones: each risk stacks into one block (name, hazards, regions, check); roles keep it a table for screen readers. */
+@media (max-width: 640px) {
+  .risk-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .risk-table, .risk-table tbody, .risk-table tr, .risk-table th, .risk-table td { display: block; width: 100%; }
+  .risk-table tr { padding: 10px 0; border-bottom: 1px solid var(--stock-3); }
+  .risk-table th, .risk-table td { padding: 3px 0; border: 0; }
+  .risk-table td .chip { margin: 2px 4px 2px 0; }
+  .hazard-key { flex-wrap: wrap; }
+}
 .pad { padding: 14px; }
 .chart { height: 220px; }
 .chart.tall { height: 300px; }
@@ -615,7 +629,7 @@ button.ring:hover { background: var(--stock-2); border-color: var(--ink); }
 .ring-art svg { display: block; width: 100%; height: 100%; }
 /* A segment per check: ink done, red off your ghost, amber next, card stock to do. */
 .seg { fill: none; stroke-width: 13; stroke: var(--stock-3); }
-.seg.done { stroke: var(--ink); }
+.seg.done { stroke: var(--complete); }
 .seg.off { stroke: var(--red); }
 .seg.next { stroke: var(--amber); }
 @media (prefers-reduced-motion: no-preference) { .seg.done, .seg.off { animation: seg-fill .6s cubic-bezier(.16, 1, .3, 1) both; } }
@@ -629,7 +643,7 @@ button.ring:hover { background: var(--stock-2); border-color: var(--ink); }
 .ring-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; font: 500 14px var(--cond); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); }
 .ring-key span { display: inline-flex; align-items: center; gap: 6px; }
 .ring-key i { width: 10px; height: 10px; }
-.ring-key .done { background: var(--ink); }
+.ring-key .done { background: var(--complete); }
 .ring-key .off { background: var(--red); }
 .ring-key .next { background: var(--amber); }
 .ring-key .todo { background: var(--stock-3); }

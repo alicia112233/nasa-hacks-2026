@@ -23,7 +23,7 @@ export default function ReferencePanel({ mission, onContext, onReference }: { mi
     </div>
     <h3>Your ghosts</h3>
     <ul className="reference-list">{refs.map(r => <li key={r.id}><b>{phases[r.phase]}</b> · set {formatDate(r.establishedAt)} · {r.records.length} entries<p>{r.reason}</p></li>)}</ul>
-    {!refs.length && <p className="muted">No ghost set yet.</p>}
+    {!refs.length && <p className="muted">Your ghost is your earliest readings until you set one.</p>}
     <p className="review-warning">Don’t reset your ghost to hide a change.</p>
     <form onSubmit={e => { e.preventDefault(); try { onReference(establishReference({ id: crypto.randomUUID(), crewId: mission.crewId, simulated: mission.demo, records: mission.checkIns, phase: ctx.phase, reason, now: new Date().toISOString(), references: refs })); setReason(''); setError(''); } catch (err) { setError(err instanceof Error ? err.message : 'Could not set the ghost.'); } }}>
       <label className="field">Why set a new ghost?<input required maxLength={400} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. adapted to cruise, readings steady for a week"/></label>

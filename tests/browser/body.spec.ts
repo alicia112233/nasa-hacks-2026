@@ -1,10 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
+import { freshMember } from './crew-helpers';
 
-async function personal(page: Page) {
-  await page.goto('/#mission');
-  await page.getByRole('button', { name: 'My records', exact: true }).click();
-  await page.getByRole('link', { name: 'Body' }).click();
-}
+/** A crew member with nothing recorded yet. */
+const personal = (page: Page) => freshMember(page);
 
 test('demo body flags head and arms, and every region opens its procedure card', async ({ page }) => {
   const errors: string[] = [];
@@ -16,7 +14,7 @@ test('demo body flags head and arms, and every region opens its procedure card',
   await page.getByRole('button', { name: /^A Head/ }).click();
   await expect(page.getByRole('heading', { name: 'Head', level: 2 })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Response 18% slower than your ghost' })).toBeVisible();
-  for (const [letter, label, check] of [['B', 'Eyes', 'Eye imaging (OCT)'], ['C', 'Chest', 'Resting heart rate'], ['D', 'Abdomen', 'Appetite and meals'], ['E', 'Arms', 'Shoulder range'], ['F', 'Hands', 'Rash or cold sore'], ['G', 'Back & pelvis', 'Back pain'], ['H', 'Legs', 'Bone density (DXA)'], ['I', 'Cabin', 'Radiation dose']]) {
+  for (const [letter, label, check] of [['B', 'Eyes', 'Eye imaging (OCT)'], ['C', 'Chest', 'Resting heart rate'], ['D', 'Abdomen', 'Appetite and meals'], ['E', 'Arms', 'Shoulder range'], ['F', 'Hands', 'Rash or cold sore'], ['G', 'Back & pelvis', 'Back pain'], ['H', 'Legs', 'Bone density (DXA)'], ['I', 'Cabin', 'Air-quality steps']]) {
     await page.getByRole('button', { name: new RegExp(`^${letter} ${label.replace('&', '&')}`) }).click();
     await expect(page.getByRole('heading', { name: label, level: 2 })).toBeVisible();
     await expect(page.getByRole('button', { name: new RegExp(check.replace(/[()]/g, '\\$&')) })).toBeVisible();
@@ -195,7 +193,7 @@ test('the profile popup saves edits and preserves the current page and region', 
   await page.getByRole('button', { name: /^H Legs/ }).click();
   await expect(page.getByRole('heading', { name: 'Legs', level: 2 })).toBeVisible();
   // The same editor works on every other page without navigating away.
-  for (const route of ['trends', 'report', 'mission']) {
+  for (const route of ['trends', 'report', 'risks', 'sources']) {
     await page.goto(`/#${route}`);
     await who.click();
     await page.getByRole('button', { name: 'Edit profile' }).click();

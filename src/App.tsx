@@ -9,6 +9,7 @@ import { defaultContext } from './references.mjs';
 import { crewHeadaches } from './daily.mjs';
 import BodyView, { type RegionState } from './BodyView';
 import { physique, zeroGForSol } from './physique.mjs';
+import { solOn } from './body.mjs';
 import { thighCm } from './scan.mjs';
 import ProcedureCard from './ProcedureCard';
 import CrewCard from './CrewCard';
@@ -20,8 +21,9 @@ import AttentionTask, { type AttentionResult } from './AttentionTask';
 import Dialog from './Dialog';
 import TrendsView, { trendMetrics } from './TrendsView';
 import ReportView from './ReportView';
-import MissionView from './MissionView';
-import { clearPersonalRecords, createDemo, formatDate, loadMission, loadRecordings, saveMission, saveRecording } from './data';
+import RisksView from './RisksView';
+import SourcesView from './SourcesView';
+import { addSamples, clearPersonalRecords, createDemo, formatDate, loadMission, loadRecordings, saveMission, saveRecording } from './data';
 import { analyze } from './rules.mjs';
 import { dayKey, regions, regionStatuses } from './body.mjs';
 import type { BodyScan as Scan, CareUpdate, CheckIn, MeasurementContext, MissionPacket, MissionState, Page, Profile, Recording, RegionId } from './types';
@@ -34,10 +36,11 @@ const pages: { id: Page; label: string }[] = [
   { id: 'body', label: 'Body' },
   { id: 'trends', label: 'Trends' },
   { id: 'report', label: 'Report' },
-  { id: 'mission', label: 'Mission' },
+  { id: 'risks', label: 'Risks' },
+  { id: 'sources', label: 'Sources' },
 ];
-/** #handoff is the Report page's old address. */
-const pageFromHash = () => location.hash === '#handoff' ? 'report' : pages.find(p => p.id === location.hash.slice(1))?.id ?? 'body';
+/** Old addresses: #handoff is the Report page; #mission held the data switch, now on Sources. */
+const pageFromHash = () => location.hash === '#handoff' ? 'report' : location.hash === '#mission' ? 'sources' : pages.find(p => p.id === location.hash.slice(1))?.id ?? 'body';
 type Modal = null | 'profile' | 'attention' | 'capture' | 'movement' | 'scan';
 
 export default function App() {
@@ -67,7 +70,8 @@ export default function App() {
   const personalGhostCm = useMemo(() => { const a = analyze(view.checkIns, false, view.references); return a.comparisons.thighCm.comparable ? a.baseline.thighCm : null; }, [view.checkIns, view.references]);
   const statuses = useMemo(() => regionStatuses(view.checkIns, simulated, undefined, view.references), [view.checkIns, simulated, view.references]);
   const sharedHeadaches = crewHeadaches(mission.checkIns, simulated);
-  const sol = Math.max(mission.profile.startDate ? Math.floor((Date.now() - new Date(mission.profile.startDate).getTime()) / 86400000) + 1 : 1, ...view.checkIns.map(c => c.sol));
+  // Sol is the mission day: day 1 is the mission start in the crew member's profile.
+  const sol = mission.profile.startDate ? solOn(mission.profile.startDate) : Math.max(1, ...view.checkIns.map(c => c.sol));
   const firstFlag = (regions.find(r => statuses[r.id].state === 'flag') ?? regions[0]).id as RegionId;
   // No region picked means the Today view: the day's rings and the next step, not a region card.
   const selectedRegion = region ? regions.find(r => r.id === region)! : null;
@@ -99,7 +103,7 @@ export default function App() {
     Promise.all([loadMission(), loadRecordings()]).then(([saved, videos]) => {
       if (!on) return;
       if (saved) {
-        const restored = normalise(saved);
+        const restored = addSamples(normalise(saved));
         setMission(restored);
       }
       setRecordings(videos);
@@ -268,22 +272,15 @@ export default function App() {
     await saveMission(next); setMission(next); notify('Reassessment added.');
   }
 
-  async function clearPersonal() {
-    const next: MissionState = {
-      ...mission,
-      profile: createDemo().profile,
-      crew: createDemo().crew,
-      crewId: createDemo().crewId,
-      checkIns: mission.checkIns.filter(c => c.simulated),
-      actions: [],
-      packets: [], careUpdates: [],
-      references: mission.references?.filter(r => r.simulated), cabinReadings: mission.cabinReadings?.filter(r => r.source === 'simulated'), checkRuns: [],
-    };
+  /** Delete every crew member, reading, video and scan clip on this device; the sample crew comes back fresh. */
+  async function deleteAll() {
+    const next = createDemo();
     await clearPersonalRecords(next);
     await clearScanClips().catch(() => {});
     setRecordings([]);
     setMission(next);
-    notify('Personal records, videos and profile cleared.');
+    setRegion(null);
+    notify('All records deleted. Sample crew restored.');
   }
 
   if (!loaded) return <div className="boot" role="status">GHOSTPILOT</div>;
@@ -342,10 +339,8 @@ export default function App() {
         <TrendsView checkIns={view.checkIns} simulated={simulated} references={view.references} tourMetric={tutorialStep == null ? undefined : tour.metric}/></div>}
       {(page === 'report' || (tutorialStep != null && tutorialOrigin.current.page === 'report')) && <div hidden={page !== 'report'}><ReportView key={`${mission.crewId}-${simulated}`} mission={view} summary={summary as never} recordings={crewRecordings} sol={sol} delay={delay} setDelay={setDelay} onSavePacket={savePacket} onSaveCareUpdate={saveCareUpdate}
         onDownloaded={id => setMission(old => ({ ...old, packets: (old.packets ?? []).map(p => p.id === id ? { ...p, status: 'downloaded', downloadedAt: new Date().toISOString() } : p) }))}/></div>}
-      {page === 'mission' && <MissionView mission={view} onOpenRegion={openRegion}
-        onSource={demo => { setMission(old => ({ ...old, demo })); setRegion(null); notify(demo ? 'Showing built-in records.' : 'Showing your records.'); }}
-        onReloadDemo={() => { const demo = createDemo(); setMission(old => ({ ...old, demo: true, crew: [...(old.crew ?? []), ...demo.crew!.filter(d => !old.crew?.some(c => c.id === d.id))], checkIns: [...old.checkIns.filter(c => !c.simulated), ...demo.checkIns], references: [...(old.references ?? []).filter(r => !r.simulated), ...demo.references!], cabinReadings: [...(old.cabinReadings ?? []).filter(r => r.source !== 'simulated'), ...demo.cabinReadings!] })); notify('Built-in history reloaded. Your records are untouched.'); }}
-        onClear={clearPersonal}/>}
+      {page === 'risks' && <RisksView onOpenRegion={openRegion}/>}
+      {page === 'sources' && <SourcesView onRestore={() => { setMission(old => addSamples(old, true)); notify('Sample crew restored.'); }} onDeleteAll={deleteAll}/>}
     </main>
 
     {tutorialStep != null && <Tutorial step={tutorialStep} steps={tour.steps} onPrepare={prepareTutorial} onAdvance={() => setTutorialStep(step => step == null ? null : Math.min(step + 1, tour.steps.length - 1))} onBack={() => setTutorialStep(step => step == null ? null : Math.max(step - 1, 0))} onClose={closeTutorial}/>}
@@ -361,7 +356,7 @@ export default function App() {
     {modal === 'movement' && <Dialog title="Movement" wide onClose={() => setModal(null)}>
       {!analysis.comparisons.leftRange.comparable && <p className="comparison-note">Comparison unavailable. {analysis.comparisons.leftRange.reason}</p>}
       <Suspense fallback={<p role="status">Loading…</p>}>
-        <MovementViewer active recordings={crewRecordings} references={view.references} onRecord={() => setModal('capture')} onEvidence={() => setModal(null)} simulated={!latestRecording && simulated} sol={latestRecording?.sol ?? sol}
+        <MovementViewer active recordings={crewRecordings} references={view.references} onRecord={() => setModal('capture')} onEvidence={() => setModal(null)} simulated={!latestRecording} sol={latestRecording?.sol ?? sol}
           frames={latestRecording?.frames} leftRange={latestRecording?.leftRange ?? analysis.current.leftRange ?? 0} baselineRange={analysis.baseline.leftRange ?? 0} hasBaseline={analysis.comparisons.leftRange.comparable}/>
       </Suspense>
     </Dialog>}

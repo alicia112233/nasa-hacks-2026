@@ -9,6 +9,7 @@ import { validateCarePlan } from './continuing-care.mjs';
 import { dayKey, regionStatuses, topicOf } from './body.mjs';
 import { daySummary } from './today.mjs';
 import { analyze } from './rules.mjs';
+import { compactExport } from './export.mjs';
 import type { CarePlan, CareUpdate, MissionPacket, MissionState, Recording } from './types';
 
 type Row = { region: { id: string; letter: string; label: string }; check: { id: string; title: string; needs?: string }; state: 'done' | 'off' | 'todo'; item: { flagged: boolean }; result: { text: string } | null };
@@ -149,7 +150,7 @@ export default function ReportView({ mission, recordings, sol, summary, delay, s
       <div className="row-actions report-downloads">
         <button className="btn" onClick={() => window.print()}><Printer size={16} aria-hidden="true"/> Save as PDF</button>
         <button className="btn" onClick={() => downloadFile(`ghostpilot-sol-${sol}.md`, ground().md)}><FileText size={16} aria-hidden="true"/> Markdown</button>
-        <button className="btn" onClick={() => downloadFile(`ghostpilot-sol-${sol}.json`, JSON.stringify(ground().json, null, 2), 'application/json')}><Download size={16} aria-hidden="true"/> JSON</button>
+        <button className="btn" onClick={() => downloadFile(`ghostpilot-sol-${sol}.json`, JSON.stringify(compactExport(ground().json), null, 2), 'application/json')}><Download size={16} aria-hidden="true"/> JSON</button>
       </div>
       <p className="muted">Send the file over mission comms.</p>
 

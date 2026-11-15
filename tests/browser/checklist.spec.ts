@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { freshMember } from './crew-helpers';
 
 test('a region checklist shows progress, the next check, and finishes with reassess or hand off', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/#mission');
-  await page.getByRole('button', { name: 'My records', exact: true }).click();
-  await page.getByRole('link', { name: 'Body' }).click();
+  await freshMember(page);
   const regions = page.getByRole('list', { name: 'Body regions' });
 
   // Instrument checks stay outside the count: Chest has 3 actionable checks and a blood pressure row that needs a cuff.

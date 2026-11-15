@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-14T15:31:54+00:00",
+  "generatedAt": "2026-11-15T09:51:02.144952+00:00",
   "title": "Design System: GhostPilot",
   "extensions": {
     "colorMeta": {
@@ -303,6 +303,21 @@
         "role": "neutral",
         "displayName": "Body Fill: Unmarked",
         "canonical": "#ece7da"
+      },
+      "complete": {
+        "role": "accent",
+        "displayName": "Complete Green",
+        "canonical": "#3a7d2c",
+        "tonalRamp": [
+          "#10230c",
+          "#1e4117",
+          "#2c5f21",
+          "#3a7d2c",
+          "#75a46b",
+          "#a6c4a0",
+          "#d4e2d1",
+          "#eff5ee"
+        ]
       }
     },
     "typographyMeta": {
@@ -443,9 +458,9 @@
       "name": "Region Tag",
       "kind": "custom",
       "refersTo": "region-tag",
-      "description": "Lettered square tags on the body index: default, trend, reported, selected.",
-      "html": "<div class=\"ds-tags\"><span class=\"ds-rtag\">C</span><span class=\"ds-rtag trend\">E</span><span class=\"ds-rtag reported\">B</span><span class=\"ds-rtag on\">A</span></div>",
-      "css": ".ds-tags{display:flex;gap:16px;padding:12px;background:var(--stock,#f4f1e8)}.ds-rtag{display:grid;place-items:center;width:26px;height:26px;background:var(--ink,#111);color:var(--stock,#f4f1e8);font:700 15px var(--cond,'Barlow Condensed',sans-serif)}.ds-rtag.trend{background:var(--red,#c8102e);color:#fff}.ds-rtag.reported{box-shadow:0 0 0 2px var(--stock,#f4f1e8),0 0 0 4px var(--amber,#e0a100)}.ds-rtag.on{background:var(--amber,#e0a100);color:var(--ink,#111)}"
+      "description": "Lettered 26px square joined to the body by a leader line: ink by default, red for any alert, amber fill when selected.",
+      "html": "<div class=\"ds-tags\"><span class=\"ds-tag\">A</span><span class=\"ds-tag ds-tag-alert\">B</span><span class=\"ds-tag ds-tag-on\">C</span></div>",
+      "css": ".ds-tags { display: flex; gap: 10px; } .ds-tag { display: grid; place-items: center; width: 26px; height: 26px; background: var(--ink, #111); color: var(--stock, #f4f1e8); font: 700 14px 'Barlow Condensed', 'Arial Narrow', sans-serif; } .ds-tag-alert { background: var(--red, #c8102e); color: #fff; } .ds-tag-on { background: var(--amber, #e0a100); color: var(--ink, #111); } .ds-tag:focus-visible { outline: 3px solid var(--amber, #e0a100); outline-offset: 2px; }"
     },
     {
       "name": "Crew Switch",
@@ -455,12 +470,20 @@
       "css": ".ds-bar{display:flex;flex-direction:column;align-items:flex-end;gap:8px;padding:12px;background:var(--ink,#111)}.ds-crew-switch{display:flex;align-items:center;gap:10px;min-height:40px;padding:3px 10px 3px 3px;background:none;color:var(--stock,#f4f1e8);border:1.5px solid #4a4a46;font:600 16px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;cursor:pointer}.ds-crew-switch:hover,.ds-crew-switch[aria-expanded=\"true\"]{border-color:var(--stock,#f4f1e8)}.ds-crew-switch:focus-visible,.ds-crew-menu button:focus-visible{outline:3px solid var(--amber,#e0a100);outline-offset:2px}.ds-crew-switch b{display:grid;place-items:center;width:32px;height:32px;background:var(--stock,#f4f1e8);color:var(--ink,#111);font:700 15px var(--cond,'Barlow Condensed',sans-serif)}.ds-crew-menu{width:280px;background:var(--stock,#f4f1e8);border:1.5px solid var(--ink,#111);box-shadow:0 10px 28px rgba(0,0,0,.3)}.ds-crew-menu button{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 12px;background:none;border:0;border-bottom:1px solid var(--stock-3,#ddd6c4);text-align:left;cursor:pointer;color:var(--ink,#111)}.ds-crew-menu button:hover{background:var(--stock-2,#ebe6d8)}.ds-crew-menu button[aria-current=\"true\"]{background:var(--amber-tint,#f4e3b2)}.ds-crew-menu b{display:grid;place-items:center;width:30px;height:30px;background:var(--ink,#111);color:var(--stock,#f4f1e8);font:700 14px var(--cond,'Barlow Condensed',sans-serif)}.ds-crew-menu span{display:grid}.ds-crew-menu strong{font:700 15px/1.15 var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em}.ds-crew-menu small{font:500 13px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#55534d)}.ds-crew-action{font:700 15px var(--cond,'Barlow Condensed',sans-serif)!important;text-transform:uppercase;letter-spacing:.06em;border-bottom:0!important}"
     },
     {
-      "name": "Hatch Mark",
-      "kind": "chip",
-      "refersTo": "",
-      "description": "The not-measured / needs-instrument mark.",
-      "html": "<span class=\"ds-needs\"><i></i>Needs instrument</span>",
-      "css": ".ds-needs{display:inline-flex;align-items:center;gap:6px;font:500 14px var(--cond,'Barlow Condensed',sans-serif);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2,#33322f)}.ds-needs i{width:14px;height:14px;border:1.5px solid var(--ink,#111);background:repeating-linear-gradient(45deg,#111 0 1.5px,transparent 1.5px 7px),#f4f1e8}"
+      "name": "Today Ring",
+      "kind": "custom",
+      "refersTo": "complete",
+      "description": "One ring per area (Physical, Mental): a segment per check today, Complete Green done, red alert, amber next, Stock 3 to do; the count in the middle.",
+      "html": "<button class=\"ds-ring\" type=\"button\"><svg viewBox=\"0 0 120 120\" aria-hidden=\"true\"><path class=\"ds-seg ds-done\" d=\"M60 10 A50 50 0 0 1 103.3 35\"/><path class=\"ds-seg ds-alert\" d=\"M104.4 37 A50 50 0 0 1 104.4 83\"/><path class=\"ds-seg ds-next\" d=\"M103.3 85 A50 50 0 0 1 60 110\"/><path class=\"ds-seg\" d=\"M57.4 110 A50 50 0 0 1 16.7 85\"/><path class=\"ds-seg\" d=\"M15.6 83 A50 50 0 0 1 57.4 10\"/></svg><span class=\"ds-ring-figure\"><b>2</b><small>/6</small></span><span class=\"ds-ring-name\">Mental</span></button>",
+      "css": ".ds-ring { position: relative; display: grid; justify-items: center; gap: 6px; padding: 12px; width: 180px; background: none; border: 1.5px solid transparent; border-radius: 3px; cursor: pointer; } .ds-ring:hover { background: var(--stock-2, #ebe6d8); border-color: var(--ink, #111); } .ds-ring:focus-visible { outline: 3px solid var(--amber, #e0a100); outline-offset: 2px; } .ds-ring svg { width: 150px; height: 150px; } .ds-seg { fill: none; stroke-width: 13; stroke: var(--stock-3, #ddd6c4); } .ds-done { stroke: var(--complete, #3a7d2c); } .ds-alert { stroke: var(--red, #c8102e); } .ds-next { stroke: var(--amber, #e0a100); } .ds-ring-figure { position: absolute; top: 12px; left: 0; right: 0; height: 150px; display: grid; grid-auto-flow: column; place-content: center; align-items: baseline; font-variant-numeric: tabular-nums; } .ds-ring-figure b { font: 700 46px/1 'Barlow Condensed', sans-serif; } .ds-ring-figure small { font: 600 20px 'Barlow Condensed', sans-serif; color: var(--ink-2, #33322f); } .ds-ring-name { font: 700 18px 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .08em; }"
+    },
+    {
+      "name": "Alert Note",
+      "kind": "custom",
+      "refersTo": "red",
+      "description": "Every alert: a 3px amber frame, a red condensed label (ALERT, WATCH, TELL SURGEON, ACT NOW), the reading, then up to three numbered steps with their action links.",
+      "html": "<div class=\"ds-note\"><b>Alert</b><div><p>Left shoulder range 12% below your ghost.</p><ol><li><span>Repeat it from the same camera spot.</span><a href=\"#\">Retake</a></li><li><span>Pain or weakness? Hand it off.</span><a href=\"#\">Hand off</a></li></ol></div></div>",
+      "css": ".ds-note { display: flex; gap: 14px; align-items: flex-start; border: 3px solid var(--amber, #e0a100); padding: 12px 16px; background: var(--stock, #f4f1e8); font: 16px/1.5 Barlow, system-ui, sans-serif; color: var(--ink, #111); } .ds-note > b { flex: none; background: var(--red, #c8102e); color: #fff; font: 700 16px 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .08em; padding: 2px 8px; } .ds-note ol { margin: 6px 0 0; padding-left: 20px; } .ds-note li { display: flex; gap: 12px; justify-content: space-between; } .ds-note a { color: var(--ink, #111); text-underline-offset: 4px; } .ds-note a:hover { text-decoration-thickness: 2px; } .ds-note a:focus-visible { outline: 3px solid var(--amber, #e0a100); outline-offset: 2px; }"
     }
   ],
   "narrative": {
@@ -477,7 +500,7 @@
     "rules": [
       {
         "name": "The One Meaning Rule",
-        "body": "Amber always means caution or selection, red always means a trend alert or the single primary action, and each hazard ink always means its hazard. A colour never doubles as decoration.",
+        "body": "Amber always means caution or selection, red always means an alert or the single primary action, Complete Green always means a check done today, and each hazard ink always means its hazard. A colour never doubles as decoration.",
         "section": "colors"
       },
       {
@@ -487,7 +510,7 @@
       },
       {
         "name": "The Amber Note Rule",
-        "body": "Every note is framed in amber, whatever its cause. A trend note shows its severity through a red TREND label inside the amber frame, not through a red frame.",
+        "body": "Every note is framed in amber, whatever its cause. An alert shows its severity through a red label inside the amber frame (ALERT for a reading off the ghost, or the urgency word for a symptom or vital), not through a red frame.",
         "section": "colors"
       },
       {

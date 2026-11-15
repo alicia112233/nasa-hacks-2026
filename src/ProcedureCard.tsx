@@ -104,7 +104,7 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
         {/* Every alert is red: off your ghost reads ALERT; a symptom or vital says how urgent it is. Act now outranks both. */}
         <b>{guide?.level === 'now' ? LEVELS.now : flagged.length ? 'Alert' : guide ? LEVELS[guide.level] : 'Alert'}</b>
         <div>
-          <p>{flagged.length ? flagged.map(note).join(' ') : `Last report: ${reported.map(i => i.check.options ? `${i.check.title.toLowerCase()} (${i.check.options[i.last ?? 0].toLowerCase()})` : `${i.check.title.toLowerCase()} ${i.last} ${i.check.unit ?? ''}`.trim()).join(', ')}.`}</p>
+          <p>{flagged.length ? flagged.map(note).join(' ') : `Last report: ${reported.map(i => i.check.options ? `${i.check.title.toLowerCase()} (${i.check.options[i.check.kind === 'scale' ? (i.last ?? 1) - 1 : i.last ?? 0].toLowerCase()})` : `${i.check.title.toLowerCase()} ${i.last} ${i.check.unit ?? ''}`.trim()).join(', ')}.`}</p>
           {/* What to do, in order. */}
           {guide && <ol className="next-steps" aria-label="What to do">
             {guide.steps.map(step => <li key={step.text}>
@@ -128,6 +128,11 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
           const isNext = item === next;
           const result = item.done && item.value != null ? resultLine(c, item.value, g) : null;
           if (c.field) number++;
+          // NASA's archived ISS record for the space around the crew: shown open, not as a check to tick.
+          if (c.kind === 'data') return <li key={c.id} className="data-row">
+            <div className="step static"><span className="n"/><span className="t">{c.title}</span><span className="time">NASA ISS record</span><span aria-hidden="true"/><span aria-hidden="true"/></div>
+            <div className="step-body"><NasaData series={c.series!}/>{c.needs && <p className="muted">{c.needs}. NASA’s 2016 ISS record, not your dose.</p>}</div>
+          </li>;
           return <li key={c.id} className={`${isOpen ? 'open' : ''} ${instrument ? 'instrument' : ''} ${isNext ? 'next' : ''}`}>
             <button data-tour={c.id === tourCheck ? 'check' : undefined} className="step" aria-expanded={isOpen} onClick={() => {
               if (c.kind === 'task') onAttention();
@@ -137,13 +142,13 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
               <span className="n">{c.field ? number : ''}</span>
               <span className="t">{c.title}{result ? <small className={result.level === 'watch' ? 'off' : ''}>{result.text}</small>
                 : g != null && <small>Ghost {c.kind === 'symptom' ? c.options![Math.round(g)] : `${c.unit === 'cm' ? g.toFixed(1) : Math.round(g)}${c.kind === 'scale' ? '/5' : c.unit ? ` ${c.unit}` : ''}`}</small>}</span>
-              <span className="time">{isNext && <em className="next-tag">Next</em>}{instrument ? c.needs : c.kind === 'data' ? 'NASA data' : fmt(c.seconds!)}</span>
-              {c.kind === 'data' ? <span aria-hidden="true"/> : <span className={`box ${item.done ? 'done' : ''} ${item.flagged ? 'flag' : ''}`} role="img" aria-label={item.done ? `Done: ${valueText}` : instrument ? 'Not measured onboard' : 'Not done today'}>
+              <span className="time">{isNext && <em className="next-tag">Next</em>}{instrument ? c.needs : fmt(c.seconds!)}</span>
+              {<span className={`box ${item.done ? 'done' : ''} ${item.flagged ? 'flag' : ''}`} role="img" aria-label={item.done ? `Done: ${valueText}` : instrument ? 'Not measured onboard' : 'Not done today'}>
                 {item.done && <Check size={16} strokeWidth={3}/>}
               </span>}
-              {(c.kind === 'data' || instrument || c.kind === 'camera') && <ChevronDown className="chev" size={16} aria-hidden="true"/>}
+              {(instrument || c.kind === 'camera') && <ChevronDown className="chev" size={16} aria-hidden="true"/>}
             </button>
-            {c.field && <div className="measurement-context"><span>{item.lastMeasuredAt ? `Last measured ${formatDate(item.lastMeasuredAt, { hour: '2-digit', minute: '2-digit' })}` : 'Never measured'}</span>{item.comparison && item.lastMeasuredAt && !item.comparison.comparable && <p>{item.comparison.state === 'unreliable' ? 'Comparison unreliable. ' : ''}{item.comparison.reason}</p>}</div>}
+            {c.field && <div className="measurement-context"><span>{item.lastMeasuredAt ? `Last measured ${formatDate(item.lastMeasuredAt, { hour: '2-digit', minute: '2-digit' })}` : 'Never measured'}</span>{item.comparison && item.lastMeasuredAt && item.comparison.state === 'unreliable' && <p>{item.comparison.state === 'unreliable' ? 'Comparison unreliable. ' : ''}{item.comparison.reason}</p>}</div>}
             {isOpen && <div className="step-body">
               {HOW[c.id] && <dl className="how-why">
                 <div><dt>How</dt><dd>{HOW[c.id]}</dd></div>
@@ -166,9 +171,7 @@ export default function ProcedureCard({ region, status, analysis, onSave, onAtte
                 <p>{item.value != null ? `Today ${item.value} cm` : 'Not scanned today.'}{g != null && ` Ghost ${g.toFixed(1)} cm.`} Fluid shifts also thin the legs, so a narrower outline alone doesn’t mean muscle loss.</p>
                 <button className="btn" onClick={() => onCamera('legs')}><ScanLine size={16}/> Scan 5 s</button>
               </div>}
-              {c.kind === 'data' && <NasaData series={c.series!}/>}
               {instrument && <p className="muted">Not measured here. If a {c.needs!.replace(/^Needs /, '').toLowerCase()} is used, add it to the report note.</p>}
-              {c.kind === 'data' && c.needs && <p className="muted">{c.needs}. This chart is NASA's ISS record, not your dose.</p>}
             </div>}
           </li>;
         })}

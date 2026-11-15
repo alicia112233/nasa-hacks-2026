@@ -35,6 +35,6 @@ test('ground reports carry the body index, instrument gaps and NASA sources', as
   expect(text).toContain('https://www.nasa.gov/hrp/hazards/');
   const [json] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'JSON' }).click()]);
   const report = JSON.parse(await readFile((await json.path())!, 'utf8'));
-  expect(report).toMatchObject({ source: 'simulated', transmitted: false });
+  expect(report).toMatchObject({ source: 'recorded', transmitted: false });
   expect(report.notMeasurableOnboard).toEqual(['Radiation-induced cancer']);
 });

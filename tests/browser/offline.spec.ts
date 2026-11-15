@@ -18,7 +18,6 @@ test('production build keeps the body, NASA data, pose and 4DGS models available
   }
   await expect(page.locator('.tag[data-region="chest"]')).toHaveCSS('opacity', '1', { timeout: 20000 });
   await page.getByRole('button', { name: /^I Cabin/ }).click();
-  await page.getByRole('button', { name: /Radiation dose/ }).click();
   await expect(page.getByText('mGy over 43 days')).toBeVisible();
   await page.getByRole('link', { name: 'Report' }).click();
   await page.getByLabel('Note for the medical team').fill('Crew reports vision blur; repeat under matching lighting.');

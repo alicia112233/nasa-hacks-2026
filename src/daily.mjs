@@ -28,8 +28,8 @@ export function recommendChecks({ checkIns, simulated, references = [], camera =
       recommendations.push({ checkId: check.id, field: check.field, region: check.region, title: `Strong ${topicOf(check).toLowerCase()} reported`, seconds: 0, priority: 100, reason: 'Tell a crewmate and the medical lead now.' }); continue;
     }
     const poor = meta?.quality === 'poor';
-    // A repeat helps only when a ghost exists and the recording or its conditions were the problem.
-    const unreliable = check.kind === 'camera' && comparison?.state === 'unreliable' && !!last && !!comparison.referenceId && comparison.referenceCount > 0;
+    // Unreliable now only means a poor recording or a changed camera setup: both are fixed by repeating.
+    const unreliable = check.kind === 'camera' && comparison?.state === 'unreliable' && !!last;
     if (today && !poor && !unreliable) continue;
     const hours = last ? Math.max(0, (now - Date.parse(measuredAt(last, check.field))) / 3600000) : null;
     const ago = hours == null ? '' : hours >= 48 ? `${Math.floor(hours / 24)} days` : `${Math.floor(hours)} h`;

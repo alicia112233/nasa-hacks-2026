@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { freshMember } from './crew-helpers';
 
 test('checks explain how and why, results say what they mean, and off readings give plain next steps', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -14,9 +15,7 @@ test('checks explain how and why, results say what they mean, and off readings g
   await expect(steps.getByRole('button', { name: 'Plan follow-up' })).toHaveCount(0);
 
   // An opened check says how to take it and why it matters.
-  await page.goto('/#mission');
-  await page.getByRole('button', { name: 'My records', exact: true }).click();
-  await page.getByRole('link', { name: 'Body' }).click();
+  await freshMember(page);
   await page.getByRole('list', { name: 'Body regions' }).getByRole('button', { name: /^C Chest/ }).click();
   await page.getByRole('button', { name: 'Begin', exact: true }).click();
   await expect(page.locator('.how-why')).toContainText('Rest 5 min. Count your wrist pulse for 30 s and double it.');

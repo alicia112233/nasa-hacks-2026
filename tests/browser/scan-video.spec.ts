@@ -69,7 +69,7 @@ test('the scan keeps the profile model, refits a chosen model, and tracks the le
   await page.getByRole('button', { name: 'Scan 5 s' }).click();
   dialog = page.getByRole('dialog', { name: 'Body scan · 5 s' });
   await expect(dialog.getByRole('button', { name: 'Use scan', exact: true })).toBeEnabled({ timeout: 90000 });
-  await expect(dialog.getByText(/^Thigh \d+(\.\d)? cm\. Saved to H Legs\.$/)).toBeVisible();
+  await expect(dialog.getByText(/^Thigh \d+(\.\d)? cm.*Saved to H Legs\.$/)).toBeVisible();
   await expect.poll(() => dialog.getByLabel('Recorded scan clip').evaluate((v: HTMLVideoElement) => v.videoWidth > 0)).toBe(true);
   await dialog.getByRole('button', { name: 'Use scan', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /Body scan saved · thigh \d/ })).toBeVisible();

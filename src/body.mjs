@@ -2,7 +2,7 @@
 // regions and the checks a crew member can run. Links verified 2026-11-14.
 import { analyze } from './rules.mjs';
 import { measuredAt } from './references.mjs';
-import { outOfRange } from './guidance.mjs';
+import { lowRating, outOfRange } from './guidance.mjs';
 
 export const hazards = [
   { id: 'radiation', label: 'Radiation', color: '#8e2a8b', url: 'https://www.nasa.gov/hrp/hazard-space-radiation/' },
@@ -119,7 +119,7 @@ export function regionStatuses(checkIns, simulated, now = new Date().toISOString
       const ever = check.field ? records.some(c => isNum(c[check.field])) : false;
       const flagged = !!trend[check.field];
       const last = check.field ? lastValue(check.field) : null;
-      const reported = (check.kind === 'symptom' && last != null && last > 0) || outOfRange(check, last);
+      const reported = (check.kind === 'symptom' && last != null && last > 0) || outOfRange(check, last) || lowRating(check, last);
       const lastRecord = check.field ? forField(check.field).at(-1) : null;
       return { check, value, last, done: value != null, ever, flagged, reported, lastMeasuredAt: lastRecord ? measuredAt(lastRecord, check.field) : null, comparison: analysis.comparisons[check.field] };
     });
@@ -143,3 +143,6 @@ const TOPICS = { dizziness: 'Balance', headache: 'Headache', vision: 'Vision', h
   attention: 'Attention', sleep: 'Sleep', mood: 'Mood', energy: 'Energy', workload: 'Workload', team: 'Teamwork' };
 /** @param {{ id: string, title: string }} check */
 export const topicOf = check => TOPICS[check.id] ?? check.title;
+
+/** The mission day on a date, with the start date as Sol 1. @param {string} startDate @param {number} [now] */
+export const solOn = (startDate, now = Date.now()) => Math.max(1, Math.floor((now - new Date(startDate).getTime()) / 86400000) + 1);

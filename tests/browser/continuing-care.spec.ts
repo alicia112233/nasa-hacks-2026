@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { fillCarePlan, openSection } from './care-helpers';
+import { freshMember } from './crew-helpers';
 
 test.use({ actionTimeout: 15000 });
 
@@ -70,7 +71,7 @@ test('blackout care appends reassessment to the original packet, persists and ex
 });
 
 test('personal movement opens original crew videos and keeps public 4DGS out of personal evidence', async ({ page }) => {
-  await page.goto('/#mission'); await page.getByRole('button', { name: 'My records', exact: true }).click();
+  await freshMember(page);
   await page.evaluate(async () => {
     const db = await new Promise<IDBDatabase>(resolve => { const r = indexedDB.open('ghostpilot-mission', 1); r.onsuccess = () => resolve(r.result); });
     const state = await new Promise<any>(resolve => { const r = db.transaction('mission').objectStore('mission').get('state'); r.onsuccess = () => resolve(r.result); });

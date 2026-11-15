@@ -63,3 +63,27 @@ test('a resting heart rate outside its range is an alert with its own steps', as
   }
   assert.notEqual(regionStatuses(entry(72), false, now).chest.state, 'flag');
 });
+
+test('a low or very low rating is an alert with instant feedback and steps that scale with it', async () => {
+  const { nextSteps, resultLine } = await import('../src/guidance.mjs');
+  const now = new Date().toISOString();
+  const entry = values => [{ id: 'r', crewId: 'a', simulated: false, date: now, sol: 1, reactionMs: null, missed: 0, signals: 0, symptoms: [], notes: '', ...values,
+    measurements: Object.fromEntries(Object.keys(values).map(k => [k, { measuredAt: now, quality: 'good' }])) }];
+  const sleep = checks.find(c => c.id === 'sleep');
+  assert.match(resultLine(sleep, 2, null).text, /low · protect your next sleep/);
+  assert.equal(resultLine(sleep, 2, null).level, 'watch');
+  assert.equal(resultLine(sleep, 4, null).level, 'ok');
+  for (const [field, region] of [['sleep', 'head'], ['mood', 'head'], ['energy', 'head'], ['workload', 'head'], ['team', 'head'], ['appetite', 'abdomen']]) {
+    const low = regionStatuses(entry({ [field]: 2 }), false, now)[region];
+    assert.equal(low.state, 'flag', `${field} low`);
+    assert.equal(nextSteps(low.items).level, 'watch', `${field} low`);
+    assert.equal(nextSteps(regionStatuses(entry({ [field]: 1 }), false, now)[region].items).level, 'tell', `${field} very low`);
+    assert.notEqual(regionStatuses(entry({ [field]: 3 }), false, now)[region].state, 'flag', `${field} okay`);
+  }
+});
+
+test('Sol is the mission day counted from the mission start', async () => {
+  const { solOn } = await import('../src/body.mjs');
+  assert.equal(solOn('2026-11-01T00:00:00+08:00', Date.parse('2026-11-01T12:00:00+08:00')), 1);
+  assert.equal(solOn('2026-11-01T00:00:00+08:00', Date.parse('2026-11-15T12:00:00+08:00')), 15);
+});

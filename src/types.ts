@@ -142,6 +142,8 @@ export interface MissionState {
   references?: GhostReference[];
   cabinReadings?: CabinReading[];
   checkRuns?: CheckRun[];
+  /** Which sample crew this device has been given, so new sample members arrive once. */
+  sampleVersion?: number;
   careUpdates?: CareUpdate[];
 }
 
@@ -188,7 +190,7 @@ export interface MissionPacket {
   limitations: string[];
 }
 
-export type Page = 'body' | 'trends' | 'report' | 'mission';
+export type Page = 'body' | 'trends' | 'report' | 'risks' | 'sources';
 export type RegionId = 'head' | 'eyes' | 'chest' | 'abdomen' | 'arms' | 'hands' | 'pelvis' | 'legs' | 'cabin';
 export type FlagKind = 'movement' | 'attention' | 'wellbeing';
 export type HazardId = 'isolation' | 'gravity' | 'environment' | 'distance' | 'radiation';

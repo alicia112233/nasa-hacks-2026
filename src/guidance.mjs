@@ -29,7 +29,7 @@ export const HOW = {
   skin: 'Check hands, face and lips for rash or cold sores.',
   grip: 'Press each fingertip. Any pain or numbness after glove work?',
   back: 'Any back pain at rest, or when you bend or twist?',
-  exercise: 'Enter today’s total minutes on the treadmill, bike and weights.',
+  exercise: 'Enter today’s minutes on the treadmill, cycle and resistance device.',
   legs: 'Body scan: feet in view, arms a little out, hold still 5 s.',
 };
 
@@ -53,7 +53,7 @@ export const WHY = {
   skin: 'Immune changes in flight can reactivate viruses such as cold sores.',
   grip: 'Spacewalk gloves can injure fingertips and nails.',
   back: 'The spine lengthens in weightlessness, and back pain is common.',
-  exercise: 'Treadmill, bike and weights load the legs: the main defence for bone and muscle.',
+  exercise: 'The T2 treadmill, CEVIS cycle and ARED load the legs, protecting bone and muscle.',
   legs: 'Thigh breadth tracks fluid shift and leg muscle; narrower alone isn’t muscle loss.',
 };
 
@@ -62,6 +62,35 @@ export const LEVELS = { watch: 'Watch', tell: 'Tell surgeon', now: 'Act now' };
 export const RESTING_HR = [60, 100];
 /** A vital sign clearly outside its range: today this is resting heart rate over 100 or under 50 bpm. */
 export const outOfRange = (check, value) => check.field === 'heartRate' && typeof value === 'number' && (value > RESTING_HR[1] || value < 50);
+/** A 1–5 rating of 1 (very low) or 2 (low). */
+export const lowRating = (check, value) => check.kind === 'scale' && typeof value === 'number' && value <= 2;
+/** Steps for a low rating: 2 low, 1 very low. */
+const LOW = {
+  sleep: [
+    { level: 'watch', steps: [{ text: 'Protect your next sleep period: dim light, earplugs, no screens.' }, { text: 'Note what disturbed it: noise, light, schedule or worry.' }, { text: 'Two low nights in a row? Hand it off.', action: 'handoff' }] },
+    { level: 'tell', steps: [{ text: 'Tell the medical lead; very poor sleep affects every task.', action: 'handoff' }, { text: 'Protect your next sleep period: dim light, earplugs, no screens.' }] }],
+  mood: [
+    { level: 'watch', steps: [{ text: 'Talk to a crewmate, or use your next private call home.' }, { text: 'Note what is weighing on you.' }, { text: 'Low for several days? Hand it off.', action: 'handoff' }] },
+    { level: 'tell', steps: [{ text: 'Talk to the medical lead or flight surgeon today.', action: 'handoff' }, { text: 'Tell a crewmate how you feel.' }] }],
+  energy: [
+    { level: 'watch', steps: [{ text: 'Eat, drink water and take a short break.' }, { text: 'Rate it again later today.', action: 'retake' }] },
+    { level: 'tell', steps: [{ text: 'Rest, and check sleep and appetite too.' }, { text: 'Still very low later? Hand it off.', action: 'handoff' }] }],
+  appetite: [
+    { level: 'watch', steps: [{ text: 'Eat a full meal or a snack now.' }, { text: 'Note what put you off: taste, nausea or no time.' }] },
+    { level: 'tell', steps: [{ text: 'Eating very little speeds bone and muscle loss: hand it off.', action: 'handoff' }, { text: 'Eat what you can now.' }] }],
+  workload: [
+    { level: 'watch', steps: [{ text: 'Tell the crew lead which tasks don’t fit; ask for a re-plan.' }, { text: 'Take your scheduled breaks.' }] },
+    { level: 'tell', steps: [{ text: 'Raise it with the crew lead and ground today.', action: 'handoff' }] }],
+  team: [
+    { level: 'watch', steps: [{ text: 'Raise it early, at the next crew debrief.' }, { text: 'Note what happened, without blame.' }] },
+    { level: 'tell', steps: [{ text: 'Talk to the crew lead or flight surgeon today.', action: 'handoff' }] }],
+};
+/** The few words shown on a result that is off, so feedback is instant. */
+const TIP = {
+  sleep: 'protect your next sleep', mood: 'talk to a crewmate', energy: 'eat, drink, take a break', appetite: 'eat a full meal now', workload: 'ask for a re-plan', team: 'raise it at debrief',
+  headache: 'note when it started', dizziness: 'move slowly, hold a rail', vision: 'tell the surgeon', breath: 'rest, check cabin CO₂', joint: 'tell the surgeon',
+  gut: 'keep fluids up', skin: 'keep it clean and dry', grip: 'note the glove and task', back: 'stretch gently',
+};
 /** Steps for an out-of-range vital, by value. */
 const VITAL = {
   heartRate: v => v > RESTING_HR[1]
@@ -133,6 +162,7 @@ export function nextSteps(items) {
     if (i.flagged && TREND[i.check.field]) plans.push({ ...TREND[i.check.field], checkId: i.check.id });
     else if (i.reported && SYMPTOM[i.check.field] && i.last > 0) plans.push({ ...SYMPTOM[i.check.field][Math.min(i.last, 2) - 1], checkId: i.check.id });
     else if (i.reported && VITAL[i.check.field] && i.last != null) plans.push({ ...VITAL[i.check.field](i.last), checkId: i.check.id });
+    else if (i.reported && LOW[i.check.field] && lowRating(i.check, i.last)) plans.push({ ...LOW[i.check.field][i.last === 1 ? 1 : 0], checkId: i.check.id });
   }
   if (!plans.length) return null;
   plans.sort((a, b) => RANK[b.level] - RANK[a.level]);
@@ -149,7 +179,10 @@ export function nextSteps(items) {
 export function resultLine(check, value, ghost) {
   const unit = check.unit === '°' ? '°' : check.unit ? ` ${check.unit}` : '';
   const show = v => (check.unit === 'cm' ? v.toFixed(1) : Math.round(v));
-  if (check.options) return { text: `Today ${check.options[check.kind === 'scale' ? value - 1 : value].toLowerCase()}`, level: check.kind === 'symptom' && value > 0 ? 'watch' : 'ok' };
+  if (check.options) {
+    const off = (check.kind === 'symptom' && value > 0) || lowRating(check, value);
+    return { text: `Today ${check.options[check.kind === 'scale' ? value - 1 : value].toLowerCase()}${off && TIP[check.field] ? ` · ${TIP[check.field]}` : ''}`, level: off ? 'watch' : 'ok' };
+  }
   if (check.field === 'heartRate' && value > RESTING_HR[1]) return { text: `Today ${value} bpm · high at rest: rest 5 min, recheck`, level: 'watch' };
   if (check.field === 'heartRate' && value < 50) return { text: `Today ${value} bpm · low: recheck; dizzy? hand it off`, level: 'watch' };
   return { text: `Today ${show(value)}${unit}${ghost != null ? ` · ghost ${show(ghost)}${unit}` : ''}`, level: 'ok' };

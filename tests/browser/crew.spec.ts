@@ -6,7 +6,7 @@ test('the top bar names who is shown on every page, and switching crew switches 
   const who = page.locator('.crew-switch-btn');
   await expect(who).toContainText('Alex Morgan');
   await expect(page.getByText(/MIN ONE WAY/)).toHaveCount(0);
-  for (const name of ['Trends', 'Report', 'Mission']) {
+  for (const name of ['Trends', 'Report', 'Risks', 'Sources']) {
     await page.getByRole('link', { name }).click();
     await expect(who).toContainText('Alex Morgan');
   }
@@ -45,8 +45,6 @@ test('the top bar names who is shown on every page, and switching crew switches 
   await expect(who).toContainText('PN');
   await page.getByRole('dialog', { name: 'Edit profile' }).getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page).toHaveURL(/#trends$/);
-  await page.goto('/#mission');
-  await page.getByRole('button', { name: 'My records', exact: true }).click();
   await page.getByRole('link', { name: 'Body' }).click();
   await page.getByRole('list', { name: 'Body regions' }).getByRole('button', { name: /^C Chest/ }).click();
   await page.getByRole('button', { name: /Resting heart rate/ }).click();
@@ -71,5 +69,5 @@ test('the top bar names who is shown on every page, and switching crew switches 
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(who).not.toContainText('Priya Nair');
   await who.click();
-  await expect(page.getByRole('list', { name: 'Crew' }).getByRole('button')).toHaveCount(2);
+  await expect(page.getByRole('list', { name: 'Crew' }).getByRole('button')).toHaveCount(4);
 });

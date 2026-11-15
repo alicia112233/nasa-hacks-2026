@@ -6,11 +6,11 @@ const recordingDate = '2026-01-02T03:04:05.000Z';
 async function expectCrew(page: Page, name: string) {
   await page.goto('/#body');
   await expect(page.locator('.crew-switch-btn')).toContainText(name);
-  await page.goto('/#mission');
+  await page.goto('/#sources');
 }
 
 async function seedPersonalData(page: Page) {
-  await page.goto('/#mission');
+  await page.goto('/#sources');
   await expect(page.getByRole('heading', { name: 'Data' })).toBeVisible();
   await page.evaluate(date => new Promise<void>((resolve, reject) => {
     const open = indexedDB.open('ghostpilot-mission');
@@ -24,6 +24,7 @@ async function seedPersonalData(page: Page) {
         const state = request.result;
         state.profile = { ...state.profile, name: 'Private Crew', heightCm: 181, massKg: 81 };
         state.checkIns.push({ ...state.checkIns[0], id: 'personal-check', simulated: false });
+        state.crew = state.crew.map((c: { id: string }) => c.id === state.crewId ? state.profile : c);
         state.actions = [false, true].map(simulated => ({
           id: `action-${simulated}`, simulated, title: 'Private follow-up', notes: 'Private note',
           kind: 'attention', checklist: [], createdAt: date, scheduledAt: date, status: 'scheduled',
@@ -56,7 +57,7 @@ async function storedPersonalData(page: Page) {
       const videos = tx.objectStore('recordings').count();
       tx.oncomplete = () => {
         db.close();
-        resolve({ name: state.result.profile.name, personal: state.result.checkIns.filter((c: { simulated: boolean }) => !c.simulated).length,
+        resolve({ name: state.result.profile.name, personal: state.result.checkIns.filter((c: { id: string }) => c.id === 'personal-check').length,
           actions: state.result.actions.length, packets: state.result.packets.length, videos: videos.result });
       };
       tx.onabort = () => { db.close(); reject(tx.error); };
@@ -64,14 +65,14 @@ async function storedPersonalData(page: Page) {
   }));
 }
 
-test('confirmed deletion removes videos, pose data, profile and personal records across reloads', async ({ page }) => {
+test('confirmed deletion removes videos, pose data, profiles and records across reloads, and restores the sample crew', async ({ page }) => {
   await seedPersonalData(page);
-  await page.getByRole('button', { name: 'Clear personal records' }).click();
+  await page.getByRole('button', { name: 'Delete all records' }).click();
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   expect(await storedPersonalData(page)).toMatchObject({ name: 'Private Crew', personal: 1, videos: 1 });
-  await page.getByRole('button', { name: 'Clear personal records' }).click();
-  await page.getByRole('button', { name: 'Delete', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Personal records, videos and profile cleared.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete all records' }).click();
+  await page.getByRole('button', { name: 'Delete everything', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'All records deleted. Sample crew restored.' })).toBeVisible();
   await expectCrew(page, 'Alex Morgan');
   const cleared = { name: 'Alex Morgan', personal: 0, actions: 0, packets: 0, videos: 0 };
   expect(await storedPersonalData(page)).toEqual(cleared);
@@ -90,17 +91,17 @@ test('an aborted deletion preserves records and reports failure', async ({ page 
       return request;
     };
   });
-  await page.getByRole('button', { name: 'Clear personal records' }).click();
-  await page.getByRole('button', { name: 'Delete', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('Could not delete personal records');
+  await page.getByRole('button', { name: 'Delete all records' }).click();
+  await page.getByRole('button', { name: 'Delete everything', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Could not delete the records');
   expect(await storedPersonalData(page)).toMatchObject({ name: 'Private Crew', personal: 1, actions: 2, packets: 2, videos: 1 });
   await page.reload();
   await expectCrew(page, 'Private Crew');
 });
 
-test('demo reports and movement views exclude personal recordings while personal reports retain them', async ({ page }) => {
+test('a crew member\'s report carries their own recordings and never another member\'s', async ({ page }) => {
   await seedPersonalData(page);
-  // The seeded handoff fixtures are irrelevant to this export and have no display fields.
+  // The seeded handoff fixtures have no display fields and are irrelevant to this export.
   await page.evaluate(() => new Promise<void>((resolve, reject) => {
     const open = indexedDB.open('ghostpilot-mission');
     open.onsuccess = () => {
@@ -120,22 +121,13 @@ test('demo reports and movement views exclude personal recordings while personal
     const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Markdown', exact: true }).click()]);
     return readFile((await download.path())!, 'utf8');
   };
-  const demo = await downloadReport();
-  expect(demo).toContain('SIMULATED DEMO');
-  expect(demo).not.toContain(recordingDate);
-  expect(demo).not.toContain('123°');
-  await page.getByRole('link', { name: 'Body', exact: true }).click();
-  await page.getByRole('button', { name: /^E Arms/ }).click();
-  await page.getByRole('button', { name: /Shoulder range/ }).click();
-  await page.getByRole('button', { name: 'Compare movement', exact: true }).click();
-  await expect(page.getByRole('dialog').getByText('Record your own movement to compare.', { exact: false })).toBeVisible();
-  await expect(page.locator('.gaussian-stage')).toHaveCount(0);
-  await page.keyboard.press('Escape');
-  await page.getByRole('link', { name: 'Mission', exact: true }).click();
-  await page.getByRole('button', { name: 'My records', exact: true }).click();
-  await page.getByRole('link', { name: 'Report', exact: true }).click();
-  const personal = await downloadReport();
-  expect(personal).toContain('Personal records on this device');
-  expect(personal).toContain(recordingDate);
-  expect(personal).toContain('123°');
+  const own = await downloadReport();
+  expect(own).toContain('Personal records on this device');
+  expect(own).toContain(recordingDate);
+  expect(own).toContain('123°');
+  await page.locator('.crew-switch-btn').click();
+  await page.getByRole('list', { name: 'Crew' }).getByRole('button', { name: /Jordan Lee/ }).click();
+  const other = await downloadReport();
+  expect(other).not.toContain(recordingDate);
+  expect(other).not.toContain('123°');
 });

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const routes = ['body', 'trends', 'report', 'mission'];
+const routes = ['body', 'trends', 'report', 'risks', 'sources'];
 const viewports = [
   { width: 1440, height: 900 }, { width: 1366, height: 768 },
   { width: 1024, height: 600 }, { width: 800, height: 600 },
@@ -60,8 +60,8 @@ for (const width of [1440, 390]) {
     await page.getByRole('button', { name: /^C Chest/ }).click();
     await page.getByRole('button', { name: /Short of breath/ }).click();
     await audit();
+    // NASA's ISS radiation and air record sit open on the Cabin card.
     await page.getByRole('button', { name: /^I Cabin/ }).click();
-    await page.getByRole('button', { name: /Cabin CO₂/ }).click();
     await expect(page.getByText('ppm CO₂ median')).toBeVisible();
     await audit();
     await page.getByRole('button', { name: /^A Head/ }).click();

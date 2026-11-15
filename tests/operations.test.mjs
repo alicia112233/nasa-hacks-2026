@@ -19,14 +19,18 @@ test('matching fixed references allow trends; recording changes suppress a clini
   assert.equal(a.attentionFlag, true);
 });
 
-test('poor frames and unknown legacy conditions cannot produce a trend', () => {
+test('poor frames cannot produce a trend; with no ghost set, the earliest readings are the ghost', () => {
   const records = series(), refs = referencesFor(records);
   records.at(-1).measurements.leftRange.quality = 'poor';
   records.at(-1).measurements.leftRange.confidentFrames = 4;
   assert.equal(analyze(records, false, refs).movementFlag, false);
   const legacy = records.map(({ measurements, ...r }) => r);
-  assert.equal(analyze(legacy, false).attentionFlag, false);
-  assert.match(analyze(legacy, false).comparisons.reactionMs.reason, /No ghost set/);
+  const auto = analyze(legacy, false).comparisons.reactionMs;
+  assert.equal(auto.auto, true);
+  assert.equal(auto.comparable, true);
+  assert.equal(auto.referenceCount, 11);
+  // Too few readings for an earlier and a newer three: not comparable yet, and it says so.
+  assert.match(analyze(legacy.slice(0, 4), false).comparisons.reactionMs.reason, /Needs 3 earlier and 3 newer readings/);
 });
 
 test('adding a phase reference preserves preflight and rejects replacement; snapshots resist gradual deterioration', () => {
@@ -46,11 +50,11 @@ test('adding a phase reference preserves preflight and rejects replacement; snap
   assert.throws(() => establishReference({ id: 'new', crewId: 'crew-a', simulated: true, records, phase: 'surface', reason: 'Test', now: new Date(now).toISOString() }), /three good/);
 });
 
-test('phase mismatch is unreliable and per-metric times survive another check', () => {
+test('a phase label alone never breaks a comparison, and per-metric times survive another check', () => {
   const records = series(), refs = referencesFor(records);
   records.at(-1).measurements.thighCm.phase = 'surface';
   const a = analyze(records, false, refs);
-  assert.match(a.comparisons.thighCm.reason, /Different mission phase/);
+  assert.notEqual(a.comparisons.thighCm.state, 'unreliable');
   assert.equal(a.comparisons.thighCm.lastMeasuredAt, records.at(-1).measurements.thighCm.measuredAt);
   assert.equal(a.comparisons.sleep.comparable, true);
 });

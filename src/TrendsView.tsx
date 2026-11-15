@@ -61,7 +61,7 @@ export default function TrendsView({ checkIns, simulated, references, tourMetric
     <section className="sheet">
       <div className="trend-focus" data-tour={tourMetric ? 'trend-chart' : undefined}>
       <h2>{active.label} <small>{active.unit}</small></h2>
-      <div className="comparison-note" role="status"><b>{active.comparison.state === 'unreliable' ? 'Comparison unreliable' : active.worse ? 'Alert' : active.comparison.comparable ? 'No alert' : 'More readings needed'}</b><p>{active.comparison.reason}</p><p className="muted">Ghost from {phases[active.comparison.phase as keyof typeof phases].toLowerCase()}.{active.key === 'thighCm' && ' Fluid shifts also thin the legs, so a narrower outline alone doesn’t mean muscle loss.'}</p></div>
+      <div className="comparison-note" role="status"><b>{active.comparison.state === 'unreliable' ? 'Comparison unreliable' : active.worse ? 'Alert' : active.comparison.comparable ? 'No alert' : 'More readings needed'}</b><p>{active.comparison.reason}</p><p className="muted">{(active.comparison as { auto?: boolean }).auto ? 'Ghost from your earliest readings.' : `Ghost from ${phases[active.comparison.phase as keyof typeof phases].toLowerCase()}.`}{active.key === 'thighCm' && ' Fluid shifts also thin the legs, so a narrower outline alone doesn’t mean muscle loss.'}</p></div>
       <div className="chart tall" role="img" aria-label={`${active.label} by sol with ghost line`}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 12, left: -8, bottom: 0 }}>

@@ -117,11 +117,12 @@ for (const dismissal of ['Skip tutorial', 'Close tutorial', 'Escape']) {
   });
 }
 
-test('replay on personal records preserves the current crew, source, page and unsaved handoff draft', async ({ page }) => {
+test('replay for a new member preserves the current crew, page and unsaved handoff draft', async ({ page }) => {
   await page.goto('/');
   await guide(page).getByRole('button', { name: 'Skip tutorial' }).click();
-  await page.getByRole('link', { name: 'Mission', exact: true }).click();
-  await page.getByRole('button', { name: 'My records', exact: true }).click();
+  await page.locator('.crew-switch-btn').click();
+  await page.getByRole('button', { name: 'Add crew member', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Edit profile' }).getByRole('button', { name: 'Done', exact: true }).click();
   await page.getByRole('link', { name: 'Report', exact: true }).click();
   await page.getByLabel('Note for the medical team').fill('Unsaved private observation');
   const before = await savedMission(page);
