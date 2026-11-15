@@ -448,7 +448,8 @@ li.instrument .box { background: var(--hatch), var(--stock); }
 .task-intro { display: grid; gap: 16px; }
 .task-meta { display: flex; justify-content: space-between; font: 700 20px var(--cond); text-transform: uppercase; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
 .dock { position: relative; height: min(380px, 55vh); background: var(--binder); background-image: radial-gradient(circle at center, transparent 0 60px, rgba(244,241,232,.18) 61px 62px, transparent 63px 130px, rgba(244,241,232,.12) 131px 132px, transparent 133px); }
-.dock-target { position: absolute; width: 64px; height: 64px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--amber); color: var(--ink); display: grid; place-items: center; border: 3px solid var(--ink); }
+.dock-target { position: absolute; width: 64px; height: 64px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--amber); color: var(--ink); display: grid; place-items: center; align-content: center; gap: 2px; border: 3px solid var(--ink); }
+.dock-target-label { font: 700 16px/1 var(--cond); letter-spacing: .06em; }
 .task-bar { height: 6px; background: var(--stock-3); }
 .task-bar i { display: block; height: 100%; background: var(--red); }
 

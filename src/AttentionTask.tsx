@@ -64,7 +64,7 @@ export default function AttentionTask({ onClose, onSave, seconds = 60 }: Props) 
     </div> : <>
       <div className="task-meta" aria-live="off"><span>{Math.ceil(left)} S</span><span>{counts.hit} hit · {counts.missed} missed</span></div>
       <div className="dock" role="application" aria-label="Docking task area">
-        {signal && <button className="dock-target" style={{ left: `${signal.x}%`, top: `${signal.y}%` }} onClick={respond} aria-label="Target"><Crosshair size={34}/></button>}
+        {signal && <button className="dock-target" style={{ left: `${signal.x}%`, top: `${signal.y}%` }} onClick={respond} aria-label="TAP! Target"><Crosshair size={26} aria-hidden="true"/><span className="dock-target-label">TAP!</span></button>}
       </div>
       <div className="task-bar"><i style={{ width: `${(1 - left / seconds) * 100}%` }}/></div>
     </>}
