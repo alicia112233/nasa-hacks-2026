@@ -45,7 +45,7 @@ test('the scan keeps the profile model, refits a chosen model, and tracks the le
   await dialog.getByLabel('Clip position').fill('1');
   await expect.poll(() => clip.evaluate((v: HTMLVideoElement) => v.paused && Math.abs(v.currentTime - 1) < 0.2)).toBe(true);
   await expect(dialog.locator('.figure-canvas canvas')).toBeVisible();
-  await expect(dialog.getByText(/Thigh \d+(\.\d)? cm is saved to H Legs/)).toBeVisible();
+  await expect(dialog.getByText(/^Thigh \d+(\.\d)? cm.*Saved to H Legs\.$/)).toBeVisible();
   const axe = await new AxeBuilder({ page }).include('.dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
   expect(axe.violations.map(v => v.id)).toEqual([]);
   await dialog.getByRole('button', { name: 'Use scan' }).click();

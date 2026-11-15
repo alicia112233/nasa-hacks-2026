@@ -38,7 +38,7 @@ test('shared headache reports lead to current cabin review while archived NASA d
   await page.getByRole('button', { name: 'Check cabin', exact: true }).click();
   await expect(page.locator('.cabin-review')).toContainText('Latest cabin reading');
   await page.getByRole('button', { name: 'Air-quality steps' }).click();
-  await expect(page.locator('.cabin-review')).toContainText('Use your mission’s approved procedure');
+  await expect(page.locator('.cabin-review')).toContainText('Use your mission’s approved air-quality procedure');
   await page.getByRole('link', { name: 'Mission', exact: true }).click();
   await page.getByRole('button', { name: 'My records', exact: true }).click();
   await page.getByRole('link', { name: 'Body', exact: true }).click();

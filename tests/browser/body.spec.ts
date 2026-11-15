@@ -57,7 +57,7 @@ test('a personal self-check saves to today, marks the region and survives reload
   await page.reload();
   await page.getByRole('button', { name: /^C Chest/ }).click();
   await expect(page.getByRole('img', { name: 'Done: 71 bpm' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^B Eyes/ })).toHaveClass(/reported/);
+  await expect(page.getByRole('button', { name: /^B Eyes/ })).toHaveClass(/flag/);
   await page.getByRole('link', { name: 'Trends' }).click();
   await expect(page.getByRole('region', { name: 'Check-in history' })).toContainText('71');
 });
@@ -80,7 +80,7 @@ test('attention task records real responses over the full 60 seconds', async ({ 
   await page.waitForTimeout(400);
   await page.reload();
   await page.getByRole('button', { name: /^A Head/ }).click();
-  await expect(page.getByRole('img', { name: /Done: \d+ ms/ })).toBeVisible();
+  await expect(page.getByRole('img', { name: /Done: \d+(\.\d+)? ms/ })).toBeVisible();
 });
 
 test('stopping the attention task early saves nothing', async ({ page }) => {
