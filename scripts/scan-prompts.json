@@ -1,0 +1,17 @@
+{
+  "prepare": "Allow camera access if asked. Step back until your feet are in view.",
+  "step-back": "Step back until your whole body, including your feet, is visible.",
+  "stand-straight": "Face the camera and stand straight.",
+  "arms-out": "Keep your arms straight and a little away from your sides.",
+  "arms-lower": "Lower your arms a little. Keep a gap at your sides.",
+  "ready": "Stay there. The scan will start by itself.",
+  "scanning": "Hold still. Scanning.",
+  "more-frames": "Keep still. Collecting more clear frames.",
+  "complete": "Scan complete. You can come back to the device to review your scan.",
+  "retry": "Not enough clear frames. Step back, keep your arms a little out, and try again.",
+  "camera-error": "The camera could not start. Come back to the device to check camera access.",
+  "height": "Add your height in your crew profile before using the leg check.",
+  "three": "Three.",
+  "two": "Two.",
+  "one": "One."
+}

@@ -30,5 +30,5 @@ test('checks explain how and why, results say what they mean, and off readings g
   await expect(urgent).toContainText('Act now');
   await expect(urgent).toContainText('Stop what you are doing and tell a crewmate.');
   await urgent.getByRole('button', { name: 'Hand off' }).click();
-  await expect(page.getByLabel('Note for the surgeon')).toHaveValue(/^C Chest: 2 of 3 checks done today\. Reported short of breath \(strong\)\./);
+  await expect(page.getByLabel('Observation for medical team')).toHaveValue(/^C Chest: 2 of 3 checks done today\. Reported short of breath \(strong\)\./);
 });

@@ -5,7 +5,9 @@ import AxeBuilder from '@axe-core/playwright';
 test('the crew card scan shapes the body from the camera alone, then the same scan tracks the legs', async ({ page }) => {
   test.setTimeout(120000);
   const errors: string[] = [];
+  const spoken: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
+  page.on('request', request => { if (request.url().includes('/audio/scan/')) spoken.push(request.url().split('/').at(-1)!); });
   await page.goto('/#body');
 
   // One tap on the body: the camera starts, and the scan starts itself once it sees the whole body.
@@ -14,6 +16,8 @@ test('the crew card scan shapes the body from the camera alone, then the same sc
   await page.getByRole('button', { name: 'Scan me' }).click();
   let dialog = page.getByRole('dialog', { name: 'Body scan · 5 s' });
   await expect(dialog.getByRole('button', { name: 'Use scan' })).toBeVisible({ timeout: 90000 });
+  await expect(dialog.getByRole('heading', { name: 'Scan complete', exact: true })).toBeVisible();
+  await expect.poll(() => spoken).toContain('complete.wav');
   await expect(dialog.getByRole('group', { name: 'Body' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
   // Five breadths against one fixed baseline, the standard male figure, which is the body on camera.
   await expect(dialog.getByText('0 is the standard male figure')).toBeVisible();
@@ -37,19 +41,22 @@ test('the crew card scan shapes the body from the camera alone, then the same sc
   await dialog.getByLabel('Clip position').fill('1');
   await expect.poll(() => clip.evaluate((v: HTMLVideoElement) => v.paused && Math.abs(v.currentTime - 1) < 0.2)).toBe(true);
   await expect(dialog.locator('.figure-canvas canvas')).toBeVisible();
-  await expect(dialog.getByText(/Thigh \d+(\.\d)? cm starts your leg ghost/)).toBeVisible();
+  await expect(dialog.getByText(/Thigh \d+(\.\d)? cm is saved as a leg measurement/)).toBeVisible();
   const axe = await new AxeBuilder({ page }).include('.dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
   expect(axe.violations.map(v => v.id)).toEqual([]);
   await dialog.getByRole('button', { name: 'Use scan' }).click();
   await expect(dialog).toBeHidden();
   await expect(page.getByRole('button', { name: 'Rescan' })).toBeVisible();
   await expect(page.getByText(/^Figure fitted to scan · /)).toBeVisible();
+  await page.locator('.crew-switch-btn').click();
+  await page.getByRole('button', { name: 'Edit profile' }).click();
   await expect(page.getByRole('group', { name: 'Body' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('From the scan')).toBeVisible();
 
   // Height is the one number a camera can't see. It sets the 0g height.
   await page.getByLabel('Height').fill('172');
   await page.getByLabel('Height').press('Enter');
+  await page.getByRole('dialog', { name: 'Edit profile' }).getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.getByRole('group', { name: 'Body shown' }).getByRole('button', { name: /^Sol \d+ 177 cm$/ })).toBeVisible();
 
   // The same scan, run as the Legs check, measures thigh breadth for the ghost.
@@ -59,7 +66,7 @@ test('the crew card scan shapes the body from the camera alone, then the same sc
   dialog = page.getByRole('dialog', { name: 'Leg outline · 5 s' });
   await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeVisible({ timeout: 90000 });
   await expect(dialog.locator('.scan-value')).toHaveText(/^\d+(\.\d)? cm$/);
-  await expect(dialog.getByText('None yet. This outline starts your ghost.')).toBeVisible();
+  await expect(dialog.getByText(/No comparable phase reference yet/)).toBeVisible();
   await expect.poll(() => dialog.getByLabel('Recorded scan clip').evaluate((v: HTMLVideoElement) => v.videoWidth > 0)).toBe(true);
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Leg outline saved to your records' })).toBeVisible();
@@ -67,6 +74,7 @@ test('the crew card scan shapes the body from the camera alone, then the same sc
   await page.locator('.crew-switch-btn').click();
   await page.getByRole('button', { name: 'Edit profile' }).click();
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Edit profile' }).getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Scan me' })).toBeVisible();
   await expect(page.getByText('Standard figure · not scanned')).toBeVisible();
   expect(errors).toEqual([]);

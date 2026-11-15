@@ -10,11 +10,11 @@ export const lensHazards = [
   { id: 'radiation', label: 'Space radiation', short: 'Exposure', number: '05', x: 21, y: 38, icon: 'radiation', color: '#d7bf94' },
 ];
 
-export function lensSnapshot(checkIns, simulated, throughId) {
+export function lensSnapshot(checkIns, simulated, throughId, references = []) {
   const ordered = checkIns.filter(c => c.simulated === simulated).sort((a, b) => a.date.localeCompare(b.date));
   const found = throughId == null ? ordered.length - 1 : ordered.findIndex(c => c.id === throughId);
   const records = found < 0 ? [] : ordered.slice(0, found + 1);
-  const analysis = analyze(records, simulated);
+  const analysis = analyze(records, simulated, references.filter(r => throughId == null || r.establishedAt <= records.at(-1)?.date));
   const metrics = [
     { key: 'reactionMs', label: 'Attention response', unit: 'ms', flag: analysis.attentionFlag },
     { key: 'sleep', label: 'Sleep quality', unit: '/5', flag: analysis.wellbeingFlag },
@@ -25,7 +25,7 @@ export function lensSnapshot(checkIns, simulated, throughId) {
     const value = analysis.current[key];
     return { ...info, key, baseline: base, value, baselineCount: analysis.quality[key].baseline, recentCount: analysis.quality[key].recent,
       change: base != null && value != null && base !== 0 ? Math.round((value - base) / base * 100) : null,
-      comparable: analysis.quality[key].baseline >= 3 && analysis.quality[key].recent === 3,
+      comparable: analysis.comparisons[key].comparable, comparison: analysis.comparisons[key],
     };
   });
   const hasWellbeing = analysis.recent.some(c => Number.isFinite(c.sleep) || Number.isFinite(c.mood));
@@ -47,14 +47,15 @@ export function lensSnapshot(checkIns, simulated, throughId) {
 
 export function createMissionPacket({ snapshot, profile, actions, context, oneWayMinutes, blackoutDrill, id, createdAt }) {
   if (!snapshot.latest) throw new Error('A handoff needs at least one check-in.');
+  if (typeof context !== 'string' || !context.trim()) throw new Error('Describe the crew observation before saving a handoff.');
   const actionCutoff = snapshot.atLatest ? createdAt : snapshot.latest.date;
   return {
-    schemaVersion: 1, id, createdAt, source: snapshot.source,
+    schemaVersion: 1, id, crewId: profile.id, createdAt, source: snapshot.source,
     sol: snapshot.latest.sol, asOfDate: snapshot.latest.date, actionCutoff,
-    crew: profile.name, mission: profile.mission, status: 'queued', context,
-    observations: snapshot.records,
+    crew: profile.name, mission: profile.mission, status: 'saved', context: context.trim(),
+    observations: structuredClone(snapshot.records),
     // A historical handoff cannot silently include actions made after its cutoff.
-    actions: actions.filter(a => a.simulated === (snapshot.source === 'simulated') && a.createdAt <= actionCutoff),
+    actions: structuredClone(actions.filter(a => a.simulated === (snapshot.source === 'simulated') && a.createdAt <= actionCutoff)),
     communication: { oneWayMinutes, blackoutDrill, transmitted: false },
     analysis: {
       baselineCount: snapshot.analysis.baselineRecords.length,
@@ -69,7 +70,7 @@ export function createMissionPacket({ snapshot, profile, actions, context, oneWa
       'Experimental prototype, not diagnostic or a NASA-approved risk model.',
       'Links on the map represent monitoring context, not demonstrated causation.',
       'Trend thresholds are illustrative; each flagged metric requires at least three valid earlier and three valid recent samples.',
-      'No dosimetry, bone-density, immune-function, or habitat-sensor measurements are collected by this app.',
+      'No dosimetry, bone-density or immune assays are collected. Cabin readings can be entered manually; no live sensor feed is connected.',
       'Pose estimates depend on camera placement, effort, restraints, and gravity.',
       'A downloaded packet has not been transmitted to ground staff.',
     ],

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { fillCarePlan } from './care-helpers';
 
 test('production build keeps the body, NASA data, pose and 4DGS models available offline', async ({ page, context }) => {
   test.setTimeout(90000);
@@ -20,8 +21,10 @@ test('production build keeps the body, NASA data, pose and 4DGS models available
   await page.getByRole('button', { name: /Radiation dose/ }).click();
   await expect(page.getByText('mGy over 43 days')).toBeVisible();
   await page.getByRole('link', { name: 'Handoff' }).click();
+  await page.getByLabel('Observation for medical team').fill('Crew reports vision blur; repeat under matching lighting.');
+  await fillCarePlan(page);
   await page.getByRole('button', { name: 'Save handoff' }).click();
-  await expect(page.getByText(/Queued · not sent/)).toBeVisible();
+  await expect(page.getByText('Saved on this device', { exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByText(/Queued · not sent/)).toBeVisible();
+  await expect(page.getByText('Saved on this device', { exact: true })).toBeVisible();
 });

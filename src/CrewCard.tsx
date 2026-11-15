@@ -9,6 +9,8 @@ interface Props {
   profile: Profile;
   onProfile: (patch: Partial<Profile>) => void;
   onLegs: () => void;
+  onScan: () => void;
+  onClose: () => void;
   /** A just-added member: the name field opens ready to type. */
   editName?: boolean;
   onNamed?: () => void;
@@ -25,10 +27,10 @@ function EditText({ value, label, className, onSave, start = false, onDone }: { 
   const [editing, setEditing] = useState(start);
   if (!editing) return <button className={`edit-text ${className}`} onClick={() => setEditing(true)}>{value || label}<Pencil size={className === 'crew-name' ? 20 : 14} aria-hidden="true"/><span className="sr"> · edit {label.toLowerCase()}</span></button>;
   const save = (v: string) => { const t = v.trim(); if (t && t !== value) onSave(t); setEditing(false); onDone?.(); };
-  return <input className={`edit-text-input ${className}`} aria-label={label} autoFocus defaultValue={value} maxLength={40}
+  return <input className={`edit-text-input ${className}`} aria-label={label} autoFocus data-autofocus={start || undefined} defaultValue={value} maxLength={40}
     onFocus={e => e.currentTarget.select()}
     onBlur={e => save(e.currentTarget.value)}
-    onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setEditing(false); onDone?.(); } }}/>;
+    onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { e.stopPropagation(); setEditing(false); onDone?.(); } }}/>;
 }
 
 /** A number that saves when you leave the field or press Enter, and only when it is in range. */
@@ -42,11 +44,10 @@ function EditNumber({ value, label, unit, limits, step, onSave }: { value?: numb
 }
 
 /**
- * The crew member's card, opened from the name plate above the body. Everything about the person is here and edits in
- * place: name and mission in the head, and one Body list (scan, shape, build, height, mass) that shapes the figure beside it.
- * The scan itself is the Scan me button above the body. The crew member is chosen in the top bar.
+ * Profile editor inside the dialog opened from the top bar. Edits save as they change,
+ * and the scan and Legs links lead directly to their respective flows.
  */
-export default function CrewCard({ profile, onProfile, onLegs, editName = false, onNamed, canRemove, onRemove }: Props) {
+export default function CrewCard({ profile, onProfile, onLegs, onScan, onClose, editName = false, onNamed, canRemove, onRemove }: Props) {
   const [confirm, setConfirm] = useState(false);
   const scan = profile.scan;
   const height = inRange(profile.heightCm ?? NaN, LIMITS.heightCm) ? profile.heightCm! : null;
@@ -55,13 +56,11 @@ export default function CrewCard({ profile, onProfile, onLegs, editName = false,
   const fromScan = (field: 'sex' | 'build') => scan?.detected && scan.detected[field] === profile[field] ? <small>{scan.detected.sure[field] ? 'From scan' : 'Scan’s best guess'}</small> : null;
   const byHand = scan ? {} : { setByHand: true };
 
-  return <article className="card crew-card" aria-labelledby="card-title">
-    <div className="tabs" aria-hidden="true"><span className="crew-tab"><span>Crew</span></span></div>
-    <div className="card-main">
+  return <article className="crew-profile" aria-labelledby="profile-title">
       <header className="card-head">
         <span className="letter" aria-hidden="true">{profile.initials || '—'}</span>
         <div className="crew-head">
-          <h2 id="card-title"><EditText value={profile.name} label="Name" className="crew-name" start={editName} onDone={onNamed} onSave={name => onProfile({ name })}/></h2>
+          <h3 id="profile-title"><EditText value={profile.name} label="Name" className="crew-name" start={editName} onDone={onNamed} onSave={name => onProfile({ name })}/></h3>
           <EditText value={profile.mission} label="Mission" className="crew-mission" onSave={mission => onProfile({ mission })}/>
         </div>
       </header>
@@ -71,7 +70,8 @@ export default function CrewCard({ profile, onProfile, onLegs, editName = false,
           <dt>Scan</dt>
           <dd>{scan
             ? <>{formatDate(scan.date)}{cm != null && <> · thigh {cm} cm, tracked in <button className="link" onClick={onLegs}>H Legs</button></>} · <button className="link" onClick={() => onProfile({ scan: undefined })}>Remove</button></>
-            : <span className="muted-ink">Not scanned. Scan me reads shape, build and weight.</span>}</dd>
+            : <span className="muted-ink">Not scanned. Reads shape, build and weight.</span>}
+            <button className="link" onClick={onScan}>{scan ? 'Rescan' : 'Scan me'}</button></dd>
         </div>
         <div>
           <dt id="crew-body">Body</dt>
@@ -95,12 +95,12 @@ export default function CrewCard({ profile, onProfile, onLegs, editName = false,
       </dl>
 
       <footer className="card-foot crew-foot">
-        <p className="risks">Stays on this device. Clear everyone from Mission → Data.</p>
+        <p className="risks">Changes save automatically on this device.</p>
+        <button data-tour="profile-done" className="btn" onClick={onClose}>Done</button>
         {canRemove && (confirm
           ? <div className="crew-remove" role="group" aria-label="Confirm removal"><span>Remove {profile.name} and their records?</span>
             <button className="btn danger-btn" onClick={onRemove}>Remove</button><button className="link" onClick={() => setConfirm(false)}>Cancel</button></div>
           : <button className="btn outline-danger" onClick={() => setConfirm(true)}>Remove from crew</button>)}
       </footer>
-    </div>
   </article>;
 }

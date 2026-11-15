@@ -64,7 +64,7 @@ test('attention task records real responses over the full 60 seconds', async ({ 
   test.setTimeout(120000);
   await personal(page);
   await page.getByRole('button', { name: /Attention/ }).click();
-  await page.getByRole('button', { name: 'Start' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Start', exact: true }).click();
   const dialog = page.getByRole('dialog');
   const target = page.getByRole('button', { name: 'Target' });
   let answered = 0;
@@ -82,7 +82,7 @@ test('attention task records real responses over the full 60 seconds', async ({ 
 test('stopping the attention task early saves nothing', async ({ page }) => {
   await personal(page);
   await page.getByRole('button', { name: /Attention/ }).click();
-  await page.getByRole('button', { name: 'Start' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Start', exact: true }).click();
   await page.getByRole('button', { name: 'Stop and discard' }).click();
   await expect(page.getByRole('img', { name: 'Not done today' }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: /Attention/ })).toBeFocused();
@@ -112,19 +112,21 @@ test('movement comparison keeps the trained 4DGS model as a secondary reference'
   await page.getByRole('button', { name: /Shoulder range/ }).click();
   await page.getByRole('button', { name: 'Compare movement' }).click();
   const dialog = page.getByRole('dialog', { name: 'Movement' });
-  await expect(dialog.getByRole('button', { name: '4DGS reference' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(dialog.locator('.movement-panel')).toBeVisible();
+  await expect(dialog.locator('.gaussian-stage')).toHaveCount(0);
+  await dialog.getByText('Technical demo · public 4DGS model', { exact: true }).click();
   const stage = dialog.locator('.gaussian-stage');
   await expect(stage).toHaveAttribute('data-model-status', 'ready', { timeout: 45000 });
-  await dialog.getByLabel('Movement timeline', { exact: true }).fill('0.7');
+  await dialog.locator('.technical-demo').getByLabel('Movement timeline', { exact: true }).fill('0.7');
   await expect(stage).toHaveAttribute('data-motion-phase', '0.700');
   await expect(dialog.getByText('Not crew data.')).toBeVisible();
-  await dialog.getByRole('button', { name: 'Pose comparison' }).click();
+  await dialog.getByText('Technical demo · public 4DGS model', { exact: true }).click();
   await expect(dialog.locator('.range-annotation')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Compare movement' })).toBeFocused();
 });
 
-test('the crew card edits in place: name, shape and height reshape the body beside it', async ({ page }) => {
+test('the profile popup saves edits and preserves the current page and region', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   const seg = page.getByRole('group', { name: 'Body shown' });
@@ -134,20 +136,28 @@ test('the crew card edits in place: name, shape and height reshape the body besi
   await seg.getByRole('button', { name: 'Preflight 168 cm' }).click();
   await expect(seg.getByRole('button', { name: 'Preflight 168 cm' })).toHaveAttribute('aria-pressed', 'true');
 
-  // The crew member's name sits in the top bar; Edit profile opens the crew card in place of the region card.
+  await expect(page.locator('.crew-profile')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Profile', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /^H Legs/ }).click();
+  // Editing floats above the selected region; it never replaces the health checks.
   const who = page.locator('.crew-switch-btn');
   await expect(who).toContainText('Alex Morgan');
   await who.click();
   await page.getByRole('button', { name: 'Edit profile' }).click();
-  await expect(page.getByRole('button', { name: /^A Head/ })).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.getByRole('button', { name: /Scan me/ })).toHaveCount(1);
-  await expect(page.getByRole('button', { name: /^Scan 5 s|^Begin$/ })).toHaveCount(0);
+  const dialog = page.getByRole('dialog', { name: 'Edit profile' });
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('main')).toHaveAttribute('inert', '');
+  await expect(page.locator('main .crew-profile')).toHaveCount(0);
+  for (let i = 0; i < 18; i++) {
+    await page.keyboard.press('Tab');
+    expect(await dialog.evaluate(d => d.contains(document.activeElement))).toBe(true);
+  }
 
   // Click the name to edit it; the plate and initials follow.
   await page.getByRole('button', { name: /Alex Morgan · edit name/ }).click();
   await page.getByLabel('Name', { exact: true }).fill('Sam Rivera');
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: /Sam Rivera/, level: 2 })).toBeVisible();
+  await expect(dialog.getByRole('heading', { name: /Sam Rivera/, level: 3 })).toBeVisible();
   await expect(who).toContainText('Sam Rivera');
   await expect(who).toContainText('SR');
 
@@ -156,24 +166,40 @@ test('the crew card edits in place: name, shape and height reshape the body besi
   await expect(page.getByRole('group', { name: 'Body' }).getByRole('button', { name: 'Male', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Height').fill('188');
   await page.getByLabel('Height').press('Enter');
-  // The stage beside the card updates at once: 188 cm preflight, 194 cm in flight.
+  await expect(page.getByText('194 cm in zero g')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(who).toBeFocused();
+  await expect(page.getByRole('button', { name: /^H Legs/ })).toHaveAttribute('aria-pressed', 'true');
+  // The body uses the saved height: 188 cm preflight, 194 cm in flight.
   await expect(seg.getByRole('button', { name: 'Preflight 188 cm' })).toBeVisible();
   await expect(seg.getByRole('button', { name: /^Sol \d+ 194 cm$/ })).toBeVisible();
-  await expect(page.getByText('194 cm in zero g')).toBeVisible();
   await page.reload();
   await expect(seg.getByRole('button', { name: /^Sol \d+ 194 cm$/ })).toBeVisible();
   await page.locator('.crew-switch-btn').click();
   await page.getByRole('button', { name: 'Edit profile' }).click();
   await expect(page.getByLabel('Height')).toHaveValue('188');
-  // Picking a region returns to its procedure card.
+  // Escape cancels a text edit before it closes the popup.
+  await dialog.getByRole('button', { name: /Sam Rivera · edit name/ }).click();
+  await dialog.getByLabel('Name', { exact: true }).fill('Unsaved name');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: /Sam Rivera · edit name/ })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(who).toBeFocused();
   await page.getByRole('button', { name: /^H Legs/ }).click();
   await expect(page.getByRole('heading', { name: 'Legs', level: 2 })).toBeVisible();
-  // One click back to the profile from any region, and again back to the region.
-  const profile = page.getByRole('button', { name: 'Profile', exact: true });
-  await profile.click();
-  await expect(profile).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByLabel('Height')).toHaveValue('188');
-  await profile.click();
-  await expect(page.getByRole('heading', { name: 'Legs', level: 2 })).toBeVisible();
+  // The same editor works on every other page without navigating away.
+  for (const route of ['trends', 'handoff', 'mission']) {
+    await page.goto(`/#${route}`);
+    await who.click();
+    await page.getByRole('button', { name: 'Edit profile' }).click();
+    await expect(page).toHaveURL(new RegExp(`#${route}$`));
+    await expect(dialog.getByLabel('Height')).toHaveValue('188');
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(who).toBeFocused();
+    await expect(page).toHaveURL(new RegExp(`#${route}$`));
+  }
+  await page.goto('/#body');
   await expect(page.locator('.tag[data-region="head"]')).toHaveCSS('opacity', '1', { timeout: 20000 });
 });

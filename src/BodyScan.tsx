@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Camera, Pause, Play } from 'lucide-react';
+import { AlertCircle, Camera, Maximize, Minimize, Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import type { PoseLandmarker } from '@mediapipe/tasks-vision';
 import Dialog from './Dialog';
 import FigurePreview from './FigurePreview';
+import useScanAudio from './useScanAudio';
+import { scanGuidance } from './scan-guide.mjs';
 import calibration from './body-calibration.mjs';
 import { cameraMessage, loadPose, openCamera } from './pose';
 import { MEASURES, MIN_FRAMES, compareScan, frameIssue, measureFrame, scanSpread, summarise, thighCm } from './scan.mjs';
@@ -130,11 +132,37 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
   const [clip, setClip] = useState<Clip | null | undefined>(undefined);
   const [sex, setSex] = useState<NonNullable<Profile['sex']>>('female');
   const [build, setBuild] = useState<NonNullable<Profile['build']>>('average');
+  const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement);
+  const [fullscreenError, setFullscreenError] = useState('');
+  const ownsFullscreen = useRef(false);
   const hasHeight = typeof profile.heightCm === 'number' && profile.heightCm >= LIMITS.heightCm[0] && profile.heightCm <= LIMITS.heightCm[1];
   // The Legs check reports centimetres, so it needs height as its ruler; the setup scan doesn't.
   const needsHeight = mode === 'legs' && !hasHeight;
+  const guide = scanGuidance({ status, issue, remaining, needsHeight, error: !!error });
+  const voice = useScanAudio(guide.id, guide.repeat);
   // The setup scan reads weight itself, so a typed mass is left out of its guess (saving the scan clears it).
   const scanned = { ...profile, massKg: undefined };
+
+  useEffect(() => {
+    const changed = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', changed);
+    return () => {
+      document.removeEventListener('fullscreenchange', changed);
+      if (ownsFullscreen.current && document.fullscreenElement === document.documentElement) void document.exitFullscreen().catch(() => {});
+    };
+  }, []);
+
+  async function toggleFullscreen() {
+    setFullscreenError('');
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else {
+        await document.documentElement.requestFullscreen();
+        if (mounted.current) ownsFullscreen.current = true;
+        else if (document.fullscreenElement) await document.exitFullscreen();
+      }
+    } catch { if (mounted.current) setFullscreenError('Full screen is unavailable here. The scan still fills this window.'); }
+  }
 
   const stopCamera = () => { stream.current?.getTracks().forEach(t => t.stop()); stream.current = null; };
   const dropClip = () => { if (clipUrl.current) URL.revokeObjectURL(clipUrl.current); clipUrl.current = ''; setClip(undefined); };
@@ -326,13 +354,25 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
   };
   const retake = () => { setResult(null); dropClip(); void enableCamera(); };
 
-  return <Dialog title={mode === 'legs' ? `Leg outline · ${SECONDS} s` : `Body scan · ${SECONDS} s`} wide={status === 'done' && mode === 'setup'} onClose={onClose} label="Close body scan">
-    {status !== 'done' && <div className={`camera-preview ${live ? '' : 'empty'}`}>
-      <video ref={video} muted playsInline/><canvas ref={canvas} width={640} height={480}/>
-      {!live && <div className="camera-empty"><Camera size={40}/><strong>{status === 'loading' ? 'Starting camera…' : needsHeight ? 'Add your height first.' : 'Camera off.'}</strong>{needsHeight && <span>Crew card, step 2. It is the scan’s ruler.</span>}</div>}
-      {live && <div className="tracking-status" aria-live="polite"><i className={`status-dot ${issue ? 'amber' : ''}`}/>{issue ?? (status === 'scanning' ? 'Hold still · recording' : 'Body found')}{status === 'scanning' && <strong>{Math.ceil(remaining)} S</strong>}</div>}
-    </div>}
-    {error && <p className="error" role="alert"><AlertCircle size={16}/> {error}</p>}
+  return <Dialog title={mode === 'legs' ? `Leg outline · ${SECONDS} s` : `Body scan · ${SECONDS} s`} fullScreen onClose={onClose} label="Close body scan">
+    <div className={`scan-session ${status === 'done' ? 'review' : 'capture'}`} data-status={status}>
+    <div className="scan-controls">
+      <button className="btn" aria-pressed={!voice.muted} onClick={voice.toggle}>{voice.muted ? <VolumeX size={20} aria-hidden="true"/> : <Volume2 size={20} aria-hidden="true"/>}Voice guide {voice.muted ? 'off' : 'on'}</button>
+      <button className="btn" disabled={voice.muted} onClick={voice.repeat}><RotateCcw size={18} aria-hidden="true"/>{voice.problem === 'blocked' ? 'Enable voice guide' : 'Repeat instruction'}</button>
+      {document.fullscreenEnabled && <button className="btn scan-fullscreen" onClick={() => void toggleFullscreen()}>{fullscreen ? <Minimize size={18} aria-hidden="true"/> : <Maximize size={18} aria-hidden="true"/>}{fullscreen ? 'Exit full screen' : 'Full screen'}</button>}
+      <span className="scan-volume-note">{voice.muted ? 'Follow the on-screen guide.' : 'Turn up your device volume before stepping back.'}</span>
+      {voice.problem && !voice.muted && <p className="scan-audio-note" role="status">{voice.problem === 'blocked' ? 'Tap Enable voice guide before stepping back.' : 'Audio could not play. Try Repeat instruction or follow the on-screen guide.'}</p>}
+      {fullscreenError && <p className="scan-audio-note" role="status">{fullscreenError}</p>}
+    </div>
+    {status !== 'done' ? <div className={`camera-preview scan-camera ${live ? '' : 'empty'}`}>
+      <video ref={video} muted playsInline aria-label="Live body scan camera"/><canvas ref={canvas} width={640} height={480}/>
+      <div className="scan-guidance">
+        <div className="scan-prompt" role="status" aria-live="polite" aria-atomic="true"><h3>{guide.title}</h3><p>{guide.detail}</p></div>
+        {guide.count != null && <output className="scan-count" aria-label="Seconds remaining" aria-live="off">{guide.count}<span>s</span></output>}
+      </div>
+      <p className="scan-position-reminder">Feet in view · Arms a little out · Hold still</p>
+    </div> : <div className="scan-complete" role="status"><h3>{guide.title}</h3><p>{guide.detail}</p></div>}
+    {error && <p className="error scan-error" role="alert"><AlertCircle size={16}/> {error}</p>}
 
     {status === 'done' && result && mode === 'setup' && result.detected && fitted && compare && <>
       <div className="scan-review">
@@ -377,7 +417,7 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
           <dl className="how-why scan-notes">
             <div><dt>Baseline</dt><dd>0 is the standard {LABEL[sex].toLowerCase()} figure: the app’s 3D model at average build and weight. Not a population norm.</dd></div>
             <div><dt>Accuracy</dt><dd>One front view, so an estimate. Loose clothing reads wider. {agree} Tested on {calibration.validation.heldOutBodies} rendered bodies, not on people.</dd></div>
-            {cm != null && <div><dt>Legs</dt><dd>Thigh {cm} cm starts your leg ghost.</dd></div>}
+            {cm != null && <div><dt>Legs</dt><dd>Thigh {cm} cm is saved as a leg measurement. Establish a fixed phase reference after three good readings.</dd></div>}
           </dl>
         </div>
       </div>
@@ -389,18 +429,18 @@ export default function BodyScan({ mode, profile, ghostCm, onClose, onSave }: Pr
         <div><dt>Thigh</dt>{legChange != null ? <Bar you={legChange} spread={result.spread?.thighs} scale={SCALE.legs}/> : <dd className="scan-bar none" aria-hidden="true"/>}<dd className="scan-value">{cm != null ? `${cm} cm` : '—'}</dd></div>
       </dl>
       <dl className="how-why scan-notes">
-        <div><dt>Baseline</dt><dd>{legChange != null ? `Your ghost, ${ghostCm!.toFixed(1)} cm, from your earlier outlines. Today is ${percent(legChange)}.` : 'None yet. This outline starts your ghost.'}</dd></div>
+        <div><dt>Baseline</dt><dd>{legChange != null ? `Retained phase reference, ${ghostCm!.toFixed(1)} cm. Today is ${percent(legChange)}; compare only under matching conditions.` : 'No comparable phase reference yet. This outline is saved as a measurement, not automatically made normal.'}</dd></div>
         <div><dt>Accuracy</dt><dd>A front-view breadth with your height as the ruler, not a tape measure. {agree} Wear the same fit each time: loose trousers read wider.</dd></div>
-        <div><dt>Zero g</dt><dd>Fluid shift alone thins legs up to 6% in the first days (NASA HIDH).</dd></div>
+        <div><dt>Zero g</dt><dd>Fluid shifts can reduce leg volume. A narrower silhouette alone cannot establish muscle loss.</dd></div>
       </dl>
     </>}
 
-    {status !== 'done' && <ol className="steps compact"><li><span>Step back until your feet show</span></li><li><span>Arms straight, a little out</span></li><li><span>Hold still. It scans by itself.</span></li></ol>}
     {status === 'intro' && !needsHeight && <button className="btn primary" onClick={() => void enableCamera()}><Camera size={16}/> Try again</button>}
-    <p className="muted">Runs on this device. {status === 'done' ? 'The clip is for this review only and is erased when you close.' : 'A short clip is recorded for you to review, then erased when you close.'} Only body ratios are kept.</p>
+    <p className="muted scan-privacy">Runs on this device. {status === 'done' ? 'The clip is for this review only and is erased when you close.' : 'A short clip is recorded for you to review, then erased when you close.'} Only body ratios are kept.</p>
     {status === 'done' && result && <div className="scan-actions">
       <button className="btn primary" onClick={() => onSave(result, mode === 'setup' ? { sex, build } : {})}>{mode === 'setup' ? 'Use scan' : 'Save'}</button>
       <button className="btn ghost" onClick={retake}>Retake</button>
     </div>}
+    </div>
   </Dialog>;
 }

@@ -1,4 +1,4 @@
-import type { MissionState, Profile, Recording } from './types';
+import type { CheckIn, GhostReference, MissionState, Profile, Recording, RecordingContext } from './types';
 
 /** Demo crew ids, stable so tests and reloads find the same people. */
 export const DEMO_CREW = { alex: 'crew-alex', jordan: 'crew-jordan' };
@@ -13,14 +13,15 @@ export function createDemo(): MissionState {
   missionStart.setHours(0, 0, 0, 0);
   const startDate = missionStart.toISOString();
   const day = (i: number) => { const date = new Date(); date.setDate(date.getDate() - 14 + i); date.setHours(9, 0, 0, 0); return date.toISOString(); };
-  const alex: Profile = { id: DEMO_CREW.alex, name: 'Alex Morgan', initials: 'AM', mission: 'Ares I', duration: 180, startDate, sex: 'female', heightCm: 168, massKg: 62, build: 'muscular' };
-  const jordan: Profile = { id: DEMO_CREW.jordan, name: 'Jordan Lee', initials: 'JL', mission: 'Ares I', duration: 180, startDate, sex: 'male', heightCm: 181, massKg: 79, build: 'average' };
+  const context: RecordingContext = { phase: 'cruise', cameraSetup: 'Camera A, floor mark 2, front view', posture: 'Upright, arms clear', lighting: 'Cabin lights, front lit', clothing: 'Fitted exercise clothes', activity: 'Rested, before exercise' };
+  const alex: Profile = { id: DEMO_CREW.alex, name: 'Alex Morgan', initials: 'AM', mission: 'Ares I', duration: 180, startDate, sex: 'female', heightCm: 168, massKg: 62, build: 'muscular', recordingContext: context };
+  const jordan: Profile = { id: DEMO_CREW.jordan, name: 'Jordan Lee', initials: 'JL', mission: 'Ares I', duration: 180, startDate, sex: 'male', heightCm: 181, massKg: 79, build: 'average', recordingContext: context };
 
   const sleeps = [4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 4, 3, 3, 2];
   const reactions = [309, 319, 311, 305, 321, 314, 308, 315, 318, 311, 312, 351, 369, 382];
   const ranges = [151, 152, 153, 150, 154, 152, 151, 153, 150, 152, 151, 139, 134, 130];
   const thighs = [15.9, 15.8, 15.9, 15.8, 15.8, 15.9, 15.8, 15.8, 15.7, 15.8, 15.8, 15.6, 15.5, 15.5];
-  const alexCheckIns = Array.from({ length: 14 }, (_, i) => ({
+  const alexCheckIns: CheckIn[] = Array.from({ length: 14 }, (_, i) => ({
     id: `demo-${i}`, crewId: alex.id, date: day(i), sol: 28 + i, simulated: true,
     reactionMs: reactions[i], missed: i > 10 ? 1 : 0, signals: 12,
     sleep: sleeps[i], mood: i > 10 ? 3 : 4, energy: i > 10 ? 2 : 4,
@@ -34,7 +35,7 @@ export function createDemo(): MissionState {
   const jReactions = [296, 301, 293, 298, 290, 299, 295, 297, 292, 300, 294, 296, 299, 293];
   const jThighs = [16.8, 16.9, 16.8, 16.7, 16.8, 16.9, 16.8, 16.7, 16.8, 16.8, 16.7, 15.9, 15.8, 15.7];
   const jExercise = [90, 85, 95, 90, 80, 90, 85, 90, 75, 80, 70, 40, 30, 25];
-  const jordanCheckIns = Array.from({ length: 14 }, (_, i) => ({
+  const jordanCheckIns: CheckIn[] = Array.from({ length: 14 }, (_, i) => ({
     id: `demo-j-${i}`, crewId: jordan.id, date: day(i), sol: 28 + i, simulated: true,
     reactionMs: jReactions[i], missed: 0, signals: 12,
     sleep: 4, mood: 4, energy: i > 10 ? 3 : 4, symptoms: [], heartRate: 60, notes: '',
@@ -43,7 +44,21 @@ export function createDemo(): MissionState {
     dizziness: 0, vision: 0, breath: 0, joint: 0, gut: 0, skin: 0, grip: 0, back: 0,
   }));
 
-  return { demo: true, profile: alex, crew: [alex, jordan], crewId: alex.id, checkIns: [...alexCheckIns, ...jordanCheckIns], actions: [] };
+  const checkIns = [...alexCheckIns, ...jordanCheckIns].map(r => ({ ...r, measurements: Object.fromEntries(Object.entries(r).filter(([, v]) => typeof v === 'number').map(([k]) => [k, { ...context, measuredAt: r.date, quality: 'good' as const, ...(['leftRange', 'rightRange', 'thighCm'].includes(k) ? { confidentFrames: 40 } : {}) }])) }));
+  // All reference observations are synthetic too. Preserve preflight alongside the explicitly retained cruise reference.
+  const references: GhostReference[] = [alex, jordan].flatMap(p => {
+    const own = checkIns.filter(r => r.crewId === p.id);
+    return (['preflight', 'cruise'] as const).map(phase => {
+      const records = structuredClone(own.slice(0, 11)).map((r, i) => {
+        const date = phase === 'preflight' ? new Date(missionStart.getTime() - (11 - i) * 86400000).toISOString() : r.date;
+        return { ...r, id: phase === 'preflight' ? `demo-preflight-${p.id}-${i}` : r.id, sol: phase === 'preflight' ? 0 : r.sol, date, measurements: Object.fromEntries(Object.entries(r.measurements).map(([k, m]) => [k, { ...m, phase, measuredAt: date }])) };
+      });
+      return { id: `demo-ref-${p.id}-${phase}`, crewId: p.id, simulated: true, phase, establishedAt: records.at(-1)!.date, reason: `Synthetic ${phase} reference for the hackathon demonstration.`, records };
+    });
+  });
+  const headacheAt = new Date(Date.now() - 3600000).toISOString();
+  for (const p of [alex, jordan]) { const last = checkIns.filter(r => r.crewId === p.id).at(-1)!; last.headache = 1; last.measurements.headache = { ...context, measuredAt: headacheAt, quality: 'good' }; }
+  return { demo: true, profile: alex, crew: [alex, jordan], crewId: alex.id, checkIns, references, actions: [], emergencies: [], cabinReadings: [{ id: 'demo-cabin', date: headacheAt, location: 'Habitat module · synthetic sensor', co2Ppm: 2400, temperatureC: 23, humidityPct: 43, source: 'simulated' }] };
 }
 
 let dbPromise: Promise<IDBDatabase> | undefined;

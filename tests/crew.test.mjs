@@ -23,8 +23,9 @@ test('the stored profile is the truth for the selected member', () => {
 
 test('each crew member sees only their own records and ghost', () => {
   const demo = normalise(createDemo());
-  const alex = analyze(scoped(demo).checkIns, true);
-  const jordan = analyze(scoped(switchCrew(demo, DEMO_CREW.jordan)).checkIns, true);
+  const alexView = scoped(demo), jordanView = scoped(switchCrew(demo, DEMO_CREW.jordan));
+  const alex = analyze(alexView.checkIns, true, alexView.references);
+  const jordan = analyze(jordanView.checkIns, true, jordanView.references);
   assert.equal(alex.attentionFlag, true);
   assert.equal(alex.legFlag, false);
   assert.equal(jordan.attentionFlag, false);

@@ -83,7 +83,10 @@ for (const width of [1440, 390]) {
     await page.getByRole('button', { name: 'Edit profile' }).click();
     await expect(page.getByLabel('Height')).toBeVisible();
     await audit();
-    await page.getByRole('button', { name: /Scan me/ }).click();
+    const profile = page.getByRole('dialog', { name: 'Edit profile' });
+    expect(await profile.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/profile-${width}.png` });
+    await profile.getByRole('button', { name: 'Scan me', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Body scan · 5 s' })).toBeVisible();
     await audit();
   });

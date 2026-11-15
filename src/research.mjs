@@ -9,6 +9,8 @@ export const researchUse = {
 };
 
 export const researchSources = [
+  { id: 'co2-headache', agency: 'NASA', title: 'Carbon Dioxide technical brief', url: 'https://www.nasa.gov/ochmo-tb-004-carbon-dioxide-2/', role: 'Supports a crew headache / cabin review prompt. Association is not causation; other factors contribute. No threshold is inferred from archival telemetry.', type: 'evidence' },
+  { id: 'leg-fluid-shift', agency: 'NASA', title: 'Space Shuttle inflight and postflight fluid shifts measured by leg volume changes', url: 'https://ntrs.nasa.gov/citations/19880025740', role: 'Leg volume can fall with fluid shifts. A front-view outline cannot establish muscle loss.', type: 'evidence' },
   { id: 'hazards', agency: 'NASA', title: 'Five Hazards of Human Spaceflight', url: 'https://www.nasa.gov/hrp/hazards/', role: 'The five hazards organize Mission Lens. Connections show monitoring context, not causation.', type: 'background' },
   { id: 'risks', agency: 'NASA', title: 'Risks of Human Spaceflight', url: 'https://www.nasa.gov/hrp/risks/', role: 'Health and performance risks are distinct from the hazards that contribute to them.', type: 'background' },
   { id: 'risk-board', agency: 'NASA', title: 'Human System Risk Board', url: 'https://www.nasa.gov/directorates/esdmd/hhp/human-system-risk-board/', role: 'Evidence and contributing factors inform risk review. GhostPilot does not implement a validated NASA risk model.', type: 'background' },

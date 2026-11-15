@@ -48,6 +48,8 @@ Your past self is the reference, not a population norm or a score. The body map 
 - The trained 4DGS model (a public D-NeRF "Mutant" humanoid) is kept as a secondary technical view inside the movement check. It supplies no crew data.
 - The body model is authored in Blender (installed locally, version 5.2) and shipped as a static GLB.
 - Static Vite + React + TypeScript + Three.js app. No backend, accounts, or paid services.
+- A first-use interactive tutorial requires nine clicks on the real crew, profile, body-region, check, Trends and Handoff controls. Only the current goal advances the tour; keyboard activation works too. Back restores prerequisites, and Skip, Close and Emergency remain available. It can be replayed from every page, works offline, writes no practice readings and preserves an existing handoff draft.
+- Body and leg scans fill the window with large centered positioning instructions. Optional bundled speech, a countdown and a completion cue support use at camera distance; mute/replay controls remain on screen. Audio stays offline and the camera never requests microphone access.
 
 ## Brand Commitments
 
@@ -64,11 +66,27 @@ Your past self is the reference, not a population norm or a score. The body map 
 
 ## Product Principles
 
+### Current iteration: emergency and context-aware assessment
+
+Keep the central challenge loop—gather health indicators, understand/evaluate them, act—visible in every flow. Acute escalation is available on every page and never depends on a ghost. The supplied emergency package is an unreviewed hackathon demonstration; clinician review and mission approval are not available and must never be implied.
+
+Preflight and explicitly established phase references are fixed snapshots, retained separately by crew and source. Record conditions, quality and per-metric timestamps. Unreliable comparisons ask for matching-condition repeats rather than appearing as concerning trends. Do not normalize deterioration automatically, or infer muscle loss from leg silhouette.
+
+Use transparent daily recommendations to help allocate limited attention and time. Shared headache reports may prompt review of current cabin readings and the onboard procedure, without attributing causation or substituting archived NASA telemetry for current measurements. Evaluate task time and omitted steps through the protocol in [workflow-evaluation.md](research/workflow-evaluation.md); no user-study results currently exist.
+
 1. The body is the navigation. Anything not reachable from the body is secondary.
 2. Show what is known, what is not, and when. Never guess a missing value.
 3. One action per view. Fewer words beat explanation.
 4. Self versus self. A baseline from your own history, kept separate from simulated data.
 5. Nothing leaves the device unless the crew downloads it.
+
+### Continuing care and measurement evidence
+
+The handoff recipient label is **medical team**. A saved care record needs an observation, procedure status/version when known, next check/time and information gaps. Append reassessments to the original packet; retain earlier observations and plans. Keep crew and synthetic/personal sources separate. Link new values using their metric timestamps, not the date of a shared daily entry.
+
+This static prototype has no transmission service. Describe local saves and file downloads plainly and never imply queued automatic sending, a connected ground link, a delivery receipt or reviewed ground instructions. Ground-response import remains a future feature.
+
+The crew’s original movement videos are the primary visual evidence. Link reference recordings explicitly, show missing references and incompatible conditions, and keep synthetic pose animation and the public 4DGS technical model distinct. No real-participant measurements have yet been collected. The [human-study kit](research/human-study/PROTOCOL.md) is a collection/analysis plan, not evidence of accuracy on people.
 
 ## Accessibility & Inclusion
 

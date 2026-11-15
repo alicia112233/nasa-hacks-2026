@@ -1,17 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMissionPacket, lensSnapshot } from '../src/mission-lens.mjs';
+import { documented, referencesFor } from './fixtures/references.mjs';
 
-const records = Array.from({ length: 14 }, (_, i) => ({
+const records = documented(Array.from({ length: 14 }, (_, i) => ({
   id: `demo-${i}`, date: new Date(Date.UTC(2026, 10, i + 1, 1)).toISOString(),
   sol: i + 29, simulated: true, reactionMs: i > 10 ? 370 : 310,
   sleep: i > 10 ? 2 : 4, mood: 4, energy: i > 10 ? 2 : 4,
   leftRange: i > 10 ? 130 : 152, symptoms: [], missed: 0, signals: 12, notes: '',
-}));
+})));
 
 test('mission replay cannot inspect later observations', () => {
-  const before = lensSnapshot(records, true, 'demo-7');
-  const after = lensSnapshot(records, true, 'demo-13');
+  const before = lensSnapshot(records, true, 'demo-7', referencesFor(records));
+  const after = lensSnapshot(records, true, 'demo-13', referencesFor(records));
   assert.equal(before.records.length, 8);
   assert.equal(before.signals, 0);
   assert.ok(before.records.every(c => c.date <= before.latest.date));
@@ -33,7 +34,7 @@ test('missing movement samples never produce a confident trend from check-in cou
 
 test('a sleep-only shift still counts the highlighted mind-and-rhythm area', () => {
   const sleepOnly = records.map(r => ({ ...r, reactionMs: 310, leftRange: 152 }));
-  const result = lensSnapshot(sleepOnly, true);
+  const result = lensSnapshot(sleepOnly, true, undefined, referencesFor(sleepOnly));
   assert.equal(result.analysis.attentionFlag, false);
   assert.equal(result.statuses.isolation, 'review');
   assert.equal(result.signals, 1);
@@ -59,7 +60,7 @@ test('historical handoff includes only actions known at its cutoff and stays unt
   assert.equal(packet.asOfDate, records[7].date);
   assert.equal(packet.actionCutoff, records[7].date);
   assert.equal(packet.communication.transmitted, false);
-  assert.equal(packet.status, 'queued');
+  assert.equal(packet.status, 'saved');
   assert.ok(packet.sources.some(source => new URL(source.url).hostname === 'www.nasa.gov'));
   assert.ok(packet.sources.some(source => new URL(source.url).hostname === 'www.asc-csa.gc.ca'));
   assert.ok(packet.sources.every(source => source.role && source.reviewedOn));
@@ -70,7 +71,7 @@ test('historical handoff includes only actions known at its cutoff and stays unt
 test('latest handoff includes decisions made after the latest observation', () => {
   const snapshot = lensSnapshot(records, true);
   const createdAt = '2026-11-20T00:00:00Z';
-  const packet = createMissionPacket({ snapshot, profile: { name: 'Test', mission: 'Ares I' }, actions: [{ id: 'after-check-in', simulated: true, createdAt: '2026-11-19T00:00:00Z' }], context: '', oneWayMinutes: 14, blackoutDrill: false, id: 'packet-2', createdAt });
+  const packet = createMissionPacket({ snapshot, profile: { name: 'Test', mission: 'Ares I' }, actions: [{ id: 'after-check-in', simulated: true, createdAt: '2026-11-19T00:00:00Z' }], context: 'Crew observation', oneWayMinutes: 14, blackoutDrill: false, id: 'packet-2', createdAt });
   assert.equal(packet.actions.length, 1);
   assert.equal(packet.actionCutoff, createdAt);
 });

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "status": "PENDING — no real-participant attempts collected",
+  "realParticipants": 0,
+  "totalAttempts": 0,
+  "metrics": {
+    "shoulder_left_deg": {
+      "unit": "degrees",
+      "attempts": 0,
+      "participants": 0,
+      "failures": 0,
+      "failureRate": null,
+      "paired": 0,
+      "successfulWithoutReference": 0,
+      "meanAbsoluteError": null,
+      "rootMeanSquaredError": null,
+      "captureWeightedBias": null,
+      "participantWeightedBias": null,
+      "maxAbsoluteError": null,
+      "withinSessionRepeatability": [],
+      "betweenSessionMeans": [],
+      "by": {
+        "camera": {},
+        "lighting": {},
+        "clothing": {},
+        "session_id": {}
+      }
+    },
+    "thigh_breadth_cm": {
+      "unit": "cm",
+      "attempts": 0,
+      "participants": 0,
+      "failures": 0,
+      "failureRate": null,
+      "paired": 0,
+      "successfulWithoutReference": 0,
+      "meanAbsoluteError": null,
+      "rootMeanSquaredError": null,
+      "captureWeightedBias": null,
+      "participantWeightedBias": null,
+      "maxAbsoluteError": null,
+      "withinSessionRepeatability": [],
+      "betweenSessionMeans": [],
+      "by": {
+        "camera": {},
+        "lighting": {},
+        "clothing": {},
+        "session_id": {}
+      }
+    }
+  },
+  "failedCaptures": [],
+  "limitations": [
+    "No acceptability threshold, clinical accuracy or spaceflight validity is established by this report.",
+    "MAE/RMSE describe successful paired captures only; failure rates include every logged attempt.",
+    "Repeated captures are correlated. No confidence interval, ICC or population limits of agreement are inferred.",
+    "Within-session groups require the same participant, camera, lighting, clothing, posture and target; between-session ranges are descriptive.",
+    "Within-scan frame scatter is not between-session repeatability or accuracy on people."
+  ]
+}

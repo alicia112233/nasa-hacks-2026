@@ -11,6 +11,7 @@
 
 /** How to take each check, in one line. @type {Record<string, string>} */
 export const HOW = {
+  headache: 'Headache now? Choose none, mild or strong. Note onset and location for handoff.',
   attention: 'Sit still. Tap the moment the docking light turns green. 60 s.',
   sleep: 'Rate your last sleep period, from 1 (very low) to 5 (great).',
   mood: 'Rate how you feel right now.',
@@ -39,6 +40,7 @@ export const WHY = {
   mood: 'Isolation and confinement can wear mood down gradually.',
   energy: 'Low energy can be an early sign of poor sleep or illness.',
   dizziness: 'Weightlessness changes how your balance system works.',
+  headache: 'Shared headache reports prompt a cabin review; several causes are possible.',
   workload: 'Too much or too little work both raise the risk of errors.',
   team: 'Small frictions grow in isolation; they are worth noticing early.',
   vision: 'Vision changes can be a sign of SANS, linked to fluid shifts.',
@@ -52,7 +54,7 @@ export const WHY = {
   grip: 'Spacewalk gloves can injure fingertips and nails.',
   back: 'The spine lengthens in weightlessness, and back pain is common.',
   exercise: 'Daily exercise is the main defence for bone and muscle.',
-  legs: 'Legs that keep thinning can mean muscle loss beyond the fluid shift.',
+  legs: 'Fluid shifts change leg outline. A narrower silhouette alone cannot establish muscle loss.',
 };
 
 export const LEVELS = { watch: 'Watch', tell: 'Tell surgeon', now: 'Act now' };
@@ -80,6 +82,9 @@ const TREND = {
 
 /** Steps for a reported symptom, by severity: 1 mild, 2 strong. */
 const SYMPTOM = {
+  headache: [
+    { level: 'watch', steps: [{ text: 'Note when and where it started.' }, { text: 'Review current cabin readings in I Cabin; archived NASA data cannot describe today’s air.' }, { text: 'Persisting or worsening? Hand it off.', action: 'handoff' }] },
+    { level: 'tell', steps: [{ text: 'Tell the mission medical lead now and follow the onboard procedure.', action: 'handoff' }, { text: 'Check for shared symptoms and obtain current cabin readings.' }] }],
   dizziness: [
     { level: 'watch', steps: [{ text: 'Move slowly and hold a handrail when you start moving.' }, { text: 'Recheck tomorrow.', action: 'followup' }] },
     { level: 'tell', steps: [{ text: 'Avoid hazardous tasks until it settles.' }, { text: 'Hand it off.', action: 'handoff' }] }],

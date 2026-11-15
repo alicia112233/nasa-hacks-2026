@@ -104,10 +104,11 @@ export default function Capture({ onClose, onSave, sol }: Props) {
         const estimate = (side: 'left' | 'right') => {
           const [hip, shoulder, elbow] = side === 'left' ? [23, 11, 13] : [24, 12, 14];
           const angles = frames.current.map(f => shoulderAngle(f.landmarks[hip], f.landmarks[shoulder], f.landmarks[elbow])).filter((v): v is number => v != null).sort((a, b) => a - b);
-          return angles.length >= 10 ? Math.round(angles[Math.floor(angles.length * .9)]) : null;
+          return { range: angles.length >= 10 ? Math.round(angles[Math.floor(angles.length * .9)]) : null, count: angles.length };
         };
         try {
-          await onSave({ id: crypto.randomUUID(), date: new Date().toISOString(), sol, blob: new Blob(chunks, { type: recording.mimeType }), frames: frames.current, leftRange: estimate('left'), rightRange: estimate('right') });
+          const left = estimate('left'), right = estimate('right');
+          await onSave({ id: crypto.randomUUID(), date: new Date().toISOString(), sol, blob: new Blob(chunks, { type: recording.mimeType }), frames: frames.current, leftRange: left.range, rightRange: right.range, confidentFrames: { left: left.count, right: right.count } });
           stream.current?.getTracks().forEach(t => t.stop());
           setStatus('saved');
         } catch { setError('The video could not be saved. Your device storage may be full.'); setStatus('ready'); }

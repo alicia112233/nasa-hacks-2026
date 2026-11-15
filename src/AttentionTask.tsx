@@ -14,6 +14,8 @@ export default function AttentionTask({ onClose, onSave, seconds = 60 }: Props) 
   const [counts, setCounts] = useState({ hit: 0, missed: 0 });
   const game = useRef({ shownAt: 0, nextAt: 0, active: false, samples: [] as number[], missed: 0 });
   const done = useRef(false);
+  const save = useRef(onSave);
+  save.current = onSave;
 
   useEffect(() => {
     if (!running) return;
@@ -26,7 +28,7 @@ export default function AttentionTask({ onClose, onSave, seconds = 60 }: Props) 
       if (now - start >= seconds * 1000) {
         window.clearInterval(timer);
         if (g.active) g.missed++;
-        if (!done.current) { done.current = true; onSave(summarizeReaction(g.samples, g.missed)); }
+        if (!done.current) { done.current = true; save.current(summarizeReaction(g.samples, g.missed)); }
         return;
       }
       if (g.active && now - g.shownAt > 1400) {
@@ -38,7 +40,7 @@ export default function AttentionTask({ onClose, onSave, seconds = 60 }: Props) 
       }
     }, 40);
     return () => window.clearInterval(timer);
-  }, [running, seconds, onSave]);
+  }, [running, seconds]);
 
   function respond() {
     const g = game.current;

@@ -34,7 +34,7 @@ test('a region checklist shows progress, the next check, and finishes with reass
   await done.getByRole('button', { name: 'Reassess tomorrow' }).click();
   await expect(done).toContainText('Reassess set for');
   await done.getByRole('button', { name: 'Hand off' }).click();
-  await expect(page.getByLabel('Note for the surgeon')).toHaveValue(/^C Chest: 3 of 3 checks done today\./);
+  await expect(page.getByLabel('Observation for medical team')).toHaveValue(/^C Chest: 3 of 3 checks done today\./);
 
   // A region with no self-checks is reference only.
   await page.getByRole('link', { name: 'Body' }).click();

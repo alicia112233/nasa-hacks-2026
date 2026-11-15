@@ -15,6 +15,11 @@ export default defineConfig({
   ],
   use: {
     baseURL: 'http://127.0.0.1:5173',
+    // Existing workflow tests start after orientation. Tutorial tests use a fresh device.
+    storageState: { cookies: [], origins: [5173, 4173].map(port => ({
+      origin: `http://127.0.0.1:${port}`,
+      localStorage: [{ name: 'ghostpilot-tutorial-v1', value: 'seen' }],
+    })) },
     headless: true,
     channel: 'chrome',
     viewport: { width: 1440, height: 1050 },

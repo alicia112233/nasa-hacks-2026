@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { documented, referencesFor } from './fixtures/references.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { MEASURES, MIN_FRAMES, SHAPE, compareScan, fitScan, frameIssue, measureFrame, modelBreadths, scanSpread, summarise, thighCm } from '../src/scan.mjs';
@@ -179,14 +180,16 @@ test('held-out Blender bodies: body shape from height, mass and the scan, never 
   assert.equal(physique({ scan: { shoulders: NaN } }).scan, null);
 });
 
-test('the scan sees the 0g fluid shift in the legs, and the Legs rule flags a 5% loss against the ghost', async () => {
+test('the scan sees fluid shift; the Legs rule flags an outline change, not a diagnosis', async () => {
   const { fluid } = JSON.parse(await readFile(new URL('./fixtures/scan-holdout.json', import.meta.url), 'utf8'));
   near(fluid.fluidThighChange, fluid.expectedFluidThighChange, 0.015, 'fluid shift thigh change');
   assert.ok(fluid.thighCmSd < 0.5, `thigh repeatability ${fluid.thighCmSd} cm`);
   const series = (recent, simulated = false) => [...Array(11).fill(16), ...Array(3).fill(recent)]
     .map((thighCm, i) => ({ id: String(i), date: new Date(Date.UTC(2026, 0, 1 + i)).toISOString(), sol: i + 1, simulated, reactionMs: null, missed: 0, signals: 0, symptoms: [], notes: '', thighCm }));
-  const loss = analyze(series(15.1), false);
+  const records = documented(series(15.1));
+  const loss = analyze(records, false, referencesFor(records));
   assert.equal(loss.legDelta, -6);
   assert.equal(loss.legFlag, true);
-  assert.equal(analyze(series(15.5), false).legFlag, false);
+  const smaller = documented(series(15.5));
+  assert.equal(analyze(smaller, false, referencesFor(smaller)).legFlag, false);
 });

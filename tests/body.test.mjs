@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { checks, coverage, hazards, regionForMesh, regionStatuses, regions, risks } from '../src/body.mjs';
+import { documented, referencesFor } from './fixtures/references.mjs';
 
 test('all 17 NASA HRP risks are reachable from a body region check', () => {
   assert.equal(risks.length, 17);
@@ -36,7 +37,8 @@ test('region status separates flags, reported symptoms, completed and unmeasured
   const day = (i, extra = {}) => ({ id: `s${i}`, date: new Date(Date.UTC(2026, 0, 1 + i, 2)).toISOString(), sol: i, simulated: true, reactionMs: 300, missed: 0, signals: 10, sleep: 4, mood: 4, energy: 4, symptoms: [], notes: '', leftRange: 150, ...extra });
   const history = [0, 1, 2, 3, 4, 5].map(i => day(i));
   history.push(day(6, { reactionMs: 380, vision: 1, heartRate: 66, breath: 0, joint: 0 }), day(7, { reactionMs: 390 }), day(8, { reactionMs: 400, vision: 1 }));
-  const status = regionStatuses(history, true, history.at(-1).date);
+  const recorded = documented(history);
+  const status = regionStatuses(recorded, true, history.at(-1).date, referencesFor(recorded, 6));
   assert.equal(status.head.state, 'flag');
   assert.equal(status.eyes.state, 'reported');
   assert.equal(status.cabin.state, 'instrument');

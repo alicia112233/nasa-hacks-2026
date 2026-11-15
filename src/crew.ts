@@ -28,7 +28,7 @@ export function normalise(state: MissionState): MissionState {
 /** The mission as one crew member sees it: only their records. */
 export function scoped(state: MissionState): MissionState {
   const id = state.crewId;
-  return { ...state, checkIns: state.checkIns.filter(c => c.crewId === id), actions: state.actions.filter(a => a.crewId === id), packets: state.packets?.filter(p => p.crewId === id) };
+  return { ...state, checkIns: state.checkIns.filter(c => c.crewId === id), actions: state.actions.filter(a => a.crewId === id), packets: state.packets?.filter(p => p.crewId === id), references: state.references?.filter(r => r.crewId === id), emergencies: state.emergencies?.filter(r => r.crewId === id), checkRuns: state.checkRuns?.filter(r => r.crewId === id), careUpdates: state.careUpdates?.filter(r => r.crewId === id) };
 }
 
 export const recordingsFor = (state: MissionState, recordings: Recording[]) =>
@@ -61,5 +61,7 @@ export function removeCrew(state: MissionState, id: string): MissionState {
   return {
     ...state, crew, crewId, profile: crew.find(c => c.id === crewId)!,
     checkIns: state.checkIns.filter(c => c.crewId !== id), actions: state.actions.filter(a => a.crewId !== id), packets: state.packets?.filter(p => p.crewId !== id),
+    references: state.references?.filter(r => r.crewId !== id), emergencies: state.emergencies?.filter(r => r.crewId !== id), checkRuns: state.checkRuns?.filter(r => r.crewId !== id),
+    careUpdates: state.careUpdates?.filter(r => r.crewId !== id),
   };
 }

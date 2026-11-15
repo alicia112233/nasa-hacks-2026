@@ -32,6 +32,44 @@ export interface CheckIn {
   exerciseMin?: number;
   /** Front-view thigh breadth from the body scan, with the crew member's height as the ruler. */
   thighCm?: number;
+  headache?: number;
+  /** Per-metric timestamps and conditions survive partial updates to a daily entry. */
+  measurements?: Record<string, MeasurementContext>;
+}
+
+export type MissionPhase = 'preflight' | 'adaptation' | 'cruise' | 'surface' | 'return' | 'unknown';
+export interface RecordingContext {
+  phase: MissionPhase;
+  cameraSetup: string;
+  posture: string;
+  lighting: string;
+  clothing: string;
+  activity: string;
+}
+export interface MeasurementContext extends RecordingContext {
+  measuredAt: string;
+  quality: 'good' | 'poor' | 'unknown';
+  confidentFrames?: number;
+  spread?: number;
+  recordingId?: string;
+}
+export interface GhostReference {
+  id: string; crewId?: string; simulated: boolean; phase: MissionPhase;
+  establishedAt: string; reason: string; records: CheckIn[];
+}
+export interface EmergencyEvent { at: string; step: string; instruction: string; response: string; note: string }
+export interface EmergencyIncident {
+  id: string; crewId?: string; crewName: string; simulated: boolean; startedAt: string; endedAt?: string;
+  procedure: { id: string; version: string; title: string; review: { status: string; clinician: string | null; reviewedAt: string | null }; sources: { title: string; url: string }[]; steps: Record<string, { title: string; text: string; answers: string[] }> };
+  step: string; events: EmergencyEvent[]; equipment?: string; assistance?: string;
+}
+export interface CabinReading {
+  id: string; date: string; location: string; co2Ppm: number; temperatureC?: number; humidityPct?: number;
+  source: 'manual' | 'simulated';
+}
+export interface CheckRun {
+  id: string; crewId?: string; simulated: boolean; checkId: string; field: string;
+  reason: string; startedAt: string; completedAt?: string; abandonedAt?: string;
 }
 
 export interface FollowUp {
@@ -63,6 +101,8 @@ export interface Recording {
   frames: PoseFrame[];
   leftRange: number | null;
   rightRange: number | null;
+  confidentFrames?: { left: number; right: number };
+  conditions?: MeasurementContext;
 }
 
 /** Body measurements shape the 3D body; they never leave the device. */
@@ -74,6 +114,7 @@ export interface Profile {
   scan?: BodyScan;
   /** Body shape set by hand (no camera). The crew card counts its first step done only after a scan or this. */
   setByHand?: boolean;
+  recordingContext?: RecordingContext;
 }
 
 /** Camera body scan: front-view breadths divided by torso length (src/scan.mjs). No image is kept; the review clip is never stored. */
@@ -96,6 +137,29 @@ export interface MissionState {
   crewId?: string;
   demo: boolean;
   packets?: MissionPacket[];
+  references?: GhostReference[];
+  emergencies?: EmergencyIncident[];
+  cabinReadings?: CabinReading[];
+  checkRuns?: CheckRun[];
+  careUpdates?: CareUpdate[];
+}
+
+export interface ProcedureRecord {
+  status: 'none' | 'followed' | 'unknown';
+  name: string;
+  version: string;
+}
+export interface CarePlan {
+  procedure: ProcedureRecord;
+  nextCheck: string;
+  dueAt: string;
+  missingInformation: string[];
+}
+export interface CareUpdate {
+  id: string; packetId: string; crewId?: string; source: 'simulated' | 'recorded'; recordedAt: string;
+  observation: string; change: 'improved' | 'unchanged' | 'worse' | 'unclear';
+  plan: CarePlan;
+  measurements: { checkInId: string; field: string; value: number; measuredAt: string; conditions?: MeasurementContext }[];
 }
 
 export interface MissionPacket {
@@ -110,9 +174,10 @@ export interface MissionPacket {
   actionCutoff: string;
   crew: string;
   mission: string;
-  status: 'queued' | 'downloaded';
+  status: 'saved' | 'downloaded' | 'queued'; // queued is retained for older local packets only
   downloadedAt?: string;
   context: string;
+  carePlan?: CarePlan;
   observations: CheckIn[];
   actions: FollowUp[];
   communication: { oneWayMinutes: number; blackoutDrill: boolean; transmitted: false };

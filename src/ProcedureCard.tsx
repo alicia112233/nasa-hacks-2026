@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowUpRight, Camera, Check, ChevronDown, Move3d, Play, RotateCcw, ScanLine, Send } from 'lucide-react';
 import { hazards, risks, totalSeconds } from './body.mjs';
-import { median } from './rules.mjs';
+import { formatDate } from './data';
 import { HOW, LEVELS, WHY, nextSteps, resultLine } from './guidance.mjs';
 import NasaData from './NasaData';
 import type { CheckIn, FollowUp, RegionId } from './types';
 
 type Check = { id: string; title: string; kind: string; field?: string; seconds?: number; unit?: string; options?: string[]; needs?: string; series?: 'dose' | 'air'; min?: number; max?: number; risks: string[] };
-type Item = { check: Check; value: number | null; last: number | null; done: boolean; flagged: boolean; reported: boolean };
+type Item = { check: Check; value: number | null; last: number | null; done: boolean; flagged: boolean; reported: boolean; lastMeasuredAt?: string; comparison?: { state: string; reason: string; comparable: boolean } };
 interface Props {
   region: { id: RegionId; letter: string; label: string; checks: Check[]; risks: string[]; hazards: string[] };
   status: { state: string; items: Item[] };
@@ -22,17 +22,20 @@ interface Props {
   onFollowUp: (action: FollowUp) => void;
   /** Finish by handing off: opens Handoff with this region's summary as the note. */
   onHandoff: (note: string) => void;
+  requestedCheck?: { id: string; nonce: number } | null;
+  onEmergency: () => void;
+  cabinContent?: ReactNode;
 }
 
 const followUps = ['Repeat this check tomorrow', 'Note it for the flight surgeon', 'Review the mission-approved procedure'];
 const fmt = (s: number) => s >= 60 ? `${Math.floor(s / 60)} MIN${s % 60 ? ` ${s % 60} S` : ''}` : `${s} S`;
 
-export default function ProcedureCard({ region, status, analysis, simulated, actions, onSave, onAttention, onCamera, onMovement, onFollowUp, onHandoff }: Props) {
+export default function ProcedureCard({ region, status, analysis, simulated, actions, onSave, onAttention, onCamera, onMovement, onFollowUp, onHandoff, requestedCheck, onEmergency, cabinContent }: Props) {
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [plan, setPlan] = useState(false);
   const items = status.items;
-  const ghost = useMemo(() => Object.fromEntries(region.checks.filter(c => c.field).map(c => [c.field!, median(analysis.baselineRecords.map(r => (r as unknown as Record<string, number>)[c.field!]))])), [region, analysis]);
+  const ghost = analysis.baseline;
   // Actionable checks write a value; instrument and NASA-data rows stay outside the count.
   const actionable = items.filter(i => i.check.field);
   const pending = actionable.filter(i => !i.done);
@@ -44,6 +47,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
   const regionHazards = hazards.filter(h => region.hazards.includes(h.id));
   const regionRisks = risks.filter(r => region.risks.includes(r.id));
   useEffect(() => { setOpen(null); setPlan(false); setDraft(''); }, [region.id]);
+  useEffect(() => { if (requestedCheck && region.checks.some(c => c.id === requestedCheck.id)) setOpen(requestedCheck.id); }, [requestedCheck, region]);
 
   function begin() {
     const next = pending[0]?.check;
@@ -86,7 +90,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
   let number = 0;
 
   return <article className="card" aria-labelledby="card-title">
-    <div className="tabs" aria-label="NASA hazards">
+    <div className="tabs" role="group" aria-label="NASA hazards">
       {regionHazards.map(h => <a key={h.id} href={h.url} target="_blank" rel="noreferrer" style={{ background: h.color }} aria-label={`${h.label} hazard (NASA)`}><span>{h.label}</span></a>)}
     </div>
     <div className="card-main">
@@ -107,6 +111,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
         <b>{guide?.level === 'now' ? LEVELS.now : flagged.length ? 'Trend' : guide ? LEVELS[guide.level] : 'Reported'}</b>
         <div>
           <p>{flagged.length ? flagged.map(note).join(' ') : `Last report: ${reported.map(i => `${i.check.title.toLowerCase()} (${i.check.options?.[i.last ?? 0].toLowerCase()})`).join(', ')}.`}</p>
+          {guide?.level === 'now' && <button className="btn" onClick={onEmergency}>Open emergency response</button>}
           {/* What to do, in order. Once the region is finished, the done panel below owns follow-up and hand off. */}
           {guide && <ol className="next-steps" aria-label="What to do">
             {guide.steps.map(step => <li key={step.text}>
@@ -128,18 +133,20 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
         </div>
       </div>}
 
+      {cabinContent}
+
       <ol className="steps">
         {items.map(item => {
           const c = item.check;
           const isOpen = open === c.id;
-          const g = c.field ? ghost[c.field] : null;
+          const g = c.field && item.comparison?.comparable ? ghost[c.field] : null;
           const valueText = item.value == null ? '' : c.options ? c.options[c.kind === 'scale' ? item.value - 1 : item.value] : `${item.value} ${c.unit ?? ''}`;
           const instrument = c.kind === 'instrument';
           const isNext = item === next;
           const result = item.done && item.value != null ? resultLine(c, item.value, g) : null;
           if (c.field) number++;
           return <li key={c.id} className={`${isOpen ? 'open' : ''} ${instrument ? 'instrument' : ''} ${isNext ? 'next' : ''}`}>
-            <button className="step" aria-expanded={isOpen} onClick={() => {
+            <button data-tour={c.field === 'heartRate' ? 'heart-check' : undefined} className="step" aria-expanded={isOpen} onClick={() => {
               if (c.kind === 'task') onAttention();
               else if (c.kind === 'camera' && !isOpen) setOpen(c.id);
               else setOpen(isOpen ? null : c.id);
@@ -153,6 +160,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
               </span>}
               {(c.kind === 'data' || instrument || c.kind === 'camera') && <ChevronDown className="chev" size={16} aria-hidden="true"/>}
             </button>
+            {c.field && <div className="measurement-context"><span>{item.lastMeasuredAt ? `Last measured ${formatDate(item.lastMeasuredAt, { hour: '2-digit', minute: '2-digit' })}` : 'Never measured'}</span>{item.comparison && item.lastMeasuredAt && !item.comparison.comparable && <p>{item.comparison.state === 'unreliable' ? 'Comparison unreliable. ' : ''}{item.comparison.reason}</p>}</div>}
             {isOpen && <div className="step-body">
               {HOW[c.id] && <dl className="how-why">
                 <div><dt>How</dt><dd>{HOW[c.id]}</dd></div>
@@ -171,7 +179,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
                 <button className="btn ghost" onClick={onMovement}><Move3d size={16}/> Compare movement</button>
               </div>}
               {c.id === 'legs' && <div className="row-actions">
-                <p>{item.value != null ? `Today ${item.value} cm` : 'Not scanned today.'}{g != null && ` Ghost ${g.toFixed(1)} cm.`} Zero-g fluid shift alone thins legs up to 6% in the first days (NASA HIDH).</p>
+                <p>{item.value != null ? `Today ${item.value} cm` : 'Not scanned today.'}{g != null && ` Ghost ${g.toFixed(1)} cm.`} Fluid shifts can reduce leg volume. A narrower silhouette alone cannot establish muscle loss.</p>
                 <button className="btn" onClick={() => onCamera('legs')}><ScanLine size={16}/> Scan 5 s</button>
               </div>}
               {c.kind === 'data' && <NasaData series={c.series!}/>}
@@ -187,7 +195,7 @@ export default function ProcedureCard({ region, status, analysis, simulated, act
         <div>
           <p><b>{actionable.length === 1 ? 'Done today.' : `All ${actionable.length} done today.`}</b> {flagged.length ? 'A trend is noted above.' : reported.length ? 'A report is noted above.' : 'Nothing trending against your ghost.'}</p>
           <div className="row-actions">
-            {regionActions.length
+            {guide?.level === 'now' ? <button className="btn" onClick={onEmergency}>Open emergency response</button> : regionActions.length
               ? <span className="muted">Reassess set for {shortDate(regionActions[0].scheduledAt)}.</span>
               : <button className="btn" onClick={() => followUp('Repeat this check tomorrow', new Date(Date.now() + 86400000))}><RotateCcw size={16} aria-hidden="true"/> Reassess tomorrow</button>}
             <button className={`btn ${flagged.length || reported.length ? 'primary' : ''}`} onClick={() => onHandoff(summary())}><Send size={16} aria-hidden="true"/> Hand off</button>

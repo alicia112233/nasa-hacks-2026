@@ -40,6 +40,8 @@ test('the top bar names who is shown on every page, and switching crew switches 
   await page.keyboard.press('Enter');
   await expect(who).toContainText('Priya Nair');
   await expect(who).toContainText('PN');
+  await page.getByRole('dialog', { name: 'Edit profile' }).getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(page).toHaveURL(/#trends$/);
   await page.goto('/#mission');
   await page.getByRole('button', { name: 'My records', exact: true }).click();
   await page.getByRole('link', { name: 'Body' }).click();

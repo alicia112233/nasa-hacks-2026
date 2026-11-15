@@ -128,7 +128,8 @@ test('demo reports and movement views exclude personal recordings while personal
   await page.getByRole('button', { name: /^E Arms/ }).click();
   await page.getByRole('button', { name: /Shoulder range/ }).click();
   await page.getByRole('button', { name: 'Compare movement', exact: true }).click();
-  await expect(page.getByRole('button', { name: '4DGS reference', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('dialog').getByText('Synthetic movement example.', { exact: false })).toBeVisible();
+  await expect(page.locator('.gaussian-stage')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await page.getByRole('link', { name: 'Mission', exact: true }).click();
   await page.getByRole('button', { name: 'My records', exact: true }).click();

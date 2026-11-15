@@ -1,6 +1,7 @@
 // Body index: NASA's five hazards and 17 Human Research Program risks, mapped to body
 // regions and the checks a crew member can run. Links verified 2026-11-14.
 import { analyze } from './rules.mjs';
+import { measuredAt } from './references.mjs';
 
 export const hazards = [
   { id: 'radiation', label: 'Radiation', color: '#8e2a8b', url: 'https://www.nasa.gov/hrp/hazard-space-radiation/' },
@@ -45,6 +46,7 @@ export const checks = [
   { id: 'mood', region: 'head', title: 'Mood', seconds: 5, kind: 'scale', field: 'mood', options: SCALE, risks: ['behavioral'] },
   { id: 'energy', region: 'head', title: 'Energy', seconds: 5, kind: 'scale', field: 'energy', options: SCALE, risks: ['behavioral', 'sleep'] },
   { id: 'dizziness', region: 'head', title: 'Dizziness or poor balance', seconds: 5, kind: 'symptom', field: 'dizziness', options: SYMPTOM, risks: ['sensorimotor'] },
+  { id: 'headache', region: 'head', title: 'Headache', seconds: 5, kind: 'symptom', field: 'headache', options: SYMPTOM, risks: ['hypoxia'] },
   { id: 'workload', region: 'head', title: 'Workload is manageable', seconds: 5, kind: 'scale', field: 'workload', options: SCALE, risks: ['support'] },
   { id: 'team', region: 'head', title: 'Crew working well together', seconds: 5, kind: 'scale', field: 'team', options: SCALE, risks: ['teamwork'] },
   { id: 'vision', region: 'eyes', title: 'Blurred or changed vision', seconds: 5, kind: 'symptom', field: 'vision', options: SYMPTOM, risks: ['sans'] },
@@ -102,13 +104,13 @@ export const dayKey = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia
 const isNum = v => typeof v === 'number' && Number.isFinite(v);
 
 /** Status of each region for the selected data source, as of its latest entry. */
-export function regionStatuses(checkIns, simulated, now = new Date().toISOString()) {
-  const analysis = analyze(checkIns, simulated);
+export function regionStatuses(checkIns, simulated, now = new Date().toISOString(), references = []) {
+  const analysis = analyze(checkIns, simulated, references);
   const records = analysis.records;
   const latest = records.at(-1);
-  const today = records.filter(c => dayKey(c.date) === dayKey(now));
-  const valueToday = field => { for (const c of [...today].reverse()) if (isNum(c[field])) return c[field]; return null; };
-  const lastValue = field => { for (const c of [...records].reverse()) if (isNum(c[field])) return c[field]; return null; };
+  const forField = field => records.filter(c => isNum(c[field]) || c.measurements?.[field]).sort((a, b) => measuredAt(a, field).localeCompare(measuredAt(b, field)));
+  const valueToday = field => { const c = forField(field).at(-1); return c && dayKey(measuredAt(c, field)) === dayKey(now) && isNum(c[field]) ? c[field] : null; };
+  const lastValue = field => { const c = forField(field).at(-1); return c && isNum(c[field]) ? c[field] : null; };
   const trend = { reactionMs: analysis.attentionFlag, sleep: analysis.wellbeingFlag, leftRange: analysis.movementFlag, thighCm: analysis.legFlag };
   return Object.fromEntries(regions.map(region => {
     const items = region.checks.map(check => {
@@ -117,7 +119,8 @@ export function regionStatuses(checkIns, simulated, now = new Date().toISOString
       const flagged = !!trend[check.field];
       const last = check.field ? lastValue(check.field) : null;
       const reported = check.kind === 'symptom' && last != null && last > 0;
-      return { check, value, last, done: value != null, ever, flagged, reported };
+      const lastRecord = check.field ? forField(check.field).at(-1) : null;
+      return { check, value, last, done: value != null, ever, flagged, reported, lastMeasuredAt: lastRecord ? measuredAt(lastRecord, check.field) : null, comparison: analysis.comparisons[check.field] };
     });
     const self = items.filter(i => i.check.field);
     const state = items.some(i => i.flagged) ? 'flag' : items.some(i => i.reported) ? 'reported'

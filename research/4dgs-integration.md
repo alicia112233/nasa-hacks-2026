@@ -1,9 +1,12 @@
 # Genuine 4DGS integration
 
-The demo defaults to a trained native-4D Gaussian example. The original
-articulated astronaut remains available as **Pose comparison**, and personal
-recordings continue to use MediaPipe pose replay. Health measurements, trend
-flags and exported crew records do not read from the public Gaussian model.
+The demo defaults to a labelled synthetic pose comparison. The trained
+native-4D Gaussian example is available only inside **Technical demo · public
+4DGS model**. Personal movement evidence starts with the crew's original video
+and an explicitly linked reference recording when available; estimated pose
+replay is secondary. Health measurements, trend flags and exported crew records
+do not read from the public Gaussian model, which supplies no evidence about
+that crew member.
 
 ## Representation and provenance
 
